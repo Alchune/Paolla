@@ -6,6 +6,7 @@ body {
 .tabs {
     overflow: hidden;
     border-bottom: 1px solid #ccc;
+    margin-bottom: 20px;
 }
 
 .tablink {
@@ -15,6 +16,7 @@ body {
     cursor: pointer;
     padding: 14px 16px;
     transition: 0.3s;
+    margin-right: 2px;
 }
 
 .tablink:hover {
