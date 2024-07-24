@@ -3,8 +3,28 @@ body {
     margin: 20px;
 }
 
-.section {
-    margin-bottom: 20px;
+.tabs {
+    overflow: hidden;
+    border-bottom: 1px solid #ccc;
+}
+
+.tablink {
+    background-color: #f1f1f1;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 0.3s;
+}
+
+.tablink:hover {
+    background-color: #ddd;
+}
+
+.tabcontent {
+    display: none;
+    padding: 20px;
+    border-top: none;
 }
 
 form {
