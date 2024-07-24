@@ -75,10 +75,10 @@ function moveToGotovo(button) {
     document.getElementById('gotovo-list').appendChild(item);
 }
 
-function filterByModel(listId, filterValue) {
+function applyFilter(listId, filterId) {
+    let filterValue = document.getElementById(filterId).value.toLowerCase();
     let list = document.getElementById(listId);
     let items = list.getElementsByTagName('li');
-    filterValue = filterValue.toLowerCase();
 
     for (let i = 0; i < items.length; i++) {
         let model = items[i].dataset.model.toLowerCase();
