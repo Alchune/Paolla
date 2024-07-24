@@ -16,7 +16,6 @@
     </div>
 
     <div id="Zakrjna" class="tabcontent">
-        <h2>Закрійна</h2>
         <form id="zakrjna-form">
             <label for="narad-number">Номер наряду:</label>
             <input type="text" id="narad-number" required>
@@ -26,21 +25,26 @@
             <input type="number" id="quantity" required>
             <button type="submit">Додати</button>
         </form>
+        <h2>Закрійна</h2>
+        <input type="text" id="model-filter" placeholder="Фільтрувати по моделі" onkeyup="filterByModel('zakrjna-list', this.value)">
         <ul id="zakrjna-list"></ul>
     </div>
 
     <div id="Shvejna" class="tabcontent">
         <h2>Швейна</h2>
+        <input type="text" id="shvejna-filter" placeholder="Фільтрувати по моделі" onkeyup="filterByModel('shvejna-list', this.value)">
         <ul id="shvejna-list"></ul>
     </div>
 
     <div id="Zatjazhka" class="tabcontent">
         <h2>Затяжка</h2>
+        <input type="text" id="zatjazhka-filter" placeholder="Фільтрувати по моделі" onkeyup="filterByModel('zatjazhka-list', this.value)">
         <ul id="zatjazhka-list"></ul>
     </div>
 
     <div id="Gotovo" class="tabcontent">
         <h2>ГОТОВО</h2>
+        <input type="text" id="gotovo-filter" placeholder="Фільтрувати по моделі" onkeyup="filterByModel('gotovo-list', this.value)">
         <ul id="gotovo-list"></ul>
     </div>
 
