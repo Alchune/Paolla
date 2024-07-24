@@ -21,6 +21,7 @@ document.getElementById('zakrjna-form').addEventListener('submit', function(even
 
     let newItem = document.createElement('li');
     newItem.innerHTML = `Наряд: ${naradNumber}, Модель: ${model}, Кількість: ${quantity} <button onclick="takeToWork(this)">Взяти в роботу</button>`;
+    newItem.dataset.model = model;
 
     document.getElementById('zakrjna-list').appendChild(newItem);
 
@@ -72,6 +73,21 @@ function moveToGotovo(button) {
     let item = button.parentElement;
     item.removeChild(button);
     document.getElementById('gotovo-list').appendChild(item);
+}
+
+function filterByModel(listId, filterValue) {
+    let list = document.getElementById(listId);
+    let items = list.getElementsByTagName('li');
+    filterValue = filterValue.toLowerCase();
+
+    for (let i = 0; i < items.length; i++) {
+        let model = items[i].dataset.model.toLowerCase();
+        if (model.includes(filterValue)) {
+            items[i].style.display = "";
+        } else {
+            items[i].style.display = "none";
+        }
+    }
 }
 
 // Відкриваємо першу вкладку за замовчуванням
