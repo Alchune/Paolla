@@ -8,8 +8,14 @@
 </head>
 <body>
     <h1>Відстеження Виробництва</h1>
+    <div class="tabs">
+        <button class="tablink" onclick="openTab(event, 'Zakrjna')">Закрійна</button>
+        <button class="tablink" onclick="openTab(event, 'Shvejna')">Швейна</button>
+        <button class="tablink" onclick="openTab(event, 'Zatjazhka')">Затяжка</button>
+        <button class="tablink" onclick="openTab(event, 'Gotovo')">ГОТОВО</button>
+    </div>
 
-    <div class="section">
+    <div id="Zakrjna" class="tabcontent">
         <h2>Закрійна</h2>
         <form id="zakrjna-form">
             <label for="narad-number">Номер наряду:</label>
@@ -23,17 +29,17 @@
         <ul id="zakrjna-list"></ul>
     </div>
 
-    <div class="section">
+    <div id="Shvejna" class="tabcontent">
         <h2>Швейна</h2>
         <ul id="shvejna-list"></ul>
     </div>
 
-    <div class="section">
+    <div id="Zatjazhka" class="tabcontent">
         <h2>Затяжка</h2>
         <ul id="zatjazhka-list"></ul>
     </div>
 
-    <div class="section">
+    <div id="Gotovo" class="tabcontent">
         <h2>ГОТОВО</h2>
         <ul id="gotovo-list"></ul>
     </div>
