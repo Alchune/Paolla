@@ -26,25 +26,29 @@
             <button type="submit">Додати</button>
         </form>
         <h2>Закрійна</h2>
-        <input type="text" id="model-filter" placeholder="Фільтрувати по моделі" onkeyup="filterByModel('zakrjna-list', this.value)">
+        <input type="text" id="model-filter-zakrjna" placeholder="Фільтрувати по моделі">
+        <button onclick="applyFilter('zakrjna-list', 'model-filter-zakrjna')">Фільтрувати</button>
         <ul id="zakrjna-list"></ul>
     </div>
 
     <div id="Shvejna" class="tabcontent">
         <h2>Швейна</h2>
-        <input type="text" id="shvejna-filter" placeholder="Фільтрувати по моделі" onkeyup="filterByModel('shvejna-list', this.value)">
+        <input type="text" id="model-filter-shvejna" placeholder="Фільтрувати по моделі">
+        <button onclick="applyFilter('shvejna-list', 'model-filter-shvejna')">Фільтрувати</button>
         <ul id="shvejna-list"></ul>
     </div>
 
     <div id="Zatjazhka" class="tabcontent">
         <h2>Затяжка</h2>
-        <input type="text" id="zatjazhka-filter" placeholder="Фільтрувати по моделі" onkeyup="filterByModel('zatjazhka-list', this.value)">
+        <input type="text" id="model-filter-zatjazhka" placeholder="Фільтрувати по моделі">
+        <button onclick="applyFilter('zatjazhka-list', 'model-filter-zatjazhka')">Фільтрувати</button>
         <ul id="zatjazhka-list"></ul>
     </div>
 
     <div id="Gotovo" class="tabcontent">
         <h2>ГОТОВО</h2>
-        <input type="text" id="gotovo-filter" placeholder="Фільтрувати по моделі" onkeyup="filterByModel('gotovo-list', this.value)">
+        <input type="text" id="model-filter-gotovo" placeholder="Фільтрувати по моделі">
+        <button onclick="applyFilter('gotovo-list', 'model-filter-gotovo')">Фільтрувати</button>
         <ul id="gotovo-list"></ul>
     </div>
 
