@@ -2,56 +2,28 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Відстеження Виробництва</title>
+    <title>Редактор персонажів DC 20</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>Відстеження Виробництва</h1>
-    <div class="tabs">
-        <button class="tablink" onclick="openTab(event, 'Zakrjna')">Закрійна</button>
-        <button class="tablink" onclick="openTab(event, 'Shvejna')">Швейна</button>
-        <button class="tablink" onclick="openTab(event, 'Zatjazhka')">Затяжка</button>
-        <button class="tablink" onclick="openTab(event, 'Gotovo')">ГОТОВО</button>
-    </div>
+    <h1>Редактор персонажів DC 20</h1>
+    <form id="character-form">
+        <h2>Основна інформація</h2>
+        <label for="name">Ім'я персонажа:</label>
+        <input type="text" id="name" name="name"><br><br>
 
-    <div id="Zakrjna" class="tabcontent">
-        <form id="zakrjna-form">
-            <label for="narad-number">Номер наряду:</label>
-            <input type="text" id="narad-number" required>
-            <label for="model">Модель:</label>
-            <input type="text" id="model" required>
-            <label for="quantity">Кількість:</label>
-            <input type="number" id="quantity" required>
-            <button type="submit">Додати</button>
-        </form>
-        <h2>Закрійна</h2>
-        <input type="text" id="model-filter-zakrjna" placeholder="Фільтрувати по моделі">
-        <button onclick="applyFilter('zakrjna-list', 'model-filter-zakrjna')">Фільтрувати</button>
-        <ul id="zakrjna-list"></ul>
-    </div>
+        <label for="race">Раса:</label>
+        <input type="text" id="race" name="race"><br><br>
 
-    <div id="Shvejna" class="tabcontent">
-        <h2>Швейна</h2>
-        <input type="text" id="model-filter-shvejna" placeholder="Фільтрувати по моделі">
-        <button onclick="applyFilter('shvejna-list', 'model-filter-shvejna')">Фільтрувати</button>
-        <ul id="shvejna-list"></ul>
-    </div>
+        <label for="class">Клас:</label>
+        <input type="text" id="class" name="class"><br><br>
 
-    <div id="Zatjazhka" class="tabcontent">
-        <h2>Затяжка</h2>
-        <input type="text" id="model-filter-zatjazhka" placeholder="Фільтрувати по моделі">
-        <button onclick="applyFilter('zatjazhka-list', 'model-filter-zatjazhka')">Фільтрувати</button>
-        <ul id="zatjazhka-list"></ul>
-    </div>
+        <label for="level">Рівень:</label>
+        <input type="number" id="level" name="level" min="1" max="20"><br><br>
 
-    <div id="Gotovo" class="tabcontent">
-        <h2>ГОТОВО</h2>
-        <input type="text" id="model-filter-gotovo" placeholder="Фільтрувати по моделі">
-        <button onclick="applyFilter('gotovo-list', 'model-filter-gotovo')">Фільтрувати</button>
-        <ul id="gotovo-list"></ul>
-    </div>
+        <!-- Тут можна додати інші розділи, такі як атрибути та навички -->
 
-    <script src="script.js"></script>
+        <input type="submit" value="Зберегти персонажа">
+    </form>
 </body>
 </html>
