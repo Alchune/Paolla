@@ -1,32 +1,185 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Редактор персонажів DC 20</title>
-    <link rel="stylesheet" href="styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Sheet</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-title {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Редактор персонажів DC 20</h1>
-    <form id="character-form">
-        <h2>Основна інформація</h2>
-        <label for="name">Ім'я персонажа:</label>
-        <input type="text" id="name" name="name">
+    <div class="container">
+        <h1 class="form-title">D20 Character Sheet</h1>
+        <form>
+            <!-- General Information -->
+            <div class="form-group">
+                <label for="playerName">Player Name</label>
+                <input type="text" id="playerName" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="characterName">Character Name</label>
+                <input type="text" id="characterName" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="classSubclass">Class & Subclass</label>
+                <input type="text" id="classSubclass" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="ancestryBackground">Ancestry & Background</label>
+                <input type="text" id="ancestryBackground" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="level">Level</label>
+                <input type="number" id="level" class="form-control">
+            </div>
 
-        <label for="race">Раса:</label>
-        <input type="text" id="race" name="race">
+            <!-- Attributes -->
+            <div class="form-group">
+                <label for="might">Might</label>
+                <input type="number" id="might" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="agility">Agility</label>
+                <input type="number" id="agility" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="charisma">Charisma</label>
+                <input type="number" id="charisma" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="intelligence">Intelligence</label>
+                <input type="number" id="intelligence" class="form-control">
+            </div>
 
-        <label for="class">Клас:</label>
-        <input type="text" id="class" name="class">
+            <!-- Skills -->
+            <div class="form-group">
+                <label>Skills</label>
+                <div class="form-check">
+                    <input type="checkbox" id="athletics" class="form-check-input">
+                    <label for="athletics" class="form-check-label">Athletics</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="acrobatics" class="form-check-input">
+                    <label for="acrobatics" class="form-check-label">Acrobatics</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="stealth" class="form-check-input">
+                    <label for="stealth" class="form-check-label">Stealth</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="arcana" class="form-check-input">
+                    <label for="arcana" class="form-check-label">Arcana</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="history" class="form-check-input">
+                    <label for="history" class="form-check-label">History</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="nature" class="form-check-input">
+                    <label for="nature" class="form-check-label">Nature</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="insight" class="form-check-input">
+                    <label for="insight" class="form-check-label">Insight</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="medicine" class="form-check-input">
+                    <label for="medicine" class="form-check-label">Medicine</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="survival" class="form-check-input">
+                    <label for="survival" class="form-check-label">Survival</label>
+                </div>
+                <div class="form-group mt-3">
+                    <label for="customSkill">Custom Skill</label>
+                    <input type="text" id="customSkill" class="form-control" placeholder="Enter custom skill">
+                </div>
+            </div>
 
-        <label for="level">Рівень:</label>
-        <input type="number" id="level" name="level" min="1" max="20">
+            <!-- Knowledge Trades and Languages -->
+            <div class="form-group">
+                <label>Knowledge Trades</label>
+                <div class="form-check">
+                    <input type="checkbox" id="arcanaTrade" class="form-check-input">
+                    <label for="arcanaTrade" class="form-check-label">Arcana</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="historyTrade" class="form-check-input">
+                    <label for="historyTrade" class="form-check-label">History</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="natureTrade" class="form-check-input">
+                    <label for="natureTrade" class="form-check-label">Nature</label>
+                </div>
+                <div class="form-group mt-3">
+                    <label for="customTrade">Custom Trade</label>
+                    <input type="text" id="customTrade" class="form-control" placeholder="Enter custom trade">
+                </div>
+            </div>
 
-        <!-- Можна додати додаткові поля -->
+            <div class="form-group">
+                <label>Languages</label>
+                <div class="form-check">
+                    <input type="checkbox" id="commonLanguage" class="form-check-input">
+                    <label for="commonLanguage" class="form-check-label">Common</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="elvishLanguage" class="form-check-input">
+                    <label for="elvishLanguage" class="form-check-label">Elvish</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="dwarvishLanguage" class="form-check-input">
+                    <label for="dwarvishLanguage" class="form-check-label">Dwarvish</label>
+                </div>
+                <div class="form-group mt-3">
+                    <label for="customLanguage">Custom Language</label>
+                    <input type="text" id="customLanguage" class="form-control" placeholder="Enter custom language">
+                </div>
+            </div>
 
-        <input type="submit" value="Зберегти персонажа">
-    </form>
+            <!-- Stamina, Mana, and Hit Points -->
+            <div class="form-group">
+                <label for="staminaPoints">Stamina Points</label>
+                <input type="number" id="staminaPoints" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="manaPoints">Mana Points</label>
+                <input type="number" id="manaPoints" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="hitPoints">Hit Points</label>
+                <input type="number" id="hitPoints" class="form-control">
+            </div>
 
-    <!-- Підключення JavaScript -->
-    <script src="script.js"></script>
+            <!-- Inventory and Features -->
+            <div class="form-group">
+                <label for="inventory">Inventory</label>
+                <textarea id="inventory" class="form-control" rows="4"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="features">Features</label>
+                <textarea id="features" class="form-control" rows="4"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Save Character</button>
+        </form>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
