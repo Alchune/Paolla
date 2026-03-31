@@ -1,234 +1,120 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Character Sheet</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background-color: #e0e0e0;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: #fff;
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-title {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .slider-row {
-            display: grid;
-            grid-template-columns: 140px 1fr 36px;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-        .slider-row label {
-            margin-bottom: 0;
-        }
-        .slider-value {
-            text-align: right;
-            font-weight: 700;
-        }
-    </style>
+    <title>Вампір: Маскарад 5 — Чарлист</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <h1 class="form-title">D20 Character Sheet</h1>
-        <form>
-            <!-- General Information -->
-            <div class="form-group">
-                <label for="playerName">Player Name</label>
-                <input type="text" id="playerName" class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="characterName">Character Name</label>
-                <input type="text" id="characterName" class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="classSubclass">Class & Subclass</label>
-                <input type="text" id="classSubclass" class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="ancestryBackground">Ancestry & Background</label>
-                <input type="text" id="ancestryBackground" class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="level">Level</label>
-                <input type="number" id="level" class="form-control">
-            </div>
+    <main class="sheet">
+        <h1>Вампір: Маскарад 5</h1>
+        <p class="subtitle">Український чарлист (цифрова форма)</p>
 
-            <!-- Attributes -->
-            <div class="form-group">
-                <label class="mb-2">Attributes (1-10)</label>
-                <div class="slider-row">
-                    <label for="might">Might</label>
-                    <input type="range" id="might" class="form-range score-slider" min="1" max="10" value="5">
-                    <span class="slider-value" id="mightValue">5</span>
+        <form id="character-form">
+            <section>
+                <h2>Основне</h2>
+                <div class="grid cols-3">
+                    <label>Ім'я <input type="text" name="name"></label>
+                    <label>Концепт <input type="text" name="concept"></label>
+                    <label>Тип хижака <input type="text" name="predator_type"></label>
+                    <label>Хроніка <input type="text" name="chronicle"></label>
+                    <label>Амбіція <input type="text" name="ambition"></label>
+                    <label>Клан <input type="text" name="clan"></label>
+                    <label>Сір <input type="text" name="sire"></label>
+                    <label>Бажання <input type="text" name="desire"></label>
+                    <label>Покоління <input type="text" name="generation"></label>
                 </div>
-                <div class="slider-row">
-                    <label for="agility">Agility</label>
-                    <input type="range" id="agility" class="form-range score-slider" min="1" max="10" value="5">
-                    <span class="slider-value" id="agilityValue">5</span>
-                </div>
-                <div class="slider-row">
-                    <label for="charisma">Charisma</label>
-                    <input type="range" id="charisma" class="form-range score-slider" min="1" max="10" value="5">
-                    <span class="slider-value" id="charismaValue">5</span>
-                </div>
-                <div class="slider-row">
-                    <label for="intelligence">Intelligence</label>
-                    <input type="range" id="intelligence" class="form-range score-slider" min="1" max="10" value="5">
-                    <span class="slider-value" id="intelligenceValue">5</span>
-                </div>
-            </div>
+            </section>
 
-            <!-- Skills -->
-            <div class="form-group">
-                <label class="mb-2">Skills (1-10)</label>
-                <div class="slider-row">
-                    <label for="athletics">Athletics</label>
-                    <input type="range" id="athletics" class="form-range score-slider" min="1" max="10" value="5">
-                    <span class="slider-value" id="athleticsValue">5</span>
+            <section>
+                <h2>Характеристики (0–5)</h2>
+                <div class="grid cols-3">
+                    <fieldset>
+                        <legend>Фізичні</legend>
+                        <label>Міць <input type="number" min="0" max="5" name="attr_strength" value="1"></label>
+                        <label>Спритність <input type="number" min="0" max="5" name="attr_dexterity" value="1"></label>
+                        <label>Витривалість <input type="number" min="0" max="5" name="attr_stamina" value="1"></label>
+                    </fieldset>
+                    <fieldset>
+                        <legend>Соціальні</legend>
+                        <label>Харизма <input type="number" min="0" max="5" name="attr_charisma" value="1"></label>
+                        <label>Маніпуляція <input type="number" min="0" max="5" name="attr_manipulation" value="1"></label>
+                        <label>Витримка <input type="number" min="0" max="5" name="attr_composure" value="1"></label>
+                    </fieldset>
+                    <fieldset>
+                        <legend>Ментальні</legend>
+                        <label>Інтелект <input type="number" min="0" max="5" name="attr_intelligence" value="1"></label>
+                        <label>Кмітливість <input type="number" min="0" max="5" name="attr_wits" value="1"></label>
+                        <label>Рішучість <input type="number" min="0" max="5" name="attr_resolve" value="1"></label>
+                    </fieldset>
                 </div>
-                <div class="slider-row">
-                    <label for="acrobatics">Acrobatics</label>
-                    <input type="range" id="acrobatics" class="form-range score-slider" min="1" max="10" value="5">
-                    <span class="slider-value" id="acrobaticsValue">5</span>
-                </div>
-                <div class="slider-row">
-                    <label for="stealth">Stealth</label>
-                    <input type="range" id="stealth" class="form-range score-slider" min="1" max="10" value="5">
-                    <span class="slider-value" id="stealthValue">5</span>
-                </div>
-                <div class="slider-row">
-                    <label for="arcana">Arcana</label>
-                    <input type="range" id="arcana" class="form-range score-slider" min="1" max="10" value="5">
-                    <span class="slider-value" id="arcanaValue">5</span>
-                </div>
-                <div class="slider-row">
-                    <label for="history">History</label>
-                    <input type="range" id="history" class="form-range score-slider" min="1" max="10" value="5">
-                    <span class="slider-value" id="historyValue">5</span>
-                </div>
-                <div class="slider-row">
-                    <label for="nature">Nature</label>
-                    <input type="range" id="nature" class="form-range score-slider" min="1" max="10" value="5">
-                    <span class="slider-value" id="natureValue">5</span>
-                </div>
-                <div class="slider-row">
-                    <label for="insight">Insight</label>
-                    <input type="range" id="insight" class="form-range score-slider" min="1" max="10" value="5">
-                    <span class="slider-value" id="insightValue">5</span>
-                </div>
-                <div class="slider-row">
-                    <label for="medicine">Medicine</label>
-                    <input type="range" id="medicine" class="form-range score-slider" min="1" max="10" value="5">
-                    <span class="slider-value" id="medicineValue">5</span>
-                </div>
-                <div class="slider-row">
-                    <label for="survival">Survival</label>
-                    <input type="range" id="survival" class="form-range score-slider" min="1" max="10" value="5">
-                    <span class="slider-value" id="survivalValue">5</span>
-                </div>
-                <div class="form-group mt-3">
-                    <label for="customSkill">Custom Skill</label>
-                    <input type="text" id="customSkill" class="form-control" placeholder="Enter custom skill">
-                </div>
-            </div>
+            </section>
 
-            <!-- Knowledge Trades and Languages -->
-            <div class="form-group">
-                <label>Knowledge Trades</label>
-                <div class="form-check">
-                    <input type="checkbox" id="arcanaTrade" class="form-check-input">
-                    <label for="arcanaTrade" class="form-check-label">Arcana</label>
+            <section>
+                <h2>Навички (0–5)</h2>
+                <div class="grid cols-3 skills">
+                    <label>Атлетизм <input type="number" min="0" max="5" name="skill_athletics" value="0"></label>
+                    <label>Виступ <input type="number" min="0" max="5" name="skill_performance" value="0"></label>
+                    <label>Знання <input type="number" min="0" max="5" name="skill_academics" value="0"></label>
+                    <label>Боротьба <input type="number" min="0" max="5" name="skill_brawl" value="0"></label>
+                    <label>Вуличний досвід <input type="number" min="0" max="5" name="skill_streetwise" value="0"></label>
+                    <label>Медицина <input type="number" min="0" max="5" name="skill_medicine" value="0"></label>
+                    <label>Виживання <input type="number" min="0" max="5" name="skill_survival" value="0"></label>
+                    <label>Етикет <input type="number" min="0" max="5" name="skill_etiquette" value="0"></label>
+                    <label>Наука <input type="number" min="0" max="5" name="skill_science" value="0"></label>
+                    <label>Керування <input type="number" min="0" max="5" name="skill_drive" value="0"></label>
+                    <label>Залякування <input type="number" min="0" max="5" name="skill_intimidation" value="0"></label>
+                    <label>Окультизм <input type="number" min="0" max="5" name="skill_occult" value="0"></label>
+                    <label>Крадійство <input type="number" min="0" max="5" name="skill_larceny" value="0"></label>
+                    <label>Лідерство <input type="number" min="0" max="5" name="skill_leadership" value="0"></label>
+                    <label>Політика <input type="number" min="0" max="5" name="skill_politics" value="0"></label>
+                    <label>Непомітність <input type="number" min="0" max="5" name="skill_stealth" value="0"></label>
+                    <label>Переконливість <input type="number" min="0" max="5" name="skill_persuasion" value="0"></label>
+                    <label>Розслідування <input type="number" min="0" max="5" name="skill_investigation" value="0"></label>
+                    <label>Ремесло <input type="number" min="0" max="5" name="skill_craft" value="0"></label>
+                    <label>Проникливість <input type="number" min="0" max="5" name="skill_insight" value="0"></label>
+                    <label>Спостережливість <input type="number" min="0" max="5" name="skill_awareness" value="0"></label>
+                    <label>Рукопашний бій <input type="number" min="0" max="5" name="skill_melee" value="0"></label>
+                    <label>Розуміння тварин <input type="number" min="0" max="5" name="skill_animal_ken" value="0"></label>
+                    <label>Технології <input type="number" min="0" max="5" name="skill_technology" value="0"></label>
+                    <label>Стрільба <input type="number" min="0" max="5" name="skill_firearms" value="0"></label>
+                    <label>Хитрість <input type="number" min="0" max="5" name="skill_subterfuge" value="0"></label>
+                    <label>Фінанси <input type="number" min="0" max="5" name="skill_finance" value="0"></label>
                 </div>
-                <div class="form-check">
-                    <input type="checkbox" id="historyTrade" class="form-check-input">
-                    <label for="historyTrade" class="form-check-label">History</label>
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" id="natureTrade" class="form-check-input">
-                    <label for="natureTrade" class="form-check-label">Nature</label>
-                </div>
-                <div class="form-group mt-3">
-                    <label for="customTrade">Custom Trade</label>
-                    <input type="text" id="customTrade" class="form-control" placeholder="Enter custom trade">
-                </div>
-            </div>
+            </section>
 
-            <div class="form-group">
-                <label>Languages</label>
-                <div class="form-check">
-                    <input type="checkbox" id="commonLanguage" class="form-check-input">
-                    <label for="commonLanguage" class="form-check-label">Common</label>
+            <section>
+                <h2>Дисципліни, переваги та примітки</h2>
+                <div class="grid cols-2">
+                    <label>Дисципліни <textarea name="disciplines" rows="6" placeholder="Наприклад: Присутність 2, Домінація 1..."></textarea></label>
+                    <label>Переваги й вади <textarea name="advantages_flaws" rows="6"></textarea></label>
+                    <label>Опори й переконання <textarea name="convictions" rows="4"></textarea></label>
+                    <label>Кланове прокляття <textarea name="clan_bane" rows="4"></textarea></label>
+                    <label>Історія <textarea name="history" rows="6"></textarea></label>
+                    <label>Примітки <textarea name="notes" rows="6"></textarea></label>
                 </div>
-                <div class="form-check">
-                    <input type="checkbox" id="elvishLanguage" class="form-check-input">
-                    <label for="elvishLanguage" class="form-check-label">Elvish</label>
-                </div>
-                <div class="form-check">
-                    <input type="checkbox" id="dwarvishLanguage" class="form-check-input">
-                    <label for="dwarvishLanguage" class="form-check-label">Dwarvish</label>
-                </div>
-                <div class="form-group mt-3">
-                    <label for="customLanguage">Custom Language</label>
-                    <input type="text" id="customLanguage" class="form-control" placeholder="Enter custom language">
-                </div>
-            </div>
+            </section>
 
-            <!-- Stamina, Mana, and Hit Points -->
-            <div class="form-group">
-                <label for="staminaPoints">Stamina Points</label>
-                <input type="number" id="staminaPoints" class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="manaPoints">Mana Points</label>
-                <input type="number" id="manaPoints" class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="hitPoints">Hit Points</label>
-                <input type="number" id="hitPoints" class="form-control">
-            </div>
+            <section>
+                <h2>Ресурси та треки</h2>
+                <div class="grid cols-3">
+                    <label>Здоров'я (0–10) <input type="number" min="0" max="10" name="health" value="3"></label>
+                    <label>Сила волі (0–10) <input type="number" min="0" max="10" name="willpower" value="3"></label>
+                    <label>Голод (0–5) <input type="number" min="0" max="5" name="hunger" value="1"></label>
+                    <label>Людяність (0–10) <input type="number" min="0" max="10" name="humanity" value="7"></label>
+                    <label>Сила Крові (0–10) <input type="number" min="0" max="10" name="blood_potency" value="1"></label>
+                    <label>Резонанс <input type="text" name="resonance"></label>
+                </div>
+            </section>
 
-            <!-- Inventory and Features -->
-            <div class="form-group">
-                <label for="inventory">Inventory</label>
-                <textarea id="inventory" class="form-control" rows="4"></textarea>
+            <div class="actions">
+                <button type="submit">Зберегти персонажа</button>
+                <button type="button" id="clear-btn" class="secondary">Очистити форму</button>
             </div>
-            <div class="form-group">
-                <label for="features">Features</label>
-                <textarea id="features" class="form-control" rows="4"></textarea>
-            </div>
-
-            <button type="submit" class="btn btn-primary">Save Character</button>
         </form>
-    </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.querySelectorAll('.score-slider').forEach((slider) => {
-            const valueTarget = document.getElementById(`${slider.id}Value`);
-            if (valueTarget) {
-                valueTarget.textContent = slider.value;
-            }
+    </main>
 
-            slider.addEventListener('input', () => {
-                if (valueTarget) {
-                    valueTarget.textContent = slider.value;
-                }
-            });
-        });
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
