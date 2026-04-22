@@ -28,7 +28,7 @@
             </section>
 
             <section>
-                <h2>Характеристики (цятки 0–5)</h2>
+                <h2>Характеристики (0–5)</h2>
                 <div class="grid cols-3">
                     <fieldset>
                         <legend>Фізичні</legend>
@@ -196,9 +196,9 @@
             </section>
 
             <section>
-                <h2>Навички (цятки 0–5)</h2>
+                <h2>Навички (0–5)</h2>
                 <div class="grid cols-3 skills">
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Атлетизм</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_athletics_0" name="skill_athletics" value="0" checked>
@@ -214,8 +214,9 @@
                             <input type="radio" id="skill_athletics_5" name="skill_athletics" value="5">
                             <label for="skill_athletics_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_athletics_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Виступ</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_performance_0" name="skill_performance" value="0" checked>
@@ -231,8 +232,9 @@
                             <input type="radio" id="skill_performance_5" name="skill_performance" value="5">
                             <label for="skill_performance_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_performance_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Знання</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_academics_0" name="skill_academics" value="0" checked>
@@ -248,8 +250,9 @@
                             <input type="radio" id="skill_academics_5" name="skill_academics" value="5">
                             <label for="skill_academics_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_academics_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Боротьба</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_brawl_0" name="skill_brawl" value="0" checked>
@@ -265,8 +268,9 @@
                             <input type="radio" id="skill_brawl_5" name="skill_brawl" value="5">
                             <label for="skill_brawl_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_brawl_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Вуличний досвід</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_streetwise_0" name="skill_streetwise" value="0" checked>
@@ -282,8 +286,9 @@
                             <input type="radio" id="skill_streetwise_5" name="skill_streetwise" value="5">
                             <label for="skill_streetwise_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_streetwise_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Медицина</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_medicine_0" name="skill_medicine" value="0" checked>
@@ -299,8 +304,9 @@
                             <input type="radio" id="skill_medicine_5" name="skill_medicine" value="5">
                             <label for="skill_medicine_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_medicine_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Виживання</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_survival_0" name="skill_survival" value="0" checked>
@@ -316,8 +322,9 @@
                             <input type="radio" id="skill_survival_5" name="skill_survival" value="5">
                             <label for="skill_survival_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_survival_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Етикет</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_etiquette_0" name="skill_etiquette" value="0" checked>
@@ -333,8 +340,9 @@
                             <input type="radio" id="skill_etiquette_5" name="skill_etiquette" value="5">
                             <label for="skill_etiquette_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_etiquette_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Наука</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_science_0" name="skill_science" value="0" checked>
@@ -350,8 +358,9 @@
                             <input type="radio" id="skill_science_5" name="skill_science" value="5">
                             <label for="skill_science_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_science_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Керування</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_drive_0" name="skill_drive" value="0" checked>
@@ -367,8 +376,9 @@
                             <input type="radio" id="skill_drive_5" name="skill_drive" value="5">
                             <label for="skill_drive_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_drive_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Залякування</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_intimidation_0" name="skill_intimidation" value="0" checked>
@@ -384,8 +394,9 @@
                             <input type="radio" id="skill_intimidation_5" name="skill_intimidation" value="5">
                             <label for="skill_intimidation_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_intimidation_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Окультизм</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_occult_0" name="skill_occult" value="0" checked>
@@ -401,8 +412,9 @@
                             <input type="radio" id="skill_occult_5" name="skill_occult" value="5">
                             <label for="skill_occult_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_occult_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Крадійство</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_larceny_0" name="skill_larceny" value="0" checked>
@@ -418,8 +430,9 @@
                             <input type="radio" id="skill_larceny_5" name="skill_larceny" value="5">
                             <label for="skill_larceny_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_larceny_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Лідерство</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_leadership_0" name="skill_leadership" value="0" checked>
@@ -435,8 +448,9 @@
                             <input type="radio" id="skill_leadership_5" name="skill_leadership" value="5">
                             <label for="skill_leadership_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_leadership_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Політика</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_politics_0" name="skill_politics" value="0" checked>
@@ -452,8 +466,9 @@
                             <input type="radio" id="skill_politics_5" name="skill_politics" value="5">
                             <label for="skill_politics_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_politics_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Непомітність</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_stealth_0" name="skill_stealth" value="0" checked>
@@ -469,8 +484,9 @@
                             <input type="radio" id="skill_stealth_5" name="skill_stealth" value="5">
                             <label for="skill_stealth_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_stealth_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Переконливість</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_persuasion_0" name="skill_persuasion" value="0" checked>
@@ -486,8 +502,9 @@
                             <input type="radio" id="skill_persuasion_5" name="skill_persuasion" value="5">
                             <label for="skill_persuasion_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_persuasion_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Розслідування</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_investigation_0" name="skill_investigation" value="0" checked>
@@ -503,8 +520,9 @@
                             <input type="radio" id="skill_investigation_5" name="skill_investigation" value="5">
                             <label for="skill_investigation_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_investigation_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Ремесло</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_craft_0" name="skill_craft" value="0" checked>
@@ -520,8 +538,9 @@
                             <input type="radio" id="skill_craft_5" name="skill_craft" value="5">
                             <label for="skill_craft_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_craft_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Проникливість</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_insight_0" name="skill_insight" value="0" checked>
@@ -537,8 +556,9 @@
                             <input type="radio" id="skill_insight_5" name="skill_insight" value="5">
                             <label for="skill_insight_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_insight_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Спостережливість</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_awareness_0" name="skill_awareness" value="0" checked>
@@ -554,8 +574,9 @@
                             <input type="radio" id="skill_awareness_5" name="skill_awareness" value="5">
                             <label for="skill_awareness_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_awareness_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Рукопашний бій</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_melee_0" name="skill_melee" value="0" checked>
@@ -571,8 +592,9 @@
                             <input type="radio" id="skill_melee_5" name="skill_melee" value="5">
                             <label for="skill_melee_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_melee_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Розуміння тварин</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_animal_ken_0" name="skill_animal_ken" value="0" checked>
@@ -588,8 +610,9 @@
                             <input type="radio" id="skill_animal_ken_5" name="skill_animal_ken" value="5">
                             <label for="skill_animal_ken_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_animal_ken_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Технології</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_technology_0" name="skill_technology" value="0" checked>
@@ -605,8 +628,9 @@
                             <input type="radio" id="skill_technology_5" name="skill_technology" value="5">
                             <label for="skill_technology_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_technology_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Стрільба</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_firearms_0" name="skill_firearms" value="0" checked>
@@ -622,8 +646,9 @@
                             <input type="radio" id="skill_firearms_5" name="skill_firearms" value="5">
                             <label for="skill_firearms_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_firearms_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Хитрість</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_subterfuge_0" name="skill_subterfuge" value="0" checked>
@@ -639,8 +664,9 @@
                             <input type="radio" id="skill_subterfuge_5" name="skill_subterfuge" value="5">
                             <label for="skill_subterfuge_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_subterfuge_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
-                    <div class="trait">
+                    <div class="trait trait-skill">
                         <span>Фінанси</span>
                         <div class="dot-rating" role="radiogroup" aria-label="Оцінка від 0 до 5">
                             <input type="radio" id="skill_finance_0" name="skill_finance" value="0" checked>
@@ -656,6 +682,7 @@
                             <input type="radio" id="skill_finance_5" name="skill_finance" value="5">
                             <label for="skill_finance_5" title="5"></label>
                         </div>
+                        <input type="text" name="skill_finance_specialization" class="specialization" placeholder="Спеціалізація">
                     </div>
                 </div>
             </section>

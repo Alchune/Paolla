@@ -154,3 +154,16 @@ button.secondary {
 .dot-rating input:checked + label ~ label {
     background: #2f2b2b;
 }
+
+
+.trait-skill {
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.trait-skill .specialization {
+    width: 100%;
+    margin-top: 4px;
+    padding: 6px;
+    font-size: 0.88rem;
+}
