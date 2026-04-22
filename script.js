@@ -3,6 +3,20 @@ const STORAGE_KEY = 'vtm5_ua_character_sheet';
 const form = document.getElementById('character-form');
 const clearBtn = document.getElementById('clear-btn');
 
+const enableOneDotToggleToEmpty = () => {
+    const oneDotLabels = document.querySelectorAll('.dot-rating label[for$="_1"]');
+
+    oneDotLabels.forEach((label) => {
+        label.addEventListener('click', (event) => {
+            const targetInput = document.getElementById(label.htmlFor);
+            if (targetInput && targetInput.checked) {
+                event.preventDefault();
+                targetInput.checked = false;
+            }
+        });
+    });
+};
+
 const restoreForm = () => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
@@ -34,4 +48,5 @@ clearBtn.addEventListener('click', () => {
     localStorage.removeItem(STORAGE_KEY);
 });
 
+enableOneDotToggleToEmpty();
 restoreForm();
