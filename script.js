@@ -1,36 +1,52 @@
-// Додаємо обробник події для форми
-document.getElementById('character-form').addEventListener('submit', function(e) {
-    e.preventDefault(); // Запобігаємо стандартному відправленню форми
+const STORAGE_KEY = 'vtm5_ua_character_sheet';
 
-    // Отримуємо значення з полів форми
-    var name = document.getElementById('name').value;
-    var race = document.getElementById('race').value;
-    var className = document.getElementById('class').value;
-    var level = document.getElementById('level').value;
+const form = document.getElementById('character-form');
+const clearBtn = document.getElementById('clear-btn');
 
-    // Створюємо об'єкт персонажа
-    var character = {
-        name: name,
-        race: race,
-        class: className,
-        level: level
-    };
+const enableOneDotToggleToEmpty = () => {
+    const oneDotLabels = document.querySelectorAll('.dot-rating label[for$="_1"]');
 
-    // Зберігаємо персонажа в локальному сховищі
-    localStorage.setItem('character', JSON.stringify(character));
+    oneDotLabels.forEach((label) => {
+        label.addEventListener('click', (event) => {
+            const targetInput = document.getElementById(label.htmlFor);
+            if (targetInput && targetInput.checked) {
+                event.preventDefault();
+                targetInput.checked = false;
+            }
+        });
+    });
+};
 
-    // Повідомляємо користувача про успішне збереження
-    alert('Персонаж успішно збережений!');
-});
+const restoreForm = () => {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
 
-// Завантажуємо персонажа при завантаженні сторінки (опціонально)
-window.onload = function() {
-    var savedCharacter = localStorage.getItem('character');
-    if (savedCharacter) {
-        var character = JSON.parse(savedCharacter);
-        document.getElementById('name').value = character.name;
-        document.getElementById('race').value = character.race;
-        document.getElementById('class').value = character.class;
-        document.getElementById('level').value = character.level;
+    try {
+        const values = JSON.parse(raw);
+        Object.entries(values).forEach(([name, value]) => {
+            const field = form.elements.namedItem(name);
+            if (field) {
+                field.value = value;
+            }
+        });
+    } catch (error) {
+        console.error('Не вдалося відновити дані чарлиста:', error);
     }
 };
+
+form.addEventListener('submit', (event) => {
+    event.preventDefault();
+
+    const payload = Object.fromEntries(new FormData(form).entries());
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+
+    alert('Чарлист збережено в локальному сховищі браузера.');
+});
+
+clearBtn.addEventListener('click', () => {
+    form.reset();
+    localStorage.removeItem(STORAGE_KEY);
+});
+
+enableOneDotToggleToEmpty();
+restoreForm();
