@@ -148,6 +148,11 @@ button.secondary {
     margin: 0;
 }
 
+.dot-rating input[value="0"],
+.dot-rating input[value="0"] + label {
+    display: none;
+}
+
 .dot-rating label:hover,
 .dot-rating label:hover ~ label,
 .dot-rating input:checked + label,
