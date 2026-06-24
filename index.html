@@ -220,7 +220,7 @@ tbody tr:last-child td{border-bottom:none}
 🗂️ Залишки
 </button>
 <button class="nav-item" onclick="navigate('clients')" id="nav-clients">
-👤 Клієнти
+👤 Контрагенти
 </button>
 <div class="nav-section">Виробництво</div>
 <button class="nav-item" onclick="navigate('orders')" id="nav-orders">
@@ -441,7 +441,7 @@ function navigate(page) {
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
   const navEl = document.getElementById('nav-' + page);
   if (navEl) navEl.classList.add('active');
-  const titles = { dashboard: 'Дашборд', products: 'Товари та матеріали', incoming: 'Прихід товарів', outgoing: 'Видаток товарів', inventory: 'Залишки', orders: 'Замовлення', clients: 'Клієнти', recipes: 'Рецепти', production: 'Виробництво', reports: 'Звіти та статистика', warehouse: 'Склади', team: 'Команда', profile: 'Профіль' };
+  const titles = { dashboard: 'Дашборд', products: 'Товари та матеріали', incoming: 'Прихід товарів', outgoing: 'Видаток товарів', inventory: 'Залишки', orders: 'Замовлення', clients: 'Контрагенти', recipes: 'Рецепти', production: 'Виробництво', reports: 'Звіти та статистика', warehouse: 'Склади', team: 'Команда', profile: 'Профіль' };
   document.getElementById('page-title').textContent = titles[page] || page;
   const renderers = { dashboard: renderDashboard, products: renderProducts, incoming: renderIncoming, outgoing: renderOutgoing, inventory: renderInventory, orders: renderOrders, clients: renderClients, recipes: renderRecipes, production: renderProduction, reports: renderReports, warehouse: renderWarehouse, team: renderTeam };
   if (renderers[page]) renderers[page]();
@@ -467,7 +467,7 @@ ${state.products.filter(p => p.quantity <= p.min_qty).map(p => `<tr><td>${p.name
 </tbody></table></div>
 <div class="table-container">
 <div class="table-header"><h3>📋 Активні замовлення</h3><button class="btn btn-secondary btn-sm" onclick="navigate('orders')">Всі →</button></div>
-<table><thead><tr><th>Номер</th><th>Клієнт</th><th>Статус</th></tr></thead><tbody>
+<table><thead><tr><th>Номер</th><th>Контрагент</th><th>Статус</th></tr></thead><tbody>
 ${state.orders.filter(o=>o.status!=='completed').slice(0,5).map(o => `<tr><td>${o.number}</td><td>${o.client}</td><td>${orderBadge(o.status)}</td></tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:20px">Немає замовлень</td></tr>'}
 </tbody></table></div>
 </div>
@@ -498,7 +498,7 @@ function renderClients() {
   document.getElementById('page-content').innerHTML = `
 <div class="table-container">
 <div class="table-header">
-<h3>Всі клієнти (${state.clients.length})</h3>
+<h3>Всі контрагенти (${state.clients.length})</h3>
 <div class="table-search">
 <input class="search-input" placeholder="🔍 Пошук..." oninput="filterClients(this.value)">
 ${toggle}
@@ -525,11 +525,11 @@ function renderClientRows(clients) {
 <td>${c.address || '—'}</td>
 <td><button class="btn btn-secondary btn-sm" onclick="editClient(${c.id})">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteClient(${c.id})">🗑️</button></td>
 </tr>`;
-  }).join('') || '<tr><td colspan="5"><div class="empty-state"><div class="icon">👤</div><h3>Немає клієнтів</h3><p>Додайте першого клієнта</p></div></td></tr>';
+  }).join('') || '<tr><td colspan="5"><div class="empty-state"><div class="icon">👤</div><h3>Немає контрагентів</h3><p>Додайте першого контрагента</p></div></td></tr>';
 }
 
 function renderClientGrid(clients) {
-  if (!clients.length) return '<div class="empty-state"><div class="icon">👤</div><h3>Немає клієнтів</h3><p>Додайте першого клієнта</p></div>';
+  if (!clients.length) return '<div class="empty-state"><div class="icon">👤</div><h3>Немає контрагентів</h3><p>Додайте першого контрагента</p></div>';
   var cards = clients.map(function(c) {
     return '<div class="item-card">'
       + '<div class="ic-thumb">👤</div>'
@@ -551,7 +551,7 @@ function filterClients(q) {
 
 function openClientModal(id) {
   const c = id ? state.clients.find(x => x.id === id) : {};
-  document.getElementById('modal-title').textContent = id ? 'Редагувати клієнта' : 'Новий клієнт';
+  document.getElementById('modal-title').textContent = id ? 'Редагувати контрагента' : 'Новий контрагент';
   document.getElementById('modal-body').innerHTML = `
 <div class="form-group"><label class="form-label">Назва / ПІБ *</label><input class="form-input" id="c-name" value="${c.name||''}"></div>
 <div class="form-row">
@@ -575,7 +575,7 @@ async function saveClient(id) {
     address: document.getElementById('c-address').value,
     note: document.getElementById('c-note').value
   };
-  if (!c.name) return showNotif('Введіть назву клієнта', 'error');
+  if (!c.name) return showNotif('Введіть назву контрагента', 'error');
   if (id) {
     const idx = state.clients.findIndex(x => x.id === id);
     state.clients[idx] = { ...state.clients[idx], ...c };
@@ -586,15 +586,15 @@ async function saveClient(id) {
   await saveSnapshot();
   closeModal();
   renderClients();
-  showNotif('Клієнта збережено', 'success');
+  showNotif('Контрагента збережено', 'success');
 }
 
 async function deleteClient(id) {
-  if (!confirm('Видалити цього клієнта?')) return;
+  if (!confirm('Видалити цього контрагента?')) return;
   state.clients = state.clients.filter(c => c.id !== id);
   await saveSnapshot();
   renderClients();
-  showNotif('Клієнта видалено', 'success');
+  showNotif('Контрагента видалено', 'success');
 }
 
 function setProductView(mode) {
@@ -999,7 +999,7 @@ function renderOrders() {
   html += '<select class="form-select" style="flex:1" onchange="window._orderFilterCat=this.value;renderOrders()"><option value="">— Всі категорії —</option>'+catOpts+'</select>';
   html += '<select class="form-select" style="flex:1" onchange="window._orderFilterModel=this.value;renderOrders()"><option value="">— Всі моделі —</option>'+modelOpts+'</select>';
   html += '</div>';
-  html += '<table class="data-table"><thead><tr><th>Номер</th><th>Клієнт</th><th>Модель</th><th>Категорія</th><th>К-сть</th><th>Дедлайн</th><th>Статус</th><th>Дії</th></tr></thead><tbody>';
+  html += '<table class="data-table"><thead><tr><th>Номер</th><th>Контрагент</th><th>Модель</th><th>Категорія</th><th>К-сть</th><th>Дедлайн</th><th>Статус</th><th>Дії</th></tr></thead><tbody>';
   if (filtered.length === 0) {
     html += '<tr><td colspan="8"><div class="empty-state"><div class="icon">📋</div><h3>Немає замовлень</h3></div></td></tr>';
   } else {
@@ -1025,7 +1025,7 @@ function openOrderModal() {
   var nextNum = 'ЗАМ-' + String(state.orders.length + 1).padStart(3, '0');
   document.getElementById('modal-body').innerHTML =
     '<div class="form-row"><div class="form-group"><label class="form-label">Номер</label><input class="form-input" id="o-num" value="'+nextNum+'"></div>' +
-    '<div class="form-group"><label class="form-label">Клієнт *</label><input class="form-input" id="o-client" placeholder="Клієнт"></div></div>' +
+    '<div class="form-group"><label class="form-label">Контрагент *</label><input class="form-input" id="o-client" placeholder="Контрагент"></div></div>' +
     '<div class="form-row"><div class="form-group"><label class="form-label">Модель *</label><input class="form-input" id="o-product" placeholder="Модель"></div>' +
     '<div class="form-group"><label class="form-label">Категорія</label><input class="form-input" id="o-category" placeholder="Категорія"></div></div>' +
     '<div class="form-row"><div class="form-group"><label class="form-label">Кількість</label><input type="number" class="form-input" id="o-qty" value="1"></div>' +
@@ -1037,7 +1037,7 @@ function openOrderModal() {
 async function saveOrder() {
   var client = document.getElementById('o-client').value.trim();
   var product = document.getElementById('o-product').value.trim();
-  if (!client || !product) return showNotif('Заповніть клієнта та модель', 'error');
+  if (!client || !product) return showNotif('Заповніть контрагента та модель', 'error');
   state.orders.push({ id: Date.now(), number: document.getElementById('o-num').value, client: client, product: product, category: document.getElementById('o-category').value.trim(), quantity: parseInt(document.getElementById('o-qty').value)||1, status: 'new', date: new Date().toISOString().split('T')[0], deadline: document.getElementById('o-deadline').value });
   await saveSnapshot();
   closeModal();
