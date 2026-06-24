@@ -589,7 +589,7 @@ function renderOperation(type) {
       html += '<td style="max-width:220px;white-space:normal">' + itemsSummary + '</td>';
       html += '<td>' + totalStr + '</td>';
       html += '<td>' + (o.notes || '—') + '</td>';
-      html += '<td><button class="btn btn-sm btn-danger" onclick="deleteOperation(' + o.id + ',&apos;' + type + '&apos;)">✕</button></td>';
+      html += '<td><button class="btn btn-sm btn-danger" onclick="deleteOperation(' + o.id + ','' + type + '')">✕</button></td>';
       html += '</tr>';
     });
   }
@@ -623,7 +623,7 @@ function openOperationModal(type) {
     '<input class="form-input" id="op-counterparty" placeholder="' + counterpartyLabel + '"></div>' +
     '<div class="form-row">' +
     '<div class="form-group"><label class="form-label">Дата</label><input type="date" class="form-input" id="op-date" value="' + today + '"></div>' +
-    '<div class="form-group"><label class="form-label">Примітки</label><input class="form-input" id="op-notes" placeholder="Необов'язково"></div>' +
+    '<div class="form-group"><label class="form-label">Примітки</label><input class="form-input" id="op-notes" placeholder="Необов&#39;язково"></div>' +
     '</div>' +
     '<div class="form-label" style="margin-bottom:6px;font-weight:600">Товари *</div>' +
     '<table class="data-table" id="op-items-table" style="margin-bottom:8px">' +
