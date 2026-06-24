@@ -126,6 +126,20 @@ tbody tr:last-child td{border-bottom:none}
 .empty-state{text-align:center;padding:60px 20px;color:var(--text2)}
 .empty-state .icon{font-size:48px;margin-bottom:16px}
 .empty-state h3{font-size:16px;color:var(--text);margin-bottom:8px}
+/* View toggle */
+.view-toggle{display:inline-flex;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px}
+.view-toggle button{background:none;border:none;color:var(--text2);cursor:pointer;padding:5px 9px;border-radius:6px;font-size:14px;line-height:1;display:flex;align-items:center;transition:all 0.2s}
+.view-toggle button:hover{color:var(--text)}
+.view-toggle button.active{background:var(--card);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,0.3)}
+/* Card grid (rounded squares) */
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.item-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px;transition:all 0.2s;position:relative}
+.item-card:hover{border-color:#8b949e;transform:translateY(-2px)}
+.item-card .ic-thumb{width:100%;aspect-ratio:1/1;border-radius:12px;background:linear-gradient(135deg,rgba(35,134,54,0.15),rgba(31,111,235,0.15));display:flex;align-items:center;justify-content:center;font-size:42px;margin-bottom:4px}
+.item-card .ic-name{font-size:14px;font-weight:600;color:var(--text);line-height:1.3}
+.item-card .ic-meta{font-size:12px;color:var(--text2);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.item-card .ic-actions{display:flex;gap:6px;margin-top:auto;padding-top:4px}
+.item-card .ic-actions .btn{flex:1;justify-content:center}
 /* Loading */
 .loading{display:flex;align-items:center;justify-content:center;padding:60px;color:var(--text2)}
 .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin-right:12px}
@@ -288,7 +302,9 @@ let state = {
   recipes: [],
   production: [],
   members: [],
-  currentPage: 'dashboard'
+  currentPage: 'dashboard',
+  productView: (typeof localStorage!=='undefined' && localStorage.getItem('paolla_productView')) || 'list',
+  productionView: (typeof localStorage!=='undefined' && localStorage.getItem('paolla_productionView')) || 'list'
 };
 
 // ====== AUTH ======
@@ -457,27 +473,43 @@ ${state.operations.slice(-5).reverse().map(op => `
 </div></div>`;
 }
 
+function setProductView(mode) {
+  state.productView = mode;
+  try { localStorage.setItem('paolla_productView', mode); } catch(e) {}
+  renderProducts();
+}
+
 function renderProducts() {
+  var isGrid = state.productView === 'grid';
+  var toggle = '<div class="view-toggle">'
+    + '<button class="' + (!isGrid?'active':'') + '" onclick="setProductView(\'list\')" title="Списком">&#9776;</button>'
+    + '<button class="' + (isGrid?'active':'') + '" onclick="setProductView(\'grid\')" title="Сіткою">&#9638;</button>'
+    + '</div>';
   document.getElementById('page-content').innerHTML = `
 <div class="table-container">
 <div class="table-header">
 <h3>Всі товари (${state.products.length})</h3>
 <div class="table-search">
 <input class="search-input" placeholder="🔍 Пошук..." oninput="filterProducts(this.value)">
+${toggle}
 <button class="btn btn-primary" onclick="openProductModal()">+ Додати</button>
 </div>
 </div>
-<table><thead><tr><th>Назва</th><th>Категорія</th><th>Залишок</th><th>Ціна</th><th>Статус</th><th>Дії</th></tr></thead>
+<div id="products-body">${isGrid ? renderProductGrid(state.products) : renderProductTable(state.products)}</div>
+</div>`;
+}
+
+function renderProductTable(products) {
+  return `<table><thead><tr><th>Назва</th><th>Категорія</th><th>Залишок</th><th>Ціна</th><th>Статус</th><th>Дії</th></tr></thead>
 <tbody id="products-table">
-${renderProductRows(state.products)}
-</tbody></table></div>`;
+${renderProductRows(products)}
+</tbody></table>`;
 }
 
 function renderProductRows(products) {
   return products.map(p => {
     const status = p.quantity === 0 ? '<span class="badge badge-red">Немає</span>' : p.quantity <= p.min_qty ? '<span class="badge badge-yellow">Мало</span>' : '<span class="badge badge-green">В наявності</span>';
     return `<tr>
-
 <td><strong>${p.name}</strong></td>
 <td><span class="badge badge-gray">${p.category}</span></td>
 <td>${p.quantity} ${p.unit} <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${Math.min(100,(p.quantity/Math.max(p.min_qty*3,1))*100)}%;background:${p.quantity<=p.min_qty?'var(--danger)':'var(--accent)'}"></div></div></td>
@@ -488,9 +520,24 @@ function renderProductRows(products) {
   }).join('') || '<tr><td colspan="7"><div class="empty-state"><div class="icon">📦</div><h3>Немає товарів</h3><p>Додайте першу позицію</p></div></td></tr>';
 }
 
+function renderProductGrid(products) {
+  if (!products.length) return '<div class="empty-state"><div class="icon">📦</div><h3>Немає товарів</h3><p>Додайте першу позицію</p></div>';
+  var cards = products.map(function(p) {
+    var status = p.quantity === 0 ? '<span class="badge badge-red">Немає</span>' : p.quantity <= p.min_qty ? '<span class="badge badge-yellow">Мало</span>' : '<span class="badge badge-green">В наявності</span>';
+    return '<div class="item-card">'
+      + '<div class="ic-thumb">📦</div>'
+      + '<div class="ic-name">' + p.name + '</div>'
+      + '<div class="ic-meta"><span class="badge badge-gray">' + p.category + '</span>' + status + '</div>'
+      + '<div class="ic-meta">' + p.quantity + ' ' + p.unit + ' • ' + formatMoney(p.price) + ' грн</div>'
+      + '<div class="ic-actions"><button class="btn btn-secondary btn-sm" onclick="editProduct(' + p.id + ')">✏️ Змінити</button><button class="btn btn-secondary btn-sm" onclick="deleteProduct(' + p.id + ')">🗑️</button></div>'
+      + '</div>';
+  }).join('');
+  return '<div class="card-grid">' + cards + '</div>';
+}
+
 function filterProducts(q) {
   const filtered = state.products.filter(p => p.name.toLowerCase().includes(q.toLowerCase()) || p.category.toLowerCase().includes(q.toLowerCase()));
-  document.getElementById('products-table').innerHTML = renderProductRows(filtered);
+  document.getElementById('products-body').innerHTML = state.productView === 'grid' ? renderProductGrid(filtered) : renderProductTable(filtered);
 }
 
 function openProductModal(id) {
@@ -1006,6 +1053,12 @@ async function saveRecipe() {
   showNotif('Рецепт збережено', 'success');
 }
 
+function setProductionView(mode) {
+  state.productionView = mode;
+  try { localStorage.setItem('paolla_productionView', mode); } catch(e) {}
+  renderProduction();
+}
+
 function renderProduction() {
   var cats = [...new Set(state.production.map(function(p){return p.category;}).filter(Boolean))];
   var models = [...new Set(state.production.map(function(p){return p.recipe_name;}).filter(Boolean))];
@@ -1016,16 +1069,22 @@ function renderProduction() {
   var done = state.production.filter(function(p){ return p.status === 'completed' && matchFn(p); });
   var catOpts = cats.map(function(c){return '<option value="'+c+'" '+(filterCat===c?'selected':'')+'>'+c+'</option>';}).join('');
   var modelOpts = models.map(function(m){return '<option value="'+m+'" '+(filterModel===m?'selected':'')+'>'+m+'</option>';}).join('');
-  var html = '<div class="page-header"><h2>⚙️ Виробництво</h2><button class="btn" onclick="navigate(&apos;recipes&apos;)">📋 Рецепти</button></div>';
+    var _pv = state.productionView === 'grid' ? 'grid' : 'list';
+  var _pvToggle = '<div class="view-toggle">'
+    + '<button class="' + (_pv!=='grid'?'active':'') + '" onclick="setProductionView(\'list\')" title="Списком">&#9776;</button>'
+    + '<button class="' + (_pv==='grid'?'active':'') + '" onclick="setProductionView(\'grid\')" title="Сіткою">&#9638;</button>'
+    + '</div>';
+var html = '<div class="page-header"><h2>⚙️ Виробництво</h2><button class="btn" onclick="navigate(&apos;recipes&apos;)">📋 Рецепти</button></div>';
   html += '<div class="form-row" style="margin-bottom:12px;gap:8px">';
   html += '<select class="form-select" style="flex:1" onchange="window._prodFilterCat=this.value;renderProduction()"><option value="">— Всі категорії —</option>'+catOpts+'</select>';
   html += '<select class="form-select" style="flex:1" onchange="window._prodFilterModel=this.value;renderProduction()"><option value="">— Всі моделі —</option>'+modelOpts+'</select>';
+  html += _pvToggle;
   html += '</div>';
   html += '<h3 style="margin:0 0 10px;color:var(--text)">🔵 У виробництві ('+active.length+')</h3>';
   if (active.length === 0) {
     html += '<div style="color:var(--text2);margin-bottom:20px">Немає активних нарядів</div>';
   } else {
-    html += '<div style="display:grid;gap:10px;margin-bottom:24px">';
+    html += _pv==='grid' ? '<div class="card-grid" style="margin-bottom:24px">' : '<div style="display:grid;gap:10px;margin-bottom:24px">';
     active.forEach(function(prod) {
       var depts = prod.departments || [];
       var allDone = depts.length > 0 && depts.every(function(d){return d.status==='done';});
@@ -1240,9 +1299,3 @@ function closeModal(e) {
 </script>
 </body>
 </html>
- 
- 
- 
- 
- 
- 
