@@ -364,14 +364,51 @@ async function initApp(user) {
 }
 
 async function loadWarehouse() {
-  const { data: member } = await sb.from('warehouse_members').select('warehouse_id, role').eq('user_id', state.user.id).single();
-  if (member) {
-    const { data: wh } = await sb.from('warehouses').select('*').eq('id', member.warehouse_id).single();
-    state.warehouse = wh;
-    document.getElementById('user-role').textContent = member.role || 'Менеджер';
-    // Load snapshot
-    const { data: snap } = await sb.from('warehouse_snapshots').select('payload').eq('warehouse_id', member.warehouse_id).single();
-    if (snap?.payload) {
+    const savedId = localStorage.getItem('paolla_warehouse_id');
+    if (savedId) {
+      try {
+        await sb.from('warehouse_members').upsert(
+          { warehouse_id: savedId, user_id: state.user.id, access_mode: 'editor' },
+          { onConflict: 'warehouse_id,user_id' }
+        );
+      } catch(e) { console.log('join upsert error:', e); }
+      const { data: wh } = await sb.from('warehouses').select('*').eq('id', savedId).single();
+      state.warehouse = wh || { id: savedId, name: '' };
+      const roleEl = document.getElementById('user-role');
+      if (roleEl) roleEl.textContent = 'editor';
+      await loadSnapshotForCurrent();
+      const nameEl = document.getElementById('warehouse-name');
+      if (nameEl) nameEl.textContent = (wh && wh.name) || ('Склад ' + savedId.substring(0,8));
+      return;
+    }
+    const { data: member } = await sb.from('warehouse_members').select('*').eq('user_id', state.user.id).single();
+    if (member) {
+      const { data: wh } = await sb.from('warehouses').select('*').eq('id', member.warehouse_id).single();
+      state.warehouse = wh;
+      const roleEl = document.getElementById('user-role');
+      if (roleEl) roleEl.textContent = member.access_mode || 'owner';
+      await loadSnapshotForCurrent();
+      const nameEl = document.getElementById('warehouse-name');
+      if (nameEl) nameEl.textContent = (wh && wh.name) || ('Склад ' + member.warehouse_id.substring(0,8));
+    } else {
+      const { data: newWh } = await sb.from('warehouses').insert({ owner_user_id: state.user.id }).select().single();
+      if (newWh) {
+        await sb.from('warehouse_members').insert({ warehouse_id: newWh.id, user_id: state.user.id, access_mode: 'owner' });
+        state.warehouse = newWh;
+        const roleEl = document.getElementById('user-role');
+        if (roleEl) roleEl.textContent = 'owner';
+        const nameEl = document.getElementById('warehouse-name');
+        if (nameEl) nameEl.textContent = newWh.name || ('Склад ' + String(newWh.id).substring(0,8));
+        await initDefaultData();
+      }
+    }
+}
+
+async function loadSnapshotForCurrent() {
+    if (!state.warehouse) return;
+    const { data: snap } = await sb.from('warehouse_snapshots').select('*').eq('warehouse_id', state.warehouse.id).single();
+    state.products = []; state.operations = []; state.orders = []; state.recipes = []; state.production = []; state.clients = [];
+    if (snap && snap.payload) {
       try {
         const decoded = JSON.parse(atob(snap.payload.split('.')[1]));
         if (decoded.products) state.products = decoded.products;
@@ -382,18 +419,6 @@ async function loadWarehouse() {
         if (decoded.clients) state.clients = decoded.clients;
       } catch(e) { console.log('Snapshot parse error:', e); }
     }
-    document.getElementById('warehouse-name').textContent = wh?.name || 'Склад #' + member.warehouse_id.substring(0,8);
-  } else {
-    // Create warehouse for user
-    const { data: newWh } = await sb.from('warehouses').insert({ owner_user_id: state.user.id }).select().single();
-    if (newWh) {
-      await sb.from('warehouse_members').insert({ warehouse_id: newWh.id, user_id: state.user.id, role: 'owner' });
-      state.warehouse = newWh;
-      document.getElementById('user-role').textContent = 'Власник';
-      document.getElementById('warehouse-name').textContent = 'Новий склад';
-      await initDefaultData();
-    }
-  }
 }
 
 async function initDefaultData() {
@@ -1345,29 +1370,44 @@ ${Object.entries(byCategory).map(([cat,val]) => `<tr><td><span class="badge badg
 }
 
 function renderWarehouse() {
-  document.getElementById('page-content').innerHTML = `
-<div class="table-container">
-<div class="table-header"><h3>🏠 Мої склади</h3></div>
-<div style="padding:20px">
-${state.warehouse ? `
-<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:20px">
-<div style="font-size:18px;font-weight:700;margin-bottom:8px">🏭 ${state.warehouse.name || 'Основний склад'}</div>
-<div style="color:var(--text2);font-size:13px;margin-bottom:16px">ID: ${state.warehouse.id}</div>
-<div style="display:flex;gap:16px;font-size:14px">
-<div><span style="color:var(--text2)">Товарів:</span> <strong>${state.products.length}</strong></div>
-<div><span style="color:var(--text2)">Операцій:</span> <strong>${state.operations.length}</strong></div>
-<div><span style="color:var(--text2)">Замовлень:</span> <strong>${state.orders.length}</strong></div>
-</div>
-<div style="margin-top:16px">
-<label class="form-label">Назва складу</label>
-<div style="display:flex;gap:8px">
-<input class="form-input" id="wh-name" value="${state.warehouse.name||''}" placeholder="Назва складу" style="max-width:300px">
-<button class="btn btn-primary" onclick="saveWarehouseName()">Зберегти</button>
-</div>
-</div>
-</div>
-` : '<div class="empty-state"><div class="icon">🏠</div><h3>Склад не знайдено</h3></div>'}
-</div></div>`;
+    const sharedId = localStorage.getItem('paolla_warehouse_id');
+    const wh = state.warehouse;
+    document.getElementById('page-content').innerHTML = `
+      <div class="table-container">
+        <div class="table-header"><h3>🏠 Склад</h3></div>
+        <div style="padding:20px">
+          ${wh ? `
+            <div style="font-size:18px;font-weight:600;margin-bottom:4px">${wh.name || 'Мій склад'}</div>
+            <div style="display:flex;align-items:center;gap:8px;color:var(--text2);margin-bottom:16px;flex-wrap:wrap">
+              <span>ID:</span>
+              <code id="wh-id-value" style="background:var(--bg);padding:4px 8px;border-radius:6px;font-size:13px;word-break:break-all">${wh.id}</code>
+              <button class="btn btn-secondary" onclick="copyWarehouseId()" style="padding:4px 10px">📋 Копіювати</button>
+              ${sharedId ? '<span style="color:var(--accent)">🔗 Спільний склад</span>' : ''}
+            </div>
+            <div style="display:flex;gap:24px;margin-bottom:24px;flex-wrap:wrap">
+              <div><span style="color:var(--text2)">Товарів:</span> <strong>${state.products.length}</strong></div>
+              <div><span style="color:var(--text2)">Операцій:</span> <strong>${state.operations.length}</strong></div>
+              <div><span style="color:var(--text2)">Замовлень:</span> <strong>${state.orders.length}</strong></div>
+            </div>
+            <div style="margin-top:16px">
+              <label class="form-label">Назва складу</label>
+              <div style="display:flex;gap:8px">
+                <input class="form-input" id="wh-name" value="${wh.name||''}" placeholder="Назва складу" style="max-width:300px">
+                <button class="btn btn-primary" onclick="saveWarehouseName()">Зберегти</button>
+              </div>
+            </div>
+          ` : `<div style="color:var(--text2);margin-bottom:8px">Активний склад відсутній. Під'єднайтеся до складу за ID нижче.</div>`}
+          <div style="margin-top:28px;border-top:1px solid var(--border);padding-top:20px">
+            <label class="form-label">Під'єднатися до спільного складу</label>
+            <div style="color:var(--text2);font-size:13px;margin-bottom:8px">Введіть ID складу з iOS-застосунку, щоб бачити спільні дані</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <input class="form-input" id="join-wh-id" placeholder="ID складу (UUID)" style="max-width:340px">
+              <button class="btn btn-primary" onclick="joinWarehouse()">Під'єднатися до складу</button>
+              ${sharedId ? '<button class="btn btn-secondary" onclick="leaveWarehouse()">Від\'єднатися</button>' : ''}
+            </div>
+          </div>
+        </div>
+      </div>`;
 }
 
 async function saveWarehouseName() {
@@ -1378,6 +1418,43 @@ async function saveWarehouseName() {
     document.getElementById('warehouse-name').textContent = name;
     showNotif('Назву збережено', 'success');
   }
+}
+
+function copyWarehouseId() {
+    if (!state.warehouse) return;
+    const id = String(state.warehouse.id);
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(id).then(function(){ showNotif('ID складу скопійовано'); }).catch(function(){ showNotif('Не вдалося скопіювати', 'error'); });
+    } else {
+      const ta = document.createElement('textarea'); ta.value = id; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); showNotif('ID складу скопійовано'); }catch(e){ showNotif('Не вдалося скопіювати', 'error'); } ta.remove();
+    }
+}
+
+async function joinWarehouse() {
+    const input = document.getElementById('join-wh-id');
+    const enteredId = (input && input.value || '').trim();
+    const uuidRe = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+    if (!uuidRe.test(enteredId)) { showNotif('Невірний ID складу (потрібен UUID)', 'error'); return; }
+    try {
+      const { error } = await sb.from('warehouse_members').upsert(
+        { warehouse_id: enteredId, user_id: state.user.id, access_mode: 'editor' },
+        { onConflict: 'warehouse_id,user_id' }
+      );
+      if (error) { showNotif('Помилка під\'єднання: ' + error.message, 'error'); return; }
+      localStorage.setItem('paolla_warehouse_id', enteredId);
+      const { data: wh } = await sb.from('warehouses').select('*').eq('id', enteredId).single();
+      state.warehouse = wh || { id: enteredId, name: '' };
+      await loadSnapshotForCurrent();
+      navigate('warehouse');
+      showNotif('Під\'єднано до складу');
+    } catch(e) { showNotif('Помилка під\'єднання', 'error'); console.log('joinWarehouse error:', e); }
+}
+
+async function leaveWarehouse() {
+    localStorage.removeItem('paolla_warehouse_id');
+    await loadWarehouse();
+    navigate('warehouse');
+    showNotif('Від\'єднано від спільного складу');
 }
 
 function renderTeam() {
