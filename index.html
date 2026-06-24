@@ -560,19 +560,31 @@ function renderIncoming() { renderOperation('incoming'); }
 function renderOutgoing() { renderOperation('outgoing'); }
 
 function renderOperation(type) {
-  const ops = state.operations.filter(o => o.type === type);
-  const label = type === 'incoming' ? 'Прихід' : 'Видаток';
-  const icon = type === 'incoming' ? '⬇️' : '⬆️';
-  let rows = '';
+  const ops = state.operations.filter(function(o) { return o.type === type; });
+  const isIncoming = type === 'incoming';
+  const label = isIncoming ? 'Прихід' : 'Видаток';
+  const icon = isIncoming ? '⬇️' : '⬆️';
+  const container = document.getElementById('page-content');
+  let html = '<div class="table-container">';
+  html += '<div class="table-header"><h3>' + label + ' товарів (' + ops.length + ')</h3>';
+  html += '<button class="btn btn-primary" id="op-btn">+ ' + label + '</button></div>';
+  html += '<table><thead><tr><th>Дата</th><th>Товар</th><th>Кількість</th><th>Ціна</th><th>Сума</th><th>Примітки</th></tr></thead><tbody>';
   if (ops.length === 0) {
-    rows = '<tr><td colspan="6"><div class="empty-state"><div class="icon">' + icon + '</div><h3>Немає операцій</h3><p>Додайте першу операцію</p></div></td></tr>';
+    html += '<tr><td colspan="6"><div class="empty-state"><div class="icon">' + icon + '</div><h3>Немає операцій</h3><p>Додайте першу операцію</p></div></td></tr>';
   } else {
     ops.slice().reverse().forEach(function(o) {
-      rows += '<tr><td>' + o.date + '</td><td>' + o.product_name + '</td><td><strong>' + o.quantity + '</strong></td><td>' + formatMoney(o.price) + ' грн</td><td>' + formatMoney(o.quantity * o.price) + ' грн</td><td style="color:var(--text2)">' + (o.notes || '—') + '</td></tr>';
+      html += '<tr><td>' + o.date + '</td><td>' + o.product_name + '</td>';
+      html += '<td><strong>' + o.quantity + '</strong></td><td>' + formatMoney(o.price) + ' грн</td>';
+      html += '<td>' + formatMoney(o.quantity * o.price) + ' грн</td>';
+      html += '<td style="color:var(--text2)">' + (o.notes || '—') + '</td></tr>';
     });
   }
-  document.getElementById('page-content').innerHTML = '<div class="table-container"><div class="table-header"><h3>' + label + ' товарів (' + ops.length + ')</h3><button class="btn btn-primary" onclick="openOperationModal(\\'' + type + '\\')">' + '+ ' + label + '</button></div><table><thead><tr><th>Дата</th><th>Товар</th><th>Кількість</th><th>Ціна</th><th>Сума</th><th>Примітки</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+  html += '</tbody></table></div>';
+  container.innerHTML = html;
+  var btn = document.getElementById('op-btn');
+  if (btn) btn.addEventListener('click', function() { openOperationModal(type); });
 }
+
 
 function openOperationModal(type) {
   const label = type === 'incoming' ? 'Прихід' : 'Видаток';
