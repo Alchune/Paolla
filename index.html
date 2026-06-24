@@ -582,7 +582,7 @@ function openOperationModal(type) {
   });
   document.getElementById('modal-title').textContent = 'Нова операція: ' + label;
   document.getElementById('modal-body').innerHTML = '<div class="form-group"><label class="form-label">Товар *</label><select class="form-select" id="op-product">' + productOptions + '</select></div><div class="form-row"><div class="form-group"><label class="form-label">Кількість *</label><input type="number" class="form-input" id="op-qty" min="0.01" step="0.01"></div><div class="form-group"><label class="form-label">Ціна за од. (грн)</label><input type="number" class="form-input" id="op-price" step="0.01"></div></div><div class="form-group"><label class="form-label">Дата</label><input type="date" class="form-input" id="op-date" value="' + new Date().toISOString().split('T')[0] + '"></div><div class="form-group"><label class="form-label">Примітки</label><input class="form-input" id="op-notes" placeholder="Постачальник..."></div>';
-  document.getElementById('modal-footer').innerHTML = '<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="saveOperation(\\'' + type + '\\')">\u0417берегти</button>';
+  document.getElementById('modal-footer').innerHTML = '<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="saveOperation(\\'' + type + '\\')">Зберегти</button>';
   document.getElementById('modal-overlay').style.display = 'flex';
   const sel = document.getElementById('op-product');
   if (sel && sel.options[0]) {
