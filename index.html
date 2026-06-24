@@ -589,7 +589,7 @@ function renderOperation(type) {
       html += '<td style="max-width:220px;white-space:normal">' + itemsSummary + '</td>';
       html += '<td>' + totalStr + '</td>';
       html += '<td>' + (o.notes || '—') + '</td>';
-      html += '<td><button class="btn btn-sm btn-danger" onclick="deleteOperation(' + o.id + ','' + type + '')">✕</button></td>';
+      html += '<td><button class="btn btn-sm btn-danger" onclick="deleteOperation(' + o.id + ',&apos;' + type + '&apos;)">✕</button></td>';
       html += '</tr>';
     });
   }
