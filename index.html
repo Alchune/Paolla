@@ -813,7 +813,74 @@ function orderBadge(status) {
   return badges[status] || status;
 }
 
-undefined
+function renderOrders() {
+  var cats = [...new Set(state.orders.map(function(o){return o.category;}).filter(Boolean))];
+  var models = [...new Set(state.orders.map(function(o){return o.product;}).filter(Boolean))];
+  var filterCat = window._orderFilterCat || '';
+  var filterModel = window._orderFilterModel || '';
+  var filtered = state.orders.filter(function(o){
+    return (!filterCat || o.category===filterCat) && (!filterModel || o.product===filterModel);
+  });
+  var catOpts = cats.map(function(c){return '<option value="'+c+'" '+(filterCat===c?'selected':'')+'>'+c+'</option>';}).join('');
+  var modelOpts = models.map(function(m){return '<option value="'+m+'" '+(filterModel===m?'selected':'')+'>'+m+'</option>';}).join('');
+  var html = '<div class="page-header"><h2>📋 Замовлення</h2><button class="btn" onclick="openOrderModal()">+ Замовлення</button></div>';
+  html += '<div class="form-row" style="margin-bottom:12px;gap:8px">';
+  html += '<select class="form-select" style="flex:1" onchange="window._orderFilterCat=this.value;renderOrders()"><option value="">— Всі категорії —</option>'+catOpts+'</select>';
+  html += '<select class="form-select" style="flex:1" onchange="window._orderFilterModel=this.value;renderOrders()"><option value="">— Всі моделі —</option>'+modelOpts+'</select>';
+  html += '</div>';
+  html += '<table class="data-table"><thead><tr><th>Номер</th><th>Клієнт</th><th>Модель</th><th>Категорія</th><th>К-сть</th><th>Дедлайн</th><th>Статус</th><th>Дії</th></tr></thead><tbody>';
+  if (filtered.length === 0) {
+    html += '<tr><td colspan="8"><div class="empty-state"><div class="icon">📋</div><h3>Немає замовлень</h3></div></td></tr>';
+  } else {
+    filtered.forEach(function(o){
+      var b = o.status==='ready' ? '<span class="badge badge-green">✅ Готово</span>' : o.status==='in_production' ? '<span class="badge badge-blue">⚙️ Виробництво</span>' : o.status==='shipped' ? '<span class="badge badge-gray">📦 Відправлено</span>' : o.status==='cancelled' ? '<span class="badge badge-red">❌ Скасовано</span>' : '<span class="badge badge-yellow">🆕 Нове</span>';
+      html += '<tr><td><strong>'+o.number+'</strong></td><td>'+o.client+'</td><td>'+o.product+'</td><td>'+(o.category||'—')+'</td><td>'+o.quantity+' шт</td><td>'+(o.deadline||'—')+'</td><td>'+b+'</td>';
+      html += '<td><select class="form-select" style="width:auto;font-size:12px" onchange="updateOrderStatus('+o.id+',this.value)">';
+      html += '<option value="new" '+(o.status==='new'?'selected':'')+'>Нове</option>';
+      html += '<option value="in_production" '+(o.status==='in_production'?'selected':'')+'>Виробництво</option>';
+      html += '<option value="ready" '+(o.status==='ready'?'selected':'')+'>Готово</option>';
+      html += '<option value="shipped" '+(o.status==='shipped'?'selected':'')+'>Відправлено</option>';
+      html += '<option value="cancelled" '+(o.status==='cancelled'?'selected':'')+'>Скасовано</option>';
+      html += '</select></td></tr>';
+    });
+  }
+  html += '</tbody></table>';
+  document.getElementById('page-content').innerHTML = html;
+}
+
+function openOrderModal() {
+  document.getElementById('modal-title').textContent = 'Нове замовлення';
+  document.getElementById('modal-overlay').style.display = 'flex';
+  var nextNum = 'ЗАМ-' + String(state.orders.length + 1).padStart(3, '0');
+  document.getElementById('modal-body').innerHTML =
+    '<div class="form-row"><div class="form-group"><label class="form-label">Номер</label><input class="form-input" id="o-num" value="'+nextNum+'"></div>' +
+    '<div class="form-group"><label class="form-label">Клієнт *</label><input class="form-input" id="o-client" placeholder="Клієнт"></div></div>' +
+    '<div class="form-row"><div class="form-group"><label class="form-label">Модель *</label><input class="form-input" id="o-product" placeholder="Модель"></div>' +
+    '<div class="form-group"><label class="form-label">Категорія</label><input class="form-input" id="o-category" placeholder="Категорія"></div></div>' +
+    '<div class="form-row"><div class="form-group"><label class="form-label">Кількість</label><input type="number" class="form-input" id="o-qty" value="1"></div>' +
+    '<div class="form-group"><label class="form-label">Дедлайн</label><input type="date" class="form-input" id="o-deadline"></div></div>';
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn" onclick="saveOrder()">Зберегти</button>';
+}
+
+async function saveOrder() {
+  var client = document.getElementById('o-client').value.trim();
+  var product = document.getElementById('o-product').value.trim();
+  if (!client || !product) return showNotif('Заповніть клієнта та модель', 'error');
+  state.orders.push({ id: Date.now(), number: document.getElementById('o-num').value, client: client, product: product, category: document.getElementById('o-category').value.trim(), quantity: parseInt(document.getElementById('o-qty').value)||1, status: 'new', date: new Date().toISOString().split('T')[0], deadline: document.getElementById('o-deadline').value });
+  await saveSnapshot();
+  closeModal();
+  renderOrders();
+  showNotif('Замовлення створено', 'success');
+}
+
+async function updateOrderStatus(id, status) {
+  var o = state.orders.find(function(x){return x.id===id;});
+  if (o) o.status = status;
+  await saveSnapshot();
+  renderOrders();
+}
+
 
 function renderRecipes() {
   var html = '<div class="page-header"><h2>📝 Рецепти</h2><button class="btn" onclick="openRecipeModal()">+ Рецепт</button></div>';
@@ -1173,6 +1240,7 @@ function closeModal(e) {
 </script>
 </body>
 </html>
+ 
  
  
  
