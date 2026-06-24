@@ -219,6 +219,9 @@ tbody tr:last-child td{border-bottom:none}
 <button class="nav-item" onclick="navigate('inventory')" id="nav-inventory">
 🗂️ Залишки
 </button>
+<button class="nav-item" onclick="navigate('clients')" id="nav-clients">
+👤 Клієнти
+</button>
 <div class="nav-section">Виробництво</div>
 <button class="nav-item" onclick="navigate('orders')" id="nav-orders">
 📋 Замовлення
@@ -303,6 +306,8 @@ let state = {
   production: [],
   members: [],
   currentPage: 'dashboard',
+  clients: [],
+  clientView: (typeof localStorage!=='undefined' && localStorage.getItem('paolla_clientView')) || 'list',
   productView: (typeof localStorage!=='undefined' && localStorage.getItem('paolla_productView')) || 'list',
   productionView: (typeof localStorage!=='undefined' && localStorage.getItem('paolla_productionView')) || 'list'
 };
@@ -370,6 +375,7 @@ async function loadWarehouse() {
         if (decoded.orders) state.orders = decoded.orders;
         if (decoded.recipes) state.recipes = decoded.recipes;
         if (decoded.production) state.production = decoded.production;
+        if (decoded.clients) state.clients = decoded.clients;
       } catch(e) { console.log('Snapshot parse error:', e); }
     }
     document.getElementById('warehouse-name').textContent = wh?.name || 'Склад #' + member.warehouse_id.substring(0,8);
@@ -420,7 +426,7 @@ async function loadData() {}
 
 async function saveSnapshot() {
   if (!state.warehouse) return;
-  const data = { products: state.products, operations: state.operations, orders: state.orders, recipes: state.recipes, production: state.production };
+  const data = { products: state.products, operations: state.operations, orders: state.orders, recipes: state.recipes, production: state.production, clients: state.clients };
   const payload = btoa(JSON.stringify({ alg: 'none' })) + '.' + btoa(unescape(encodeURIComponent(JSON.stringify(data)))) + '.';
   await sb.from('warehouse_snapshots').upsert({ warehouse_id: state.warehouse.id, payload, modified_at: new Date().toISOString(), created_at: new Date().toISOString() });
 }
@@ -431,9 +437,9 @@ function navigate(page) {
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
   const navEl = document.getElementById('nav-' + page);
   if (navEl) navEl.classList.add('active');
-  const titles = { dashboard: 'Дашборд', products: 'Товари та матеріали', incoming: 'Прихід товарів', outgoing: 'Видаток товарів', inventory: 'Залишки', orders: 'Замовлення', recipes: 'Рецепти', production: 'Виробництво', reports: 'Звіти та статистика', warehouse: 'Склади', team: 'Команда', profile: 'Профіль' };
+  const titles = { dashboard: 'Дашборд', products: 'Товари та матеріали', incoming: 'Прихід товарів', outgoing: 'Видаток товарів', inventory: 'Залишки', orders: 'Замовлення', clients: 'Клієнти', recipes: 'Рецепти', production: 'Виробництво', reports: 'Звіти та статистика', warehouse: 'Склади', team: 'Команда', profile: 'Профіль' };
   document.getElementById('page-title').textContent = titles[page] || page;
-  const renderers = { dashboard: renderDashboard, products: renderProducts, incoming: renderIncoming, outgoing: renderOutgoing, inventory: renderInventory, orders: renderOrders, recipes: renderRecipes, production: renderProduction, reports: renderReports, warehouse: renderWarehouse, team: renderTeam };
+  const renderers = { dashboard: renderDashboard, products: renderProducts, incoming: renderIncoming, outgoing: renderOutgoing, inventory: renderInventory, orders: renderOrders, clients: renderClients, recipes: renderRecipes, production: renderProduction, reports: renderReports, warehouse: renderWarehouse, team: renderTeam };
   if (renderers[page]) renderers[page]();
 }
 // ====== PAGES ======
@@ -471,6 +477,120 @@ ${state.operations.slice(-5).reverse().map(op => `
 <div class="timeline-time">${op.date}</div>
 </div>`).join('') || '<div style="padding:20px;color:var(--text2);text-align:center">Немає операцій</div>'}
 </div></div>`;
+}
+
+function setClientView(mode) {
+  state.clientView = mode;
+  try { localStorage.setItem('paolla_clientView', mode); } catch(e) {}
+  renderClients();
+}
+
+function renderClients() {
+  var isGrid = state.clientView === 'grid';
+  var toggle = '<div class="view-toggle">'
+    + '<button class="' + (!isGrid?'active':'') + '" onclick="setClientView(\'list\')" title="Списком">&#9776;</button>'
+    + '<button class="' + (isGrid?'active':'') + '" onclick="setClientView(\'grid\')" title="Сіткою">&#9638;</button>'
+    + '</div>';
+  document.getElementById('page-content').innerHTML = `
+<div class="table-container">
+<div class="table-header">
+<h3>Всі клієнти (${state.clients.length})</h3>
+<div class="table-search">
+<input class="search-input" placeholder="🔍 Пошук..." oninput="filterClients(this.value)">
+${toggle}
+<button class="btn btn-primary" onclick="openClientModal()">+ Додати</button>
+</div>
+</div>
+<div id="clients-body">${isGrid ? renderClientGrid(state.clients) : renderClientTable(state.clients)}</div>
+</div>`;
+}
+
+function renderClientTable(clients) {
+  return `<table><thead><tr><th>Назва</th><th>Телефон</th><th>Email</th><th>Адреса</th><th>Дії</th></tr></thead>
+<tbody id="clients-table">
+${renderClientRows(clients)}
+</tbody></table>`;
+}
+
+function renderClientRows(clients) {
+  return clients.map(c => {
+    return `<tr>
+<td><strong>${c.name}</strong></td>
+<td>${c.phone || '—'}</td>
+<td>${c.email || '—'}</td>
+<td>${c.address || '—'}</td>
+<td><button class="btn btn-secondary btn-sm" onclick="editClient(${c.id})">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteClient(${c.id})">🗑️</button></td>
+</tr>`;
+  }).join('') || '<tr><td colspan="5"><div class="empty-state"><div class="icon">👤</div><h3>Немає клієнтів</h3><p>Додайте першого клієнта</p></div></td></tr>';
+}
+
+function renderClientGrid(clients) {
+  if (!clients.length) return '<div class="empty-state"><div class="icon">👤</div><h3>Немає клієнтів</h3><p>Додайте першого клієнта</p></div>';
+  var cards = clients.map(function(c) {
+    return '<div class="item-card">'
+      + '<div class="ic-thumb">👤</div>'
+      + '<div class="ic-name">' + c.name + '</div>'
+      + (c.phone ? '<div class="ic-meta">📞 ' + c.phone + '</div>' : '')
+      + (c.email ? '<div class="ic-meta">✉️ ' + c.email + '</div>' : '')
+      + (c.address ? '<div class="ic-meta">📍 ' + c.address + '</div>' : '')
+      + '<div class="ic-actions"><button class="btn btn-secondary btn-sm" onclick="editClient(' + c.id + ')">✏️ Змінити</button><button class="btn btn-secondary btn-sm" onclick="deleteClient(' + c.id + ')">🗑️</button></div>'
+      + '</div>';
+  }).join('');
+  return '<div class="card-grid">' + cards + '</div>';
+}
+
+function filterClients(q) {
+  q = (q||'').toLowerCase();
+  const filtered = state.clients.filter(c => (c.name||'').toLowerCase().includes(q) || (c.phone||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q) || (c.address||'').toLowerCase().includes(q));
+  document.getElementById('clients-body').innerHTML = state.clientView === 'grid' ? renderClientGrid(filtered) : renderClientTable(filtered);
+}
+
+function openClientModal(id) {
+  const c = id ? state.clients.find(x => x.id === id) : {};
+  document.getElementById('modal-title').textContent = id ? 'Редагувати клієнта' : 'Новий клієнт';
+  document.getElementById('modal-body').innerHTML = `
+<div class="form-group"><label class="form-label">Назва / ПІБ *</label><input class="form-input" id="c-name" value="${c.name||''}"></div>
+<div class="form-row">
+<div class="form-group"><label class="form-label">Телефон</label><input class="form-input" id="c-phone" value="${c.phone||''}"></div>
+<div class="form-group"><label class="form-label">Email</label><input class="form-input" id="c-email" value="${c.email||''}"></div>
+</div>
+<div class="form-group"><label class="form-label">Адреса</label><input class="form-input" id="c-address" value="${c.address||''}"></div>
+<div class="form-group"><label class="form-label">Нотатка</label><input class="form-input" id="c-note" value="${c.note||''}"></div>
+`;
+  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="saveClient(${id||0})">Зберегти</button>`;
+  document.getElementById('modal-overlay').style.display = 'flex';
+}
+
+function editClient(id) { openClientModal(id); }
+
+async function saveClient(id) {
+  const c = {
+    name: document.getElementById('c-name').value,
+    phone: document.getElementById('c-phone').value,
+    email: document.getElementById('c-email').value,
+    address: document.getElementById('c-address').value,
+    note: document.getElementById('c-note').value
+  };
+  if (!c.name) return showNotif('Введіть назву клієнта', 'error');
+  if (id) {
+    const idx = state.clients.findIndex(x => x.id === id);
+    state.clients[idx] = { ...state.clients[idx], ...c };
+  } else {
+    c.id = Date.now();
+    state.clients.push(c);
+  }
+  await saveSnapshot();
+  closeModal();
+  renderClients();
+  showNotif('Клієнта збережено', 'success');
+}
+
+async function deleteClient(id) {
+  if (!confirm('Видалити цього клієнта?')) return;
+  state.clients = state.clients.filter(c => c.id !== id);
+  await saveSnapshot();
+  renderClients();
+  showNotif('Клієнта видалено', 'success');
 }
 
 function setProductView(mode) {
