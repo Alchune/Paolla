@@ -372,12 +372,12 @@ async function loadWarehouse() {
 
 async function initDefaultData() {
   state.products = [
-    { id: 1, name: 'Борошно', category: 'Сировина', unit: 'кг', quantity: 500, min_qty: 100, price: 12.50, sku: 'MAT-001' },
-    { id: 2, name: 'Цукор', category: 'Сировина', unit: 'кг', quantity: 200, min_qty: 50, price: 18.00, sku: 'MAT-002' },
-    { id: 3, name: 'Масло', category: 'Сировина', unit: 'кг', quantity: 80, min_qty: 20, price: 85.00, sku: 'MAT-003' },
-    { id: 4, name: 'Молоко', category: 'Сировина', unit: 'л', quantity: 150, min_qty: 30, price: 22.00, sku: 'MAT-004' },
-    { id: 5, name: 'Шоколадний торт', category: 'Готова продукція', unit: 'шт', quantity: 25, min_qty: 5, price: 350.00, sku: 'PRD-001' },
-    { id: 6, name: 'Ванільне печиво', category: 'Готова продукція', unit: 'шт', quantity: 120, min_qty: 20, price: 45.00, sku: 'PRD-002' },
+    { id: 1, name: 'Борошно', category: 'Сировина', unit: 'кг', quantity: 500, min_qty: 100, price: 12.50 },
+    { id: 2, name: 'Цукор', category: 'Сировина', unit: 'кг', quantity: 200, min_qty: 50, price: 18.00 },
+    { id: 3, name: 'Масло', category: 'Сировина', unit: 'кг', quantity: 80, min_qty: 20, price: 85.00 },
+    { id: 4, name: 'Молоко', category: 'Сировина', unit: 'л', quantity: 150, min_qty: 30, price: 22.00 },
+    { id: 5, name: 'Шоколадний торт', category: 'Готова продукція', unit: 'шт', quantity: 25, min_qty: 5, price: 350.00 },
+    { id: 6, name: 'Ванільне печиво', category: 'Готова продукція', unit: 'шт', quantity: 120, min_qty: 20, price: 45.00 },
   ];
   state.operations = [
     { id: 1, type: 'incoming', product_id: 1, product_name: 'Борошно', quantity: 200, price: 12.50, date: '2026-06-20', notes: 'Постачальник Агро', created_at: new Date().toISOString() },
@@ -467,7 +467,7 @@ function renderProducts() {
 <button class="btn btn-primary" onclick="openProductModal()">+ Додати</button>
 </div>
 </div>
-<table><thead><tr><th>SKU</th><th>Назва</th><th>Категорія</th><th>Залишок</th><th>Ціна</th><th>Статус</th><th>Дії</th></tr></thead>
+<table><thead><tr><th>Назва</th><th>Категорія</th><th>Залишок</th><th>Ціна</th><th>Статус</th><th>Дії</th></tr></thead>
 <tbody id="products-table">
 ${renderProductRows(state.products)}
 </tbody></table></div>`;
@@ -477,7 +477,7 @@ function renderProductRows(products) {
   return products.map(p => {
     const status = p.quantity === 0 ? '<span class="badge badge-red">Немає</span>' : p.quantity <= p.min_qty ? '<span class="badge badge-yellow">Мало</span>' : '<span class="badge badge-green">В наявності</span>';
     return `<tr>
-<td style="color:var(--text2);font-family:monospace">${p.sku}</td>
+
 <td><strong>${p.name}</strong></td>
 <td><span class="badge badge-gray">${p.category}</span></td>
 <td>${p.quantity} ${p.unit} <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${Math.min(100,(p.quantity/Math.max(p.min_qty*3,1))*100)}%;background:${p.quantity<=p.min_qty?'var(--danger)':'var(--accent)'}"></div></div></td>
@@ -489,7 +489,7 @@ function renderProductRows(products) {
 }
 
 function filterProducts(q) {
-  const filtered = state.products.filter(p => p.name.toLowerCase().includes(q.toLowerCase()) || p.sku.toLowerCase().includes(q.toLowerCase()) || p.category.toLowerCase().includes(q.toLowerCase()));
+  const filtered = state.products.filter(p => p.name.toLowerCase().includes(q.toLowerCase()) || p.category.toLowerCase().includes(q.toLowerCase()));
   document.getElementById('products-table').innerHTML = renderProductRows(filtered);
 }
 
@@ -499,7 +499,7 @@ function openProductModal(id) {
   document.getElementById('modal-body').innerHTML = `
 <div class="form-row">
 <div class="form-group"><label class="form-label">Назва *</label><input class="form-input" id="p-name" value="${p.name||''}"></div>
-<div class="form-group"><label class="form-label">SKU</label><input class="form-input" id="p-sku" value="${p.sku||''}"></div>
+
 </div>
 <div class="form-row">
 <div class="form-group"><label class="form-label">Категорія</label><input class="form-input" id="p-category" value="${p.category||''}"></div>
@@ -527,7 +527,6 @@ function editProduct(id) { openProductModal(id); }
 async function saveProduct(id) {
   const p = {
     name: document.getElementById('p-name').value,
-    sku: document.getElementById('p-sku').value || 'PRD-' + Date.now(),
     category: document.getElementById('p-category').value || 'Інше',
     unit: document.getElementById('p-unit').value,
     quantity: parseFloat(document.getElementById('p-qty').value) || 0,
@@ -798,7 +797,7 @@ ${state.products.map(p => {
 const pct = Math.min(100, (p.quantity / Math.max(p.min_qty * 3, 1)) * 100);
 const color = p.quantity === 0 ? 'var(--danger)' : p.quantity <= p.min_qty ? 'var(--warning)' : 'var(--accent)';
 return `<tr>
-<td><strong>${p.name}</strong><div style="font-size:11px;color:var(--text2)">${p.sku}</div></td>
+<td><strong>${p.name}</strong></td>
 <td><span class="badge badge-gray">${p.category}</span></td>
 <td><strong>${p.quantity}</strong> ${p.unit}</td>
 <td>${p.min_qty} ${p.unit}</td>
@@ -1037,7 +1036,7 @@ async function completeProduction(id) {
     const pName = recipe.name;
     const existing = state.products.find(p => p.name === pName && p.category === 'Готова продукція');
     if (existing) existing.quantity += prod.quantity;
-    else state.products.push({ id: Date.now(), name: pName, sku: 'PRD-' + Date.now(), category: 'Готова продукція', unit: recipe.unit, quantity: prod.quantity, min_qty: 0, price: 0 });
+    else state.products.push({ id: Date.now(), name: pName + Date.now(), category: 'Готова продукція', unit: recipe.unit, quantity: prod.quantity, min_qty: 0, price: 0 });
   }
   await saveSnapshot();
   renderProduction();
@@ -1165,5 +1164,6 @@ function closeModal(e) {
 </script>
 </body>
 </html>
+ 
  
  
