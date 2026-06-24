@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paolla — Склад та Виробництво</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f1117;--sidebar:#161b22;--card:#1c2128;--border:#30363d;--accent:#238636;--accent2:#1f6feb;--text:#e6edf3;--text2:#8b949e;--danger:#da3633;--warning:#e3b341}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+#app{display:flex;width:100%;min-height:100vh}
+/* Sidebar */
+.sidebar{width:240px;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;height:100vh;z-index:100}
+.logo{padding:20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.logo h1{font-size:18px;font-weight:700;color:var(--text)}
+.logo span{font-size:11px;color:var(--text2);display:block}
+nav{flex:1;padding:12px 0;overflow-y:auto}
+.nav-section{padding:8px 16px 4px;font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text2);letter-spacing:0.8px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 16px;cursor:pointer;border-radius:6px;margin:1px 8px;transition:all 0.2s;font-size:14px;color:var(--text2);border:none;background:none;width:calc(100% - 16px);text-align:left}
+.nav-item:hover{background:var(--card);color:var(--text)}
+.nav-item.active{background:rgba(35,134,54,0.15);color:var(--accent);font-weight:500}
+.nav-item .badge{margin-left:auto;background:var(--accent);color:white;border-radius:10px;padding:1px 6px;font-size:11px}
+.sidebar-footer{padding:16px;border-top:1px solid var(--border)}
+.user-info{display:flex;align-items:center;gap:10px;cursor:pointer}
+.avatar{width:32px;height:32px;background:linear-gradient(135deg,#6e40c9,#1f6feb);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:white}
+/* Main */
+.main{flex:1;margin-left:240px;display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:var(--sidebar);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.page-title{font-size:16px;font-weight:600}
+.topbar-actions{display:flex;align-items:center;gap:12px}
+.content{padding:24px;flex:1}
+/* Cards */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
+.stat-card .label{font-size:12px;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px}
+.stat-card .value{font-size:28px;font-weight:700;margin-bottom:4px}
+.stat-card .sub{font-size:12px;color:var(--text2)}
+.stat-card.green .value{color:var(--accent)}
+.stat-card.blue .value{color:var(--accent2)}
+.stat-card.yellow .value{color:var(--warning)}
+.stat-card.red .value{color:var(--danger)}
+/* Buttons */
+.btn{padding:8px 16px;border-radius:6px;border:1px solid var(--border);cursor:pointer;font-size:14px;font-weight:500;transition:all 0.2s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:white}
+.btn-primary:hover{background:#2ea043;border-color:#2ea043}
+.btn-secondary{background:var(--card);color:var(--text)}
+.btn-secondary:hover{background:#22272e;border-color:#8b949e}
+.btn-danger{background:var(--danger);border-color:var(--danger);color:white}
+.btn-sm{padding:5px 10px;font-size:12px}
+/* Tables */
+.table-container{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:24px}
+.table-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.table-header h3{font-size:15px;font-weight:600}
+.table-search{display:flex;gap:8px;align-items:center}
+.search-input{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px 12px;color:var(--text);font-size:13px;width:220px}
+.search-input:focus{outline:none;border-color:var(--accent2)}
+table{width:100%;border-collapse:collapse}
+thead th{padding:10px 16px;text-align:left;font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);background:var(--sidebar)}
+tbody td{padding:12px 16px;font-size:14px;border-bottom:1px solid rgba(48,54,61,0.5)}
+tbody tr:hover{background:rgba(255,255,255,0.02)}
+tbody tr:last-child td{border-bottom:none}
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:12px;font-size:12px;font-weight:500}
+.badge-green{background:rgba(35,134,54,0.15);color:#3fb950;border:1px solid rgba(63,185,80,0.3)}
+.badge-blue{background:rgba(31,111,235,0.15);color:#58a6ff;border:1px solid rgba(88,166,255,0.3)}
+.badge-yellow{background:rgba(227,179,65,0.15);color:#e3b341;border:1px solid rgba(227,179,65,0.3)}
+.badge-red{background:rgba(218,54,51,0.15);color:#f85149;border:1px solid rgba(248,81,73,0.3)}
+.badge-gray{background:rgba(139,148,158,0.15);color:#8b949e;border:1px solid rgba(139,148,158,0.3)}
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:16px;width:540px;max-width:95vw;max-height:85vh;overflow:auto}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-header h3{font-size:16px;font-weight:600}
+.modal-body{padding:24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:6px}
+.form-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text);font-size:14px}
+.form-input:focus{outline:none;border-color:var(--accent2);box-shadow:0 0 0 3px rgba(31,111,235,0.1)}
+.form-select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text);font-size:14px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+/* Auth */
+#auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg)}
+.auth-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:40px;width:400px}
+.auth-logo{text-align:center;margin-bottom:32px}
+.auth-logo .icon{width:64px;height:64px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 16px}
+.auth-logo h1{font-size:24px;font-weight:700}
+.auth-logo p{color:var(--text2);font-size:14px;margin-top:4px}
+.auth-tabs{display:flex;background:var(--bg);border-radius:8px;padding:4px;margin-bottom:24px}
+.auth-tab{flex:1;padding:8px;text-align:center;border-radius:6px;cursor:pointer;font-size:14px;font-weight:500;color:var(--text2);transition:all 0.2s}
+.auth-tab.active{background:var(--card);color:var(--text)}
+/* Progress */
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:8px}
+.progress-fill{height:100%;border-radius:3px;transition:width 0.3s}
+/* Charts */
+.chart-container{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:24px}
+.chart-title{font-size:15px;font-weight:600;margin-bottom:16px}
+.chart-bars{display:flex;align-items:flex-end;gap:8px;height:120px}
+.chart-bar{flex:1;background:linear-gradient(to top,var(--accent),var(--accent2));border-radius:4px 4px 0 0;min-height:4px;transition:height 0.3s}
+.chart-labels{display:flex;gap:8px;margin-top:8px}
+.chart-label{flex:1;text-align:center;font-size:11px;color:var(--text2)}
+/* Notification */
+.notification{position:fixed;top:20px;right:20px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;z-index:2000;display:flex;align-items:center;gap:12px;box-shadow:0 8px 24px rgba(0,0,0,0.4);animation:slideIn 0.3s ease}
+@keyframes slideIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+.notification.success{border-color:rgba(63,185,80,0.4)}
+.notification.error{border-color:rgba(248,81,73,0.4)}
+/* Tabs */
+.page-tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.page-tab{padding:10px 16px;cursor:pointer;font-size:14px;font-weight:500;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.2s}
+.page-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+/* Timeline */
+.timeline{display:flex;flex-direction:column;gap:0}
+.timeline-item{display:flex;gap:16px;padding:16px 0;border-bottom:1px solid rgba(48,54,61,0.5)}
+.timeline-dot{width:10px;height:10px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.timeline-dot.green{background:var(--accent)}
+.timeline-dot.blue{background:var(--accent2)}
+.timeline-dot.yellow{background:var(--warning)}
+.timeline-dot.red{background:var(--danger)}
+.timeline-info{flex:1}
+.timeline-title{font-size:14px;font-weight:500;margin-bottom:2px}
+.timeline-sub{font-size:12px;color:var(--text2)}
+.timeline-time{font-size:12px;color:var(--text2);white-space:nowrap}
+/* Empty state */
+.empty-state{text-align:center;padding:60px 20px;color:var(--text2)}
+.empty-state .icon{font-size:48px;margin-bottom:16px}
+.empty-state h3{font-size:16px;color:var(--text);margin-bottom:8px}
+/* Loading */
+.loading{display:flex;align-items:center;justify-content:center;padding:60px;color:var(--text2)}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin-right:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* Responsive */
+@media(max-width:768px){.sidebar{width:200px}.main{margin-left:200px}.stats-grid{grid-template-columns:1fr 1fr}.form-row{grid-template-columns:1fr}}
+@media(max-width:600px){.sidebar{transform:translateX(-100%);transition:transform 0.3s}.sidebar.open{transform:translateX(0)}.main{margin-left:0}}
+</style>
+</head>
+<body>
+<!-- Auth Screen -->
+<div id="auth-screen">
+<div class="auth-card">
+<div class="auth-logo">
+<div class="icon">🏭</div>
+<h1>Paolla</h1>
+<p>Склад та Виробництво</p>
+</div>
+<div class="auth-tabs">
+<div class="auth-tab active" onclick="switchAuthTab('login')">Вхід</div>
+<div class="auth-tab" onclick="switchAuthTab('register')">Реєстрація</div>
+</div>
+<div id="login-form">
+<div class="form-group">
+<label class="form-label">Email</label>
+<input type="email" class="form-input" id="login-email" placeholder="your@email.com">
+</div>
+<div class="form-group">
+<label class="form-label">Пароль</label>
+<input type="password" class="form-input" id="login-password" placeholder="••••••••">
+</div>
+<button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" onclick="loginUser()">Увійти</button>
+</div>
+<div id="register-form" style="display:none">
+<div class="form-group">
+<label class="form-label">Ім'я</label>
+<input type="text" class="form-input" id="reg-name" placeholder="Ваше ім'я">
+</div>
+<div class="form-group">
+<label class="form-label">Email</label>
+<input type="email" class="form-input" id="reg-email" placeholder="your@email.com">
+</div>
+<div class="form-group">
+<label class="form-label">Пароль</label>
+<input type="password" class="form-input" id="reg-password" placeholder="••••••••">
+</div>
+<button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" onclick="registerUser()">Зареєструватись</button>
+</div>
+</div>
+</div>
+
+<!-- Main App -->
+<div id="app" style="display:none">
+<aside class="sidebar" id="sidebar">
+<div class="logo">
+<div class="logo-icon">🏭</div>
+<div>
+<h1>Paolla</h1>
+<span>Управління складом</span>
+</div>
+</div>
+<nav>
+<div class="nav-section">Головне</div>
+<button class="nav-item active" onclick="navigate('dashboard')" id="nav-dashboard">
+📊 Дашборд
+</button>
+<div class="nav-section">Склад</div>
+<button class="nav-item" onclick="navigate('products')" id="nav-products">
+📦 Товари/матеріали
+</button>
+<button class="nav-item" onclick="navigate('incoming')" id="nav-incoming">
+⬇️ Прихід товарів
+</button>
+<button class="nav-item" onclick="navigate('outgoing')" id="nav-outgoing">
+⬆️ Видаток товарів
+</button>
+<button class="nav-item" onclick="navigate('inventory')" id="nav-inventory">
+🗂️ Залишки
+</button>
+<div class="nav-section">Виробництво</div>
+<button class="nav-item" onclick="navigate('orders')" id="nav-orders">
+📋 Замовлення
+</button>
+<button class="nav-item" onclick="navigate('recipes')" id="nav-recipes">
+📝 Рецепти
+</button>
+<button class="nav-item" onclick="navigate('production')" id="nav-production">
+⚙️ Виробництво
+</button>
+<div class="nav-section">Звіти</div>
+<button class="nav-item" onclick="navigate('reports')" id="nav-reports">
+📈 Звіти
+</button>
+<div class="nav-section">Налаштування</div>
+<button class="nav-item" onclick="navigate('warehouse')" id="nav-warehouse">
+🏠 Склади
+</button>
+<button class="nav-item" onclick="navigate('team')" id="nav-team">
+👥 Команда
+</button>
+</nav>
+<div class="sidebar-footer">
+<div class="user-info" onclick="navigate('profile')">
+<div class="avatar" id="user-avatar">?</div>
+<div>
+<div style="font-size:13px;font-weight:500" id="user-name">Користувач</div>
+<div style="font-size:11px;color:var(--text2)" id="user-role">Менеджер</div>
+</div>
+</div>
+</div>
+</aside>
+
+<main class="main">
+<div class="topbar">
+<div style="display:flex;align-items:center;gap:12px">
+<div class="page-title" id="page-title">Дашборд</div>
+</div>
+<div class="topbar-actions">
+<span style="font-size:12px;color:var(--text2)" id="warehouse-name">Склад</span>
+<button class="btn btn-secondary btn-sm" onclick="logoutUser()">Вийти</button>
+</div>
+</div>
+<div class="content" id="page-content">
+<div class="loading"><div class="spinner"></div>Завантаження...</div>
+</div>
+</main>
+</div>
+
+<!-- Modal -->
+<div id="modal-overlay" class="modal-overlay" style="display:none" onclick="closeModal(event)">
+<div class="modal" onclick="event.stopPropagation()">
+<div class="modal-header">
+<h3 id="modal-title">Модальне вікно</h3>
+<button class="btn btn-secondary btn-sm" onclick="closeModal()">✕</button>
+</div>
+<div class="modal-body" id="modal-body"></div>
+<div class="modal-footer" id="modal-footer"></div>
+</div>
+</div>
+
+<!-- Notification -->
+<div id="notification" style="display:none" class="notification">
+<span id="notif-icon">✅</span>
+<span id="notif-text">Успішно!</span>
+</div>
+
+<script>
+// ====== CONFIG ======
+const SUPABASE_URL = 'https://huzqgxfklegghzkgryoh.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY_HERE';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ====== STATE ======
+let state = {
+  user: null,
+  warehouse: null,
+  products: [],
+  operations: [],
+  orders: [],
+  recipes: [],
+  production: [],
+  members: [],
+  currentPage: 'dashboard'
+};
+
+// ====== AUTH ======
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('register-form').style.display = tab === 'register' ? 'block' : 'none';
+}
+
+async function loginUser() {
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-password').value;
+  if (!email || !password) return showNotif('Заповніть всі поля', 'error');
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) return showNotif(error.message, 'error');
+  await initApp(data.user);
+}
+
+async function registerUser() {
+  const name = document.getElementById('reg-name').value;
+  const email = document.getElementById('reg-email').value;
+  const password = document.getElementById('reg-password').value;
+  if (!name || !email || !password) return showNotif('Заповніть всі поля', 'error');
+  const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: name } } });
+  if (error) return showNotif(error.message, 'error');
+  showNotif('Перевірте email для підтвердження', 'success');
+}
+
+async function logoutUser() {
+  await sb.auth.signOut();
+  state = { user: null, warehouse: null, products: [], operations: [], orders: [], recipes: [], production: [], members: [], currentPage: 'dashboard' };
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+
+// ====== INIT ======
+async function initApp(user) {
+  state.user = user;
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  const name = user.user_metadata?.full_name || user.email.split('@')[0];
+  document.getElementById('user-name').textContent = name;
+  document.getElementById('user-avatar').textContent = name[0].toUpperCase();
+  await loadWarehouse();
+  await loadData();
+  navigate('dashboard');
+}
+
+async function loadWarehouse() {
+  const { data: member } = await sb.from('warehouse_members').select('warehouse_id, role').eq('user_id', state.user.id).single();
+  if (member) {
+    const { data: wh } = await sb.from('warehouses').select('*').eq('id', member.warehouse_id).single();
+    state.warehouse = wh;
+    document.getElementById('user-role').textContent = member.role || 'Менеджер';
+    // Load snapshot
+    const { data: snap } = await sb.from('warehouse_snapshots').select('payload').eq('warehouse_id', member.warehouse_id).single();
+    if (snap?.payload) {
+      try {
+        const decoded = JSON.parse(atob(snap.payload.split('.')[1]));
+        if (decoded.products) state.products = decoded.products;
+        if (decoded.operations) state.operations = decoded.operations;
+        if (decoded.orders) state.orders = decoded.orders;
+        if (decoded.recipes) state.recipes = decoded.recipes;
+        if (decoded.production) state.production = decoded.production;
+      } catch(e) { console.log('Snapshot parse error:', e); }
+    }
+    document.getElementById('warehouse-name').textContent = wh?.name || 'Склад #' + member.warehouse_id.substring(0,8);
+  } else {
+    // Create warehouse for user
+    const { data: newWh } = await sb.from('warehouses').insert({ owner_user_id: state.user.id }).select().single();
+    if (newWh) {
+      await sb.from('warehouse_members').insert({ warehouse_id: newWh.id, user_id: state.user.id, role: 'owner' });
+      state.warehouse = newWh;
+      document.getElementById('user-role').textContent = 'Власник';
+      document.getElementById('warehouse-name').textContent = 'Новий склад';
+      await initDefaultData();
+    }
+  }
+}
+
+async function initDefaultData() {
+  state.products = [
+    { id: 1, name: 'Борошно', category: 'Сировина', unit: 'кг', quantity: 500, min_qty: 100, price: 12.50, sku: 'MAT-001' },
+    { id: 2, name: 'Цукор', category: 'Сировина', unit: 'кг', quantity: 200, min_qty: 50, price: 18.00, sku: 'MAT-002' },
+    { id: 3, name: 'Масло', category: 'Сировина', unit: 'кг', quantity: 80, min_qty: 20, price: 85.00, sku: 'MAT-003' },
+    { id: 4, name: 'Молоко', category: 'Сировина', unit: 'л', quantity: 150, min_qty: 30, price: 22.00, sku: 'MAT-004' },
+    { id: 5, name: 'Шоколадний торт', category: 'Готова продукція', unit: 'шт', quantity: 25, min_qty: 5, price: 350.00, sku: 'PRD-001' },
+    { id: 6, name: 'Ванільне печиво', category: 'Готова продукція', unit: 'шт', quantity: 120, min_qty: 20, price: 45.00, sku: 'PRD-002' },
+  ];
+  state.operations = [
+    { id: 1, type: 'incoming', product_id: 1, product_name: 'Борошно', quantity: 200, price: 12.50, date: '2026-06-20', notes: 'Постачальник Агро', created_at: new Date().toISOString() },
+    { id: 2, type: 'outgoing', product_id: 5, product_name: 'Шоколадний торт', quantity: 5, price: 350, date: '2026-06-22', notes: 'Замовлення #101', created_at: new Date().toISOString() },
+    { id: 3, type: 'incoming', product_id: 2, product_name: 'Цукор', quantity: 100, price: 18.00, date: '2026-06-23', notes: '', created_at: new Date().toISOString() },
+  ];
+  state.orders = [
+    { id: 1, number: 'ЗАМ-001', client: 'ТОВ Смаколики', product: 'Шоколадний торт', quantity: 10, status: 'in_production', date: '2026-06-25', deadline: '2026-06-28' },
+    { id: 2, number: 'ЗАМ-002', client: 'Кафе Вишня', product: 'Ванільне печиво', quantity: 50, status: 'ready', date: '2026-06-22', deadline: '2026-06-24' },
+    { id: 3, number: 'ЗАМ-003', client: 'Ресторан Зоря', product: 'Шоколадний торт', quantity: 5, status: 'new', date: '2026-06-24', deadline: '2026-06-30' },
+  ];
+  state.recipes = [
+    { id: 1, name: 'Шоколадний торт', output: 1, unit: 'шт', time: 180, ingredients: [{ product_id: 1, name: 'Борошно', qty: 0.5, unit: 'кг' }, { product_id: 2, name: 'Цукор', qty: 0.3, unit: 'кг' }, { product_id: 3, name: 'Масло', qty: 0.2, unit: 'кг' }] },
+    { id: 2, name: 'Ванільне печиво', output: 20, unit: 'шт', time: 60, ingredients: [{ product_id: 1, name: 'Борошно', qty: 0.3, unit: 'кг' }, { product_id: 2, name: 'Цукор', qty: 0.15, unit: 'кг' }, { product_id: 3, name: 'Масло', qty: 0.1, unit: 'кг' }] },
+  ];
+  state.production = [
+    { id: 1, recipe_name: 'Шоколадний торт', quantity: 10, status: 'in_progress', started: '2026-06-24', stage: 'Виробництво', order_id: 1 },
+    { id: 2, recipe_name: 'Ванільне печиво', quantity: 50, status: 'completed', started: '2026-06-22', stage: 'Завершено', order_id: 2 },
+  ];
+  await saveSnapshot();
+}
+
+async function loadData() {}
+
+async function saveSnapshot() {
+  if (!state.warehouse) return;
+  const data = { products: state.products, operations: state.operations, orders: state.orders, recipes: state.recipes, production: state.production };
+  const payload = btoa(JSON.stringify({ alg: 'none' })) + '.' + btoa(unescape(encodeURIComponent(JSON.stringify(data)))) + '.';
+  await sb.from('warehouse_snapshots').upsert({ warehouse_id: state.warehouse.id, payload, modified_at: new Date().toISOString(), created_at: new Date().toISOString() });
+}
+
+// ====== NAVIGATION ======
+function navigate(page) {
+  state.currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  const navEl = document.getElementById('nav-' + page);
+  if (navEl) navEl.classList.add('active');
+  const titles = { dashboard: 'Дашборд', products: 'Товари та матеріали', incoming: 'Прихід товарів', outgoing: 'Видаток товарів', inventory: 'Залишки', orders: 'Замовлення', recipes: 'Рецепти', production: 'Виробництво', reports: 'Звіти та статистика', warehouse: 'Склади', team: 'Команда', profile: 'Профіль' };
+  document.getElementById('page-title').textContent = titles[page] || page;
+  const renderers = { dashboard: renderDashboard, products: renderProducts, incoming: renderIncoming, outgoing: renderOutgoing, inventory: renderInventory, orders: renderOrders, recipes: renderRecipes, production: renderProduction, reports: renderReports, warehouse: renderWarehouse, team: renderTeam };
+  if (renderers[page]) renderers[page]();
+}
+// ====== PAGES ======
+function renderDashboard() {
+  const low = state.products.filter(p => p.quantity <= p.min_qty).length;
+  const total_val = state.products.reduce((s,p) => s + p.quantity * p.price, 0);
+  const active_orders = state.orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled').length;
+  const today_ops = state.operations.filter(o => o.date === new Date().toISOString().split('T')[0]).length;
+  document.getElementById('page-content').innerHTML = `
+<div class="stats-grid">
+<div class="stat-card green"><div class="label">Товарів на складі</div><div class="value">${state.products.length}</div><div class="sub">позицій</div></div>
+<div class="stat-card yellow"><div class="label">Мало залишків</div><div class="value">${low}</div><div class="sub">потребують поповнення</div></div>
+<div class="stat-card blue"><div class="label">Активні замовлення</div><div class="value">${active_orders}</div><div class="sub">в роботі</div></div>
+<div class="stat-card"><div class="label">Вартість складу</div><div class="value">${formatMoney(total_val)}</div><div class="sub">грн загально</div></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+<div class="table-container">
+<div class="table-header"><h3>⚠️ Мало залишків</h3><button class="btn btn-secondary btn-sm" onclick="navigate('inventory')">Всі →</button></div>
+<table><thead><tr><th>Товар</th><th>Залишок</th><th>Мін</th></tr></thead><tbody>
+${state.products.filter(p => p.quantity <= p.min_qty).map(p => `<tr><td>${p.name}</td><td style="color:var(--danger)">${p.quantity} ${p.unit}</td><td>${p.min_qty} ${p.unit}</td></tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:20px">✅ Все гаразд!</td></tr>'}
+</tbody></table></div>
+<div class="table-container">
+<div class="table-header"><h3>📋 Активні замовлення</h3><button class="btn btn-secondary btn-sm" onclick="navigate('orders')">Всі →</button></div>
+<table><thead><tr><th>Номер</th><th>Клієнт</th><th>Статус</th></tr></thead><tbody>
+${state.orders.filter(o=>o.status!=='completed').slice(0,5).map(o => `<tr><td>${o.number}</td><td>${o.client}</td><td>${orderBadge(o.status)}</td></tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:20px">Немає замовлень</td></tr>'}
+</tbody></table></div>
+</div>
+<div class="table-container">
+<div class="table-header"><h3>🕐 Остання активність</h3></div>
+<div class="timeline" style="padding:0 20px">
+${state.operations.slice(-5).reverse().map(op => `
+<div class="timeline-item">
+<div class="timeline-dot ${op.type==='incoming'?'green':'blue'}"></div>
+<div class="timeline-info"><div class="timeline-title">${op.type==='incoming'?'⬇️ Прихід':'⬆️ Видаток'}: ${op.product_name}</div><div class="timeline-sub">${op.quantity} • ${op.notes||''}</div></div>
+<div class="timeline-time">${op.date}</div>
+</div>`).join('') || '<div style="padding:20px;color:var(--text2);text-align:center">Немає операцій</div>'}
+</div></div>`;
+}
+
+function renderProducts() {
+  document.getElementById('page-content').innerHTML = `
+<div class="table-container">
+<div class="table-header">
+<h3>Всі товари (${state.products.length})</h3>
+<div class="table-search">
+<input class="search-input" placeholder="🔍 Пошук..." oninput="filterProducts(this.value)">
+<button class="btn btn-primary" onclick="openProductModal()">+ Додати</button>
+</div>
+</div>
+<table><thead><tr><th>SKU</th><th>Назва</th><th>Категорія</th><th>Залишок</th><th>Ціна</th><th>Статус</th><th>Дії</th></tr></thead>
+<tbody id="products-table">
+${renderProductRows(state.products)}
+</tbody></table></div>`;
+}
+
+function renderProductRows(products) {
+  return products.map(p => {
+    const status = p.quantity === 0 ? '<span class="badge badge-red">Немає</span>' : p.quantity <= p.min_qty ? '<span class="badge badge-yellow">Мало</span>' : '<span class="badge badge-green">В наявності</span>';
+    return `<tr>
+<td style="color:var(--text2);font-family:monospace">${p.sku}</td>
+<td><strong>${p.name}</strong></td>
+<td><span class="badge badge-gray">${p.category}</span></td>
+<td>${p.quantity} ${p.unit} <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${Math.min(100,(p.quantity/Math.max(p.min_qty*3,1))*100)}%;background:${p.quantity<=p.min_qty?'var(--danger)':'var(--accent)'}"></div></div></td>
+<td>${formatMoney(p.price)} грн</td>
+<td>${status}</td>
+<td><button class="btn btn-secondary btn-sm" onclick="editProduct(${p.id})">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteProduct(${p.id})">🗑️</button></td>
+</tr>`;
+  }).join('') || '<tr><td colspan="7"><div class="empty-state"><div class="icon">📦</div><h3>Немає товарів</h3><p>Додайте першу позицію</p></div></td></tr>';
+}
+
+function filterProducts(q) {
+  const filtered = state.products.filter(p => p.name.toLowerCase().includes(q.toLowerCase()) || p.sku.toLowerCase().includes(q.toLowerCase()) || p.category.toLowerCase().includes(q.toLowerCase()));
+  document.getElementById('products-table').innerHTML = renderProductRows(filtered);
+}
+
+function openProductModal(id) {
+  const p = id ? state.products.find(x => x.id === id) : {};
+  document.getElementById('modal-title').textContent = id ? 'Редагувати товар' : 'Новий товар';
+  document.getElementById('modal-body').innerHTML = `
+<div class="form-row">
+<div class="form-group"><label class="form-label">Назва *</label><input class="form-input" id="p-name" value="${p.name||''}"></div>
+<div class="form-group"><label class="form-label">SKU</label><input class="form-input" id="p-sku" value="${p.sku||''}"></div>
+</div>
+<div class="form-row">
+<div class="form-group"><label class="form-label">Категорія</label><input class="form-input" id="p-category" value="${p.category||''}"></div>
+<div class="form-group"><label class="form-label">Одиниця</label>
+<select class="form-select" id="p-unit">
+<option value="шт" ${p.unit==='шт'?'selected':''}>шт</option>
+<option value="кг" ${p.unit==='кг'?'selected':''}>кг</option>
+<option value="л" ${p.unit==='л'?'selected':''}>л</option>
+<option value="м" ${p.unit==='м'?'selected':''}>м</option>
+<option value="упак" ${p.unit==='упак'?'selected':''}>упак</option>
+</select></div>
+</div>
+<div class="form-row">
+<div class="form-group"><label class="form-label">Залишок</label><input type="number" class="form-input" id="p-qty" value="${p.quantity||0}"></div>
+<div class="form-group"><label class="form-label">Мінімальний залишок</label><input type="number" class="form-input" id="p-min" value="${p.min_qty||0}"></div>
+</div>
+<div class="form-group"><label class="form-label">Ціна (грн)</label><input type="number" class="form-input" id="p-price" value="${p.price||0}"></div>
+`;
+  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="saveProduct(${id||0})">Зберегти</button>`;
+  document.getElementById('modal-overlay').style.display = 'flex';
+}
+
+function editProduct(id) { openProductModal(id); }
+
+async function saveProduct(id) {
+  const p = {
+    name: document.getElementById('p-name').value,
+    sku: document.getElementById('p-sku').value || 'PRD-' + Date.now(),
+    category: document.getElementById('p-category').value || 'Інше',
+    unit: document.getElementById('p-unit').value,
+    quantity: parseFloat(document.getElementById('p-qty').value) || 0,
+    min_qty: parseFloat(document.getElementById('p-min').value) || 0,
+    price: parseFloat(document.getElementById('p-price').value) || 0
+  };
+  if (!p.name) return showNotif('Введіть назву товару', 'error');
+  if (id) {
+    const idx = state.products.findIndex(x => x.id === id);
+    state.products[idx] = { ...state.products[idx], ...p };
+  } else {
+    p.id = Date.now();
+    state.products.push(p);
+  }
+  await saveSnapshot();
+  closeModal();
+  renderProducts();
+  showNotif('Товар збережено', 'success');
+}
+
+async function deleteProduct(id) {
+  if (!confirm('Видалити цей товар?')) return;
+  state.products = state.products.filter(p => p.id !== id);
+  await saveSnapshot();
+  renderProducts();
+  showNotif('Товар видалено', 'success');
+}
+
+function renderIncoming() { renderOperation('incoming'); }
+function renderOutgoing() { renderOperation('outgoing'); }
+
+function renderOperation(type) {
+  const ops = state.operations.filter(o => o.type === type);
+  const label = type === 'incoming' ? 'Прихід' : 'Видаток';
+  document.getElementById('page-content').innerHTML = `
+<div class="table-container">
+<div class="table-header">
+<h3>${label} товарів (${ops.length})</h3>
+<button class="btn btn-primary" onclick="openOperationModal('${type}')">+ ${label}</button>
+</div>
+<table><thead><tr><th>Дата</th><th>Товар</th><th>Кількість</th><th>Ціна</th><th>Сума</th><th>Примітки</th></tr></thead><tbody>
+${ops.reverse().map(o => `<tr>
+<td>${o.date}</td><td>${o.product_name}</td>
+<td><strong>${o.quantity}</strong></td>
+<td>${formatMoney(o.price)} грн</td>
+<td>${formatMoney(o.quantity * o.price)} грн</td>
+<td style="color:var(--text2)">${o.notes||'—'}</td>
+</tr>`).join('') || '<tr><td colspan="6"><div class="empty-state"><div class="icon">${type==="incoming"?"⬇️":"⬆️"}</div><h3>Немає операцій</h3></div></td></tr>'}
+</tbody></table></div>`;
+}
+
+function openOperationModal(type) {
+  const label = type === 'incoming' ? 'Прихід' : 'Видаток';
+  document.getElementById('modal-title').textContent = 'Нова операція: ' + label;
+  document.getElementById('modal-body').innerHTML = `
+<div class="form-group"><label class="form-label">Товар *</label>
+<select class="form-select" id="op-product">
+${state.products.map(p => `<option value="${p.id}" data-name="${p.name}" data-unit="${p.unit}" data-price="${p.price}">${p.name} (залишок: ${p.quantity} ${p.unit})</option>`).join('')}
+</select></div>
+<div class="form-row">
+<div class="form-group"><label class="form-label">Кількість *</label><input type="number" class="form-input" id="op-qty" min="0.01" step="0.01"></div>
+<div class="form-group"><label class="form-label">Ціна за од. (грн)</label><input type="number" class="form-input" id="op-price" step="0.01"></div>
+</div>
+<div class="form-group"><label class="form-label">Дата</label><input type="date" class="form-input" id="op-date" value="${new Date().toISOString().split('T')[0]}"></div>
+<div class="form-group"><label class="form-label">Примітки</label><input class="form-input" id="op-notes" placeholder="Постачальник, замовлення..."></div>
+`;
+  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="saveOperation('${type}')">Зберегти</button>`;
+  document.getElementById('modal-overlay').style.display = 'flex';
+  // Auto-fill price
+  document.getElementById('op-product').addEventListener('change', function() {
+    const opt = this.options[this.selectedIndex];
+    document.getElementById('op-price').value = opt.dataset.price;
+  });
+  const firstOpt = document.getElementById('op-product').options[0];
+  if (firstOpt) document.getElementById('op-price').value = firstOpt.dataset.price;
+}
+
+async function saveOperation(type) {
+  const sel = document.getElementById('op-product');
+  const opt = sel.options[sel.selectedIndex];
+  const product_id = parseInt(sel.value);
+  const qty = parseFloat(document.getElementById('op-qty').value);
+  const price = parseFloat(document.getElementById('op-price').value) || 0;
+  if (!qty || qty <= 0) return showNotif('Введіть кількість', 'error');
+  const pidx = state.products.findIndex(p => p.id === product_id);
+  if (type === 'outgoing' && state.products[pidx].quantity < qty) return showNotif('Недостатньо товару на складі!', 'error');
+  const op = { id: Date.now(), type, product_id, product_name: opt.dataset.name, quantity: qty, price, date: document.getElementById('op-date').value, notes: document.getElementById('op-notes').value, created_at: new Date().toISOString() };
+  state.operations.push(op);
+  if (type === 'incoming') state.products[pidx].quantity += qty;
+  else state.products[pidx].quantity -= qty;
+  await saveSnapshot();
+  closeModal();
+  renderOperation(type);
+  showNotif(type === 'incoming' ? 'Прихід додано' : 'Видаток додано', 'success');
+}
+
+function renderInventory() {
+  const total = state.products.reduce((s,p) => s + p.quantity * p.price, 0);
+  document.getElementById('page-content').innerHTML = `
+<div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+<div class="stat-card green"><div class="label">В наявності</div><div class="value">${state.products.filter(p=>p.quantity>p.min_qty).length}</div><div class="sub">позицій</div></div>
+<div class="stat-card yellow"><div class="label">Мало залишків</div><div class="value">${state.products.filter(p=>p.quantity>0&&p.quantity<=p.min_qty).length}</div><div class="sub">потребують поповнення</div></div>
+<div class="stat-card red"><div class="label">Немає</div><div class="value">${state.products.filter(p=>p.quantity===0).length}</div><div class="sub">позицій</div></div>
+</div>
+<div class="table-container">
+<div class="table-header"><h3>Залишки товарів</h3><span style="color:var(--text2);font-size:13px">Загальна вартість: <strong style="color:var(--text)">${formatMoney(total)} грн</strong></span></div>
+<table><thead><tr><th>Товар</th><th>Категорія</th><th>Залишок</th><th>Мін. залишок</th><th>Рівень</th><th>Вартість</th></tr></thead><tbody>
+${state.products.map(p => {
+const pct = Math.min(100, (p.quantity / Math.max(p.min_qty * 3, 1)) * 100);
+const color = p.quantity === 0 ? 'var(--danger)' : p.quantity <= p.min_qty ? 'var(--warning)' : 'var(--accent)';
+return `<tr>
+<td><strong>${p.name}</strong><div style="font-size:11px;color:var(--text2)">${p.sku}</div></td>
+<td><span class="badge badge-gray">${p.category}</span></td>
+<td><strong>${p.quantity}</strong> ${p.unit}</td>
+<td>${p.min_qty} ${p.unit}</td>
+<td style="width:150px"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div><span style="font-size:11px;color:var(--text2)">${Math.round(pct)}%</span></td>
+<td>${formatMoney(p.quantity * p.price)} грн</td>
+</tr>`;
+}).join('')}
+</tbody></table></div>`;
+}
+
+function orderBadge(status) {
+  const badges = { new: '<span class="badge badge-blue">🆕 Нове</span>', in_production: '<span class="badge badge-yellow">⚙️ Виробництво</span>', ready: '<span class="badge badge-green">✅ Готово</span>', shipped: '<span class="badge badge-gray">📤 Відправлено</span>', cancelled: '<span class="badge badge-red">❌ Скасовано</span>' };
+  return badges[status] || status;
+}
+
+function renderOrders() {
+  document.getElementById('page-content').innerHTML = `
+<div class="table-container">
+<div class="table-header">
+<h3>Замовлення (${state.orders.length})</h3>
+<button class="btn btn-primary" onclick="openOrderModal()">+ Замовлення</button>
+</div>
+<table><thead><tr><th>Номер</th><th>Клієнт</th><th>Продукт</th><th>Кількість</th><th>Дедлайн</th><th>Статус</th><th>Дії</th></tr></thead><tbody>
+${state.orders.map(o => `<tr>
+<td style="font-weight:600">${o.number}</td>
+<td>${o.client}</td>
+<td>${o.product}</td>
+<td>${o.quantity} шт</td>
+<td>${o.deadline}</td>
+<td>${orderBadge(o.status)}</td>
+<td>
+<select class="form-select" style="width:160px;padding:4px 8px;font-size:12px" onchange="updateOrderStatus(${o.id}, this.value)">
+<option value="new" ${o.status==='new'?'selected':''}>Нове</option>
+<option value="in_production" ${o.status==='in_production'?'selected':''}>Виробництво</option>
+<option value="ready" ${o.status==='ready'?'selected':''}>Готово</option>
+<option value="shipped" ${o.status==='shipped'?'selected':''}>Відправлено</option>
+<option value="cancelled" ${o.status==='cancelled'?'selected':''}>Скасовано</option>
+</select>
+</td>
+</tr>`).join('') || '<tr><td colspan="7"><div class="empty-state"><div class="icon">📋</div><h3>Немає замовлень</h3></div></td></tr>'}
+</tbody></table></div>`;
+}
+
+function openOrderModal() {
+  document.getElementById('modal-title').textContent = 'Нове замовлення';
+  const nextNum = 'ЗАМ-' + String(state.orders.length + 1).padStart(3, '0');
+  document.getElementById('modal-body').innerHTML = `
+<div class="form-row">
+<div class="form-group"><label class="form-label">Номер</label><input class="form-input" id="o-num" value="${nextNum}"></div>
+<div class="form-group"><label class="form-label">Клієнт *</label><input class="form-input" id="o-client" placeholder="Назва клієнта"></div>
+</div>
+<div class="form-row">
+<div class="form-group"><label class="form-label">Продукт *</label><input class="form-input" id="o-product" placeholder="Назва продукту"></div>
+<div class="form-group"><label class="form-label">Кількість</label><input type="number" class="form-input" id="o-qty" value="1"></div>
+</div>
+<div class="form-row">
+<div class="form-group"><label class="form-label">Дата</label><input type="date" class="form-input" id="o-date" value="${new Date().toISOString().split('T')[0]}"></div>
+<div class="form-group"><label class="form-label">Дедлайн</label><input type="date" class="form-input" id="o-deadline"></div>
+</div>`;
+  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="saveOrder()">Зберегти</button>`;
+  document.getElementById('modal-overlay').style.display = 'flex';
+}
+
+async function saveOrder() {
+  const o = { id: Date.now(), number: document.getElementById('o-num').value, client: document.getElementById('o-client').value, product: document.getElementById('o-product').value, quantity: parseInt(document.getElementById('o-qty').value) || 1, date: document.getElementById('o-date').value, deadline: document.getElementById('o-deadline').value, status: 'new' };
+  if (!o.client || !o.product) return showNotif('Заповніть клієнта та продукт', 'error');
+  state.orders.push(o);
+  await saveSnapshot();
+  closeModal();
+  renderOrders();
+  showNotif('Замовлення створено', 'success');
+}
+
+async function updateOrderStatus(id, status) {
+  const idx = state.orders.findIndex(o => o.id === id);
+  state.orders[idx].status = status;
+  await saveSnapshot();
+  showNotif('Статус оновлено', 'success');
+}
+function renderRecipes() {
+  document.getElementById('page-content').innerHTML = `
+<div class="table-container">
+<div class="table-header">
+<h3>Рецепти (${state.recipes.length})</h3>
+<button class="btn btn-primary" onclick="openRecipeModal()">+ Рецепт</button>
+</div>
+<div style="padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
+${state.recipes.map(r => `
+<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px">
+<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
+<div><h4 style="font-size:15px;margin-bottom:4px">${r.name}</h4><span class="badge badge-blue">Вихід: ${r.output} ${r.unit}</span></div>
+<span style="color:var(--text2);font-size:13px">⏱ ${r.time} хв</span>
+</div>
+<div style="font-size:13px;color:var(--text2);margin-bottom:8px;font-weight:600">Інгредієнти:</div>
+${r.ingredients.map(i => `<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid rgba(48,54,61,0.3)"><span>${i.name}</span><span>${i.qty} ${i.unit}</span></div>`).join('')}
+<div style="margin-top:12px;display:flex;gap:8px">
+<button class="btn btn-primary btn-sm" onclick="startProduction(${r.id})">▶️ Запустити</button>
+</div>
+</div>`).join('') || '<div class="empty-state"><div class="icon">📝</div><h3>Немає рецептів</h3></div>'}
+</div></div>`;
+}
+
+function openRecipeModal() {
+  document.getElementById('modal-title').textContent = 'Новий рецепт';
+  document.getElementById('modal-body').innerHTML = `
+<div class="form-group"><label class="form-label">Назва рецепту *</label><input class="form-input" id="r-name"></div>
+<div class="form-row">
+<div class="form-group"><label class="form-label">Вихід (кількість)</label><input type="number" class="form-input" id="r-output" value="1"></div>
+<div class="form-group"><label class="form-label">Одиниця</label><select class="form-select" id="r-unit"><option>шт</option><option>кг</option><option>л</option><option>упак</option></select></div>
+</div>
+<div class="form-group"><label class="form-label">Час виробництва (хвилини)</label><input type="number" class="form-input" id="r-time" value="60"></div>
+<div class="form-group"><label class="form-label">Інгредієнти</label>
+<div id="ingredients-list"></div>
+<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addIngredient()">+ Інгредієнт</button>
+</div>`;
+  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="saveRecipe()">Зберегти</button>`;
+  document.getElementById('modal-overlay').style.display = 'flex';
+  addIngredient();
+}
+
+let ingCounter = 0;
+function addIngredient() {
+  const id = ++ingCounter;
+  const div = document.createElement('div');
+  div.style = 'display:flex;gap:8px;margin-bottom:8px;align-items:center';
+  div.id = 'ing-' + id;
+  div.innerHTML = `
+<select class="form-select" id="ing-p-${id}" style="flex:2">${state.products.map(p=>`<option value="${p.id}" data-name="${p.name}" data-unit="${p.unit}">${p.name}</option>`).join('')}</select>
+<input type="number" class="form-input" id="ing-q-${id}" placeholder="К-сть" style="flex:1" min="0.001" step="0.001">
+<span id="ing-u-${id}" style="color:var(--text2);font-size:13px;width:30px">${state.products[0]?.unit||''}</span>
+<button class="btn btn-secondary btn-sm" onclick="document.getElementById('ing-${id}').remove()">✕</button>`;
+  document.getElementById('ingredients-list').appendChild(div);
+  document.getElementById('ing-p-' + id).addEventListener('change', function() {
+    const opt = this.options[this.selectedIndex];
+    const p = state.products.find(x => x.id == opt.value);
+    document.getElementById('ing-u-' + id).textContent = p?.unit || '';
+  });
+}
+
+async function saveRecipe() {
+  const name = document.getElementById('r-name').value;
+  if (!name) return showNotif('Введіть назву', 'error');
+  const ings = [];
+  for (const div of document.getElementById('ingredients-list').children) {
+    const id = div.id.replace('ing-', '');
+    const sel = document.getElementById('ing-p-' + id);
+    const qty = parseFloat(document.getElementById('ing-q-' + id).value);
+    if (sel && qty) {
+      const p = state.products.find(x => x.id == sel.value);
+      ings.push({ product_id: parseInt(sel.value), name: p.name, qty, unit: p.unit });
+    }
+  }
+  state.recipes.push({ id: Date.now(), name, output: parseFloat(document.getElementById('r-output').value)||1, unit: document.getElementById('r-unit').value, time: parseInt(document.getElementById('r-time').value)||60, ingredients: ings });
+  await saveSnapshot();
+  closeModal();
+  renderRecipes();
+  showNotif('Рецепт збережено', 'success');
+}
+
+function renderProduction() {
+  document.getElementById('page-content').innerHTML = `
+<div class="table-container">
+<div class="table-header">
+<h3>Виробництво (${state.production.length})</h3>
+<button class="btn btn-primary" onclick="navigate('recipes')">+ Запустити рецепт</button>
+</div>
+<table><thead><tr><th>Рецепт</th><th>Кількість</th><th>Стадія</th><th>Статус</th><th>Почато</th><th>Дії</th></tr></thead><tbody>
+${state.production.map(p => {
+const badge = p.status === 'completed' ? '<span class="badge badge-green">✅ Завершено</span>' : p.status === 'paused' ? '<span class="badge badge-yellow">⏸ Пауза</span>' : '<span class="badge badge-blue">⚙️ В роботі</span>';
+return `<tr>
+<td><strong>${p.recipe_name}</strong></td>
+<td>${p.quantity} шт</td>
+<td><span class="badge badge-gray">${p.stage}</span></td>
+<td>${badge}</td>
+<td>${p.started}</td>
+<td>
+${p.status !== 'completed' ? `
+<button class="btn btn-primary btn-sm" onclick="completeProduction(${p.id})">✅ Завершити</button>
+<button class="btn btn-secondary btn-sm" onclick="updateProductionStage(${p.id})">📝 Стадія</button>
+` : ''}
+</td>
+</tr>`}).join('') || '<tr><td colspan="6"><div class="empty-state"><div class="icon">⚙️</div><h3>Немає виробництва</h3></div></td></tr>'}
+</tbody></table></div>`;
+}
+
+function openStartProductionModal(recipeId) {
+  const r = state.recipes.find(x => x.id === recipeId);
+  document.getElementById('modal-title').textContent = 'Запустити виробництво';
+  document.getElementById('modal-body').innerHTML = `
+<div style="background:var(--bg);border-radius:8px;padding:12px;margin-bottom:16px">
+<strong>${r.name}</strong><br>
+<span style="color:var(--text2);font-size:13px">Час: ${r.time} хв • Вихід: ${r.output} ${r.unit}</span>
+</div>
+<div class="form-group"><label class="form-label">Кількість порцій</label><input type="number" class="form-input" id="prod-qty" value="1" min="1"></div>
+<div style="background:var(--bg);border-radius:8px;padding:12px;margin-top:12px">
+<div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text2)">Потрібні матеріали:</div>
+${r.ingredients.map(i => {
+const p = state.products.find(x => x.id === i.product_id);
+const available = p?.quantity || 0;
+const ok = available >= i.qty;
+return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0">
+<span>${i.name}</span>
+<span style="color:${ok?'var(--accent)':'var(--danger)'}">${i.qty} ${i.unit} ${ok ? '✓' : '⚠️ мало!'}</span>
+</div>`;
+}).join('')}
+</div>`;
+  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="confirmStartProduction(${r.id})">▶️ Запустити</button>`;
+  document.getElementById('modal-overlay').style.display = 'flex';
+}
+
+function startProduction(recipeId) { openStartProductionModal(recipeId); }
+
+async function confirmStartProduction(recipeId) {
+  const r = state.recipes.find(x => x.id === recipeId);
+  const qty = parseInt(document.getElementById('prod-qty').value) || 1;
+  // Deduct materials
+  for (const ing of r.ingredients) {
+    const idx = state.products.findIndex(p => p.id === ing.product_id);
+    if (idx >= 0) state.products[idx].quantity = Math.max(0, state.products[idx].quantity - ing.qty * qty);
+  }
+  state.production.push({ id: Date.now(), recipe_name: r.name, recipe_id: r.id, quantity: qty * r.output, status: 'in_progress', started: new Date().toISOString().split('T')[0], stage: 'Підготовка' });
+  await saveSnapshot();
+  closeModal();
+  navigate('production');
+  showNotif('Виробництво запущено!', 'success');
+}
+
+async function completeProduction(id) {
+  const idx = state.production.findIndex(p => p.id === id);
+  const prod = state.production[idx];
+  state.production[idx].status = 'completed';
+  state.production[idx].stage = 'Завершено';
+  // Add to products
+  const recipe = state.recipes.find(r => r.id === prod.recipe_id);
+  if (recipe) {
+    const pName = recipe.name;
+    const existing = state.products.find(p => p.name === pName && p.category === 'Готова продукція');
+    if (existing) existing.quantity += prod.quantity;
+    else state.products.push({ id: Date.now(), name: pName, sku: 'PRD-' + Date.now(), category: 'Готова продукція', unit: recipe.unit, quantity: prod.quantity, min_qty: 0, price: 0 });
+  }
+  await saveSnapshot();
+  renderProduction();
+  showNotif('Виробництво завершено! Товар додано на склад.', 'success');
+}
+
+async function updateProductionStage(id) {
+  const stages = ['Підготовка', 'Змішування', 'Випікання', 'Охолодження', 'Пакування', 'Контроль якості'];
+  const idx = state.production.findIndex(p => p.id === id);
+  const current = stages.indexOf(state.production[idx].stage);
+  const next = stages[(current + 1) % stages.length];
+  state.production[idx].stage = next;
+  await saveSnapshot();
+  renderProduction();
+  showNotif('Стадія: ' + next, 'success');
+}
+
+function renderReports() {
+  const incoming = state.operations.filter(o => o.type === 'incoming');
+  const outgoing = state.operations.filter(o => o.type === 'outgoing');
+  const totalIn = incoming.reduce((s,o) => s + o.quantity * o.price, 0);
+  const totalOut = outgoing.reduce((s,o) => s + o.quantity * o.price, 0);
+  const byCategory = {};
+  state.products.forEach(p => { byCategory[p.category] = (byCategory[p.category]||0) + p.quantity * p.price; });
+  document.getElementById('page-content').innerHTML = `
+<div class="stats-grid">
+<div class="stat-card green"><div class="label">Загальний прихід</div><div class="value">${formatMoney(totalIn)}</div><div class="sub">грн</div></div>
+<div class="stat-card blue"><div class="label">Загальний видаток</div><div class="value">${formatMoney(totalOut)}</div><div class="sub">грн</div></div>
+<div class="stat-card"><div class="label">Операцій</div><div class="value">${state.operations.length}</div><div class="sub">всього</div></div>
+<div class="stat-card yellow"><div class="label">Замовлень</div><div class="value">${state.orders.length}</div><div class="sub">всього</div></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+<div class="table-container">
+<div class="table-header"><h3>📊 По категоріях</h3></div>
+<table><thead><tr><th>Категорія</th><th>Вартість</th></tr></thead><tbody>
+${Object.entries(byCategory).map(([cat,val]) => `<tr><td><span class="badge badge-gray">${cat}</span></td><td>${formatMoney(val)} грн</td></tr>`).join('')}
+</tbody></table></div>
+<div class="table-container">
+<div class="table-header"><h3>📈 Замовлення по статусах</h3></div>
+<table><thead><tr><th>Статус</th><th>Кількість</th></tr></thead><tbody>
+<tr><td>${orderBadge('new')}</td><td>${state.orders.filter(o=>o.status==='new').length}</td></tr>
+<tr><td>${orderBadge('in_production')}</td><td>${state.orders.filter(o=>o.status==='in_production').length}</td></tr>
+<tr><td>${orderBadge('ready')}</td><td>${state.orders.filter(o=>o.status==='ready').length}</td></tr>
+<tr><td>${orderBadge('shipped')}</td><td>${state.orders.filter(o=>o.status==='shipped').length}</td></tr>
+</tbody></table></div>
+</div>`;
+}
+
+function renderWarehouse() {
+  document.getElementById('page-content').innerHTML = `
+<div class="table-container">
+<div class="table-header"><h3>🏠 Мої склади</h3></div>
+<div style="padding:20px">
+${state.warehouse ? `
+<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:20px">
+<div style="font-size:18px;font-weight:700;margin-bottom:8px">🏭 ${state.warehouse.name || 'Основний склад'}</div>
+<div style="color:var(--text2);font-size:13px;margin-bottom:16px">ID: ${state.warehouse.id}</div>
+<div style="display:flex;gap:16px;font-size:14px">
+<div><span style="color:var(--text2)">Товарів:</span> <strong>${state.products.length}</strong></div>
+<div><span style="color:var(--text2)">Операцій:</span> <strong>${state.operations.length}</strong></div>
+<div><span style="color:var(--text2)">Замовлень:</span> <strong>${state.orders.length}</strong></div>
+</div>
+<div style="margin-top:16px">
+<label class="form-label">Назва складу</label>
+<div style="display:flex;gap:8px">
+<input class="form-input" id="wh-name" value="${state.warehouse.name||''}" placeholder="Назва складу" style="max-width:300px">
+<button class="btn btn-primary" onclick="saveWarehouseName()">Зберегти</button>
+</div>
+</div>
+</div>
+` : '<div class="empty-state"><div class="icon">🏠</div><h3>Склад не знайдено</h3></div>'}
+</div></div>`;
+}
+
+async function saveWarehouseName() {
+  const name = document.getElementById('wh-name').value;
+  if (state.warehouse) {
+    await sb.from('warehouses').update({ name }).eq('id', state.warehouse.id);
+    state.warehouse.name = name;
+    document.getElementById('warehouse-name').textContent = name;
+    showNotif('Назву збережено', 'success');
+  }
+}
+
+function renderTeam() {
+  document.getElementById('page-content').innerHTML = `
+<div class="table-container">
+<div class="table-header"><h3>👥 Команда</h3><button class="btn btn-primary" onclick="openInviteModal()">+ Запросити</button></div>
+<table><thead><tr><th>Користувач</th><th>Роль</th><th>Дата приєднання</th></tr></thead><tbody>
+<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:32px;height:32px;font-size:13px">${(state.user?.user_metadata?.full_name||state.user?.email||'?')[0].toUpperCase()}</div><div>${state.user?.user_metadata?.full_name || state.user?.email}</div></div></td>
+<td><span class="badge badge-green">Власник</span></td>
+<td>${new Date(state.warehouse?.created_at||Date.now()).toLocaleDateString('uk-UA')}</td></tr>
+</tbody></table></div>`;
+}
+
+function openInviteModal() {
+  document.getElementById('modal-title').textContent = 'Запросити користувача';
+  document.getElementById('modal-body').innerHTML = `<div class="form-group"><label class="form-label">Email користувача</label><input class="form-input" id="invite-email" placeholder="user@example.com"></div>
+<div class="form-group"><label class="form-label">Роль</label><select class="form-select" id="invite-role"><option value="manager">Менеджер</option><option value="worker">Працівник</option><option value="viewer">Спостерігач</option></select></div>`;
+  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="showNotif('Запрошення відправлено','success');closeModal()">Запросити</button>`;
+  document.getElementById('modal-overlay').style.display = 'flex';
+}
+
+// ====== UTILS ======
+function formatMoney(n) { return new Intl.NumberFormat('uk-UA', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n || 0); }
+
+function showNotif(text, type = 'success') {
+  const n = document.getElementById('notification');
+  document.getElementById('notif-icon').textContent = type === 'success' ? '✅' : '❌';
+  document.getElementById('notif-text').textContent = text;
+  n.className = 'notification ' + type;
+  n.style.display = 'flex';
+  setTimeout(() => n.style.display = 'none', 3500);
+}
+
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('modal-overlay')) document.getElementById('modal-overlay').style.display = 'none';
+}
+
+// ====== STARTUP ======
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) { await initApp(session.user); }
+})();
+</script>
+</body>
+</html>
