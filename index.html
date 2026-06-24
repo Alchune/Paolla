@@ -560,93 +560,225 @@ function renderIncoming() { renderOperation('incoming'); }
 function renderOutgoing() { renderOperation('outgoing'); }
 
 function renderOperation(type) {
-  const ops = state.operations.filter(function(o) { return o.type === type; });
-  const isIncoming = type === 'incoming';
-  const label = isIncoming ? 'Прихід' : 'Видаток';
-  const icon = isIncoming ? '⬇️' : '⬆️';
-  const container = document.getElementById('page-content');
-  let html = '<div class="table-container">';
-  html += '<div class="table-header"><h3>' + label + ' товарів (' + ops.length + ')</h3>';
-  html += '<button class="btn btn-primary" id="op-btn">+ ' + label + '</button></div>';
-  html += '<table><thead><tr><th>Дата</th><th>Товар</th><th>Кількість</th><th>Ціна</th><th>Сума</th><th>Примітки</th></tr></thead><tbody>';
+  var isIncoming = (type === 'incoming');
+  var icon = isIncoming ? '⬇️' : '⬆️';
+  var title = isIncoming ? 'Прихід товарів' : 'Видаток товарів';
+  var btnLabel = isIncoming ? '+ Новий прихід' : '+ Новий видаток';
+  var ops = state.operations.filter(function(o) { return o.type === type; });
+  var html = '<div class="page-header"><h2>' + icon + ' ' + title + '</h2><button class="btn" id="add-op-btn">' + btnLabel + '</button></div>';
+  html += '<table class="data-table"><thead><tr><th>Дата</th><th>Контрагент</th><th>Товари</th><th>Сума (грн)</th><th>Примітки</th><th></th></tr></thead><tbody>';
   if (ops.length === 0) {
     html += '<tr><td colspan="6"><div class="empty-state"><div class="icon">' + icon + '</div><h3>Немає операцій</h3><p>Додайте першу операцію</p></div></td></tr>';
   } else {
     ops.slice().reverse().forEach(function(o) {
-      html += '<tr><td>' + o.date + '</td><td>' + o.product_name + '</td>';
-      html += '<td><strong>' + o.quantity + '</strong></td><td>' + formatMoney(o.price) + ' грн</td>';
-      html += '<td>' + formatMoney(o.quantity * o.price) + ' грн</td>';
-      html += '<td style="color:var(--text2)">' + (o.notes || '—') + '</td></tr>';
+      var items = o.items;
+      if (!items && o.product_name) {
+        items = [{product_id: o.product_id, product_name: o.product_name, quantity: o.quantity, price: o.price}];
+      }
+      items = items || [];
+      var totalAmt = 0;
+      var itemsSummary = items.map(function(it) {
+        totalAmt += (Number(it.quantity) || 0) * (Number(it.price) || 0);
+        return it.product_name + ' ×' + it.quantity;
+      }).join('; ');
+      var totalStr = totalAmt > 0 ? totalAmt.toFixed(2) : '—';
+      var counterparty = o.counterparty || '—';
+      html += '<tr>';
+      html += '<td>' + (o.date || '—') + '</td>';
+      html += '<td>' + counterparty + '</td>';
+      html += '<td style="max-width:220px;white-space:normal">' + itemsSummary + '</td>';
+      html += '<td>' + totalStr + '</td>';
+      html += '<td>' + (o.notes || '—') + '</td>';
+      html += '<td><button class="btn btn-sm btn-danger" onclick="deleteOperation(' + o.id + ','' + type + '')">✕</button></td>';
+      html += '</tr>';
     });
   }
-  html += '</tbody></table></div>';
-  container.innerHTML = html;
-  var btn = document.getElementById('op-btn');
+  html += '</tbody></table>';
+  document.getElementById('page-content').innerHTML = html;
+  var btn = document.getElementById('add-op-btn');
   if (btn) btn.addEventListener('click', function() { openOperationModal(type); });
 }
 
 
 function openOperationModal(type) {
-  const isIncoming = type === 'incoming';
-  const label = isIncoming ? 'Прихід' : 'Видаток';
-  document.getElementById('modal-title').textContent = 'Нова операція: ' + label;
-  // Build select options
-  var opts = state.products.map(function(p) {
-    var o = document.createElement('option');
-    o.value = p.id;
-    o.dataset.name = p.name;
-    o.dataset.unit = p.unit;
-    o.dataset.price = p.price;
-    o.textContent = p.name + ' (залишок: ' + p.quantity + ' ' + p.unit + ')';
-    return o.outerHTML;
-  }).join('');
+  var isIncoming = (type === 'incoming');
+  var title = isIncoming ? 'Новий прихід' : 'Новий видаток';
+  var counterpartyLabel = isIncoming ? 'Постачальник' : 'Покупець';
   var today = new Date().toISOString().split('T')[0];
-  var body = document.createElement('div');
-  body.innerHTML = '<div class="form-group"><label class="form-label">Товар *</label><select class="form-select" id="op-product">' + opts + '</select></div>'
-    + '<div class="form-row"><div class="form-group"><label class="form-label">Кількість *</label><input type="number" class="form-input" id="op-qty" min="0.01" step="0.01"></div>'
-    + '<div class="form-group"><label class="form-label">Ціна (грн)</label><input type="number" class="form-input" id="op-price" step="0.01"></div></div>'
-    + '<div class="form-group"><label class="form-label">Дата</label><input type="date" class="form-input" id="op-date" value="' + today + '"></div>'
-    + '<div class="form-group"><label class="form-label">Примітки</label><input class="form-input" id="op-notes" placeholder="Постачальник..."></div>';
-  document.getElementById('modal-body').innerHTML = body.innerHTML;
-  var footer = document.createElement('div');
+
+  openModal(title);
+  var body = document.getElementById('modal-body');
+  var footer = document.getElementById('modal-footer');
+
+  function buildProductOptions() {
+    var html = '<option value="">— Оберіть товар —</option>';
+    state.products.forEach(function(p) {
+      html += '<option value="' + p.id + '" data-name="' + (p.name || '') + '" data-unit="' + (p.unit || '') + '">' + p.name + (p.unit ? ' (' + p.unit + ')' : '') + '</option>';
+    });
+    return html;
+  }
+
+  body.innerHTML =
+    '<div class="form-group"><label class="form-label">' + counterpartyLabel + ' *</label>' +
+    '<input class="form-input" id="op-counterparty" placeholder="' + counterpartyLabel + '"></div>' +
+    '<div class="form-row">' +
+    '<div class="form-group"><label class="form-label">Дата</label><input type="date" class="form-input" id="op-date" value="' + today + '"></div>' +
+    '<div class="form-group"><label class="form-label">Примітки</label><input class="form-input" id="op-notes" placeholder="Необов'язково"></div>' +
+    '</div>' +
+    '<div class="form-label" style="margin-bottom:6px;font-weight:600">Товари *</div>' +
+    '<table class="data-table" id="op-items-table" style="margin-bottom:8px">' +
+    '<thead><tr><th>Товар</th><th>Кількість</th><th>Ціна (грн)</th><th></th></tr></thead>' +
+    '<tbody id="op-items-body"></tbody>' +
+    '</table>' +
+    '<button class="btn" id="op-add-row" type="button">+ Додати товар</button>';
+
+  function addItemRow() {
+    var tbody = document.getElementById('op-items-body');
+    var tr = document.createElement('tr');
+    var rowId = 'item-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+    tr.id = rowId;
+
+    var td1 = document.createElement('td');
+    var sel = document.createElement('select');
+    sel.className = 'form-select item-product';
+    sel.innerHTML = buildProductOptions();
+    td1.appendChild(sel);
+
+    var td2 = document.createElement('td');
+    var qtyInput = document.createElement('input');
+    qtyInput.type = 'number';
+    qtyInput.className = 'form-input item-qty';
+    qtyInput.min = '0.001';
+    qtyInput.step = '0.001';
+    qtyInput.style.width = '90px';
+    td2.appendChild(qtyInput);
+
+    var td3 = document.createElement('td');
+    var priceInput = document.createElement('input');
+    priceInput.type = 'number';
+    priceInput.className = 'form-input item-price';
+    priceInput.min = '0';
+    priceInput.step = '0.01';
+    priceInput.style.width = '100px';
+    td3.appendChild(priceInput);
+
+    var td4 = document.createElement('td');
+    var removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'btn btn-sm btn-danger';
+    removeBtn.textContent = '✕';
+    removeBtn.addEventListener('click', function() {
+      var row = document.getElementById(rowId);
+      if (row) row.parentNode.removeChild(row);
+    });
+    td4.appendChild(removeBtn);
+
+    tr.appendChild(td1);
+    tr.appendChild(td2);
+    tr.appendChild(td3);
+    tr.appendChild(td4);
+    tbody.appendChild(tr);
+  }
+
+  addItemRow();
+
+  document.getElementById('op-add-row').addEventListener('click', function() { addItemRow(); });
+
+  footer.innerHTML = '';
   var btnCancel = document.createElement('button');
+  btnCancel.type = 'button';
   btnCancel.className = 'btn btn-secondary';
   btnCancel.textContent = 'Скасувати';
-  btnCancel.onclick = closeModal;
+  btnCancel.addEventListener('click', closeModal);
+
   var btnSave = document.createElement('button');
-  btnSave.className = 'btn btn-primary';
+  btnSave.type = 'button';
+  btnSave.className = 'btn';
   btnSave.textContent = 'Зберегти';
-  btnSave.onclick = function() { saveOperation(type); };
-  document.getElementById('modal-footer').innerHTML = '';
-  document.getElementById('modal-footer').appendChild(btnCancel);
-  document.getElementById('modal-footer').appendChild(btnSave);
-  document.getElementById('modal-overlay').style.display = 'flex';
-  var sel = document.getElementById('op-product');
-  if (sel && sel.options[0]) {
-    document.getElementById('op-price').value = sel.options[0].dataset.price;
-    sel.addEventListener('change', function() {
-      document.getElementById('op-price').value = this.options[this.selectedIndex].dataset.price;
-    });
-  }
+  btnSave.addEventListener('click', function() { saveOperation(type); });
+
+  footer.appendChild(btnCancel);
+  footer.appendChild(btnSave);
 }
 
+
 async function saveOperation(type) {
-  var sel = document.getElementById('op-product');
-  var opt = sel.options[sel.selectedIndex];
-  var product_id = parseInt(sel.value);
-  var qty = parseFloat(document.getElementById('op-qty').value);
-  var price = parseFloat(document.getElementById('op-price').value) || 0;
-  if (!qty || qty <= 0) return showNotif('Введіть кількість', 'error');
-  var pidx = state.products.findIndex(function(p) { return p.id === product_id; });
-  if (type === 'outgoing' && state.products[pidx].quantity < qty) return showNotif('Недостатньо товару!', 'error');
-  var op = { id: Date.now(), type: type, product_id: product_id, product_name: opt.dataset.name, quantity: qty, price: price, date: document.getElementById('op-date').value, notes: document.getElementById('op-notes').value, created_at: new Date().toISOString() };
+  var counterpartyEl = document.getElementById('op-counterparty');
+  var counterparty = counterpartyEl ? counterpartyEl.value.trim() : '';
+  var dateEl = document.getElementById('op-date');
+  var date = dateEl ? dateEl.value : '';
+  var notesEl = document.getElementById('op-notes');
+  var notes = notesEl ? notesEl.value.trim() : '';
+
+  if (!counterparty) { showNotif('Введіть назву контрагента', 'error'); return; }
+
+  var tbody = document.getElementById('op-items-body');
+  var rows = tbody ? tbody.querySelectorAll('tr') : [];
+  var items = [];
+  var hasError = false;
+  rows.forEach(function(tr) {
+    if (hasError) return;
+    var sel = tr.querySelector('.item-product');
+    var qtyInp = tr.querySelector('.item-qty');
+    var priceInp = tr.querySelector('.item-price');
+    if (!sel || !qtyInp) return;
+    var productId = sel.value;
+    if (!productId) { hasError = true; showNotif('Оберіть товар у кожному рядку', 'error'); return; }
+    var qty = parseFloat(qtyInp.value);
+    if (!qty || qty <= 0) { hasError = true; showNotif('Введіть кількість більше 0', 'error'); return; }
+    var price = parseFloat(priceInp ? priceInp.value : '') || 0;
+    var opt = sel.options[sel.selectedIndex];
+    var productName = opt ? (opt.dataset && opt.dataset.name ? opt.dataset.name : opt.text.split('(')[0].trim()) : String(productId);
+    items.push({product_id: productId, product_name: productName, quantity: qty, price: price});
+  });
+  if (hasError) return;
+  if (items.length === 0) { showNotif('Додайте хоча б один товар', 'error'); return; }
+
+  items.forEach(function(it) {
+    var prod = state.products.find(function(p) { return String(p.id) === String(it.product_id); });
+    if (prod) {
+      if (type === 'incoming') {
+        prod.quantity = (Number(prod.quantity) || 0) + it.quantity;
+      } else {
+        prod.quantity = Math.max(0, (Number(prod.quantity) || 0) - it.quantity);
+      }
+    }
+  });
+
+  var op = { id: Date.now(), type: type, counterparty: counterparty, date: date, notes: notes, items: items };
   state.operations.push(op);
-  if (type === 'incoming') state.products[pidx].quantity += qty;
-  else state.products[pidx].quantity -= qty;
   await saveSnapshot();
   closeModal();
   renderOperation(type);
-  showNotif(type === 'incoming' ? 'Прихід додано' : 'Видаток додано', 'success');
+  showNotif('Операцію збережено', 'success');
+}
+
+
+function deleteOperation(id, type) {
+  if (!confirm('Видалити цю операцію?')) return;
+  var op = state.operations.find(function(o) { return o.id === id; });
+  if (op) {
+    var items = op.items;
+    if (!items && op.product_name) {
+      items = [{product_id: op.product_id, product_name: op.product_name, quantity: op.quantity, price: op.price}];
+    }
+    items = items || [];
+    items.forEach(function(it) {
+      var prod = state.products.find(function(p) { return String(p.id) === String(it.product_id); });
+      if (prod) {
+        if (op.type === 'incoming') {
+          prod.quantity = Math.max(0, (Number(prod.quantity) || 0) - Number(it.quantity));
+        } else {
+          prod.quantity = (Number(prod.quantity) || 0) + Number(it.quantity);
+        }
+      }
+    });
+  }
+  state.operations = state.operations.filter(function(o) { return o.id !== id; });
+  saveSnapshot().then(function() {
+    renderOperation(type);
+    showNotif('Операцію видалено', 'success');
+  });
 }
 
 
