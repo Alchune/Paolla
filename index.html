@@ -27,7 +27,7 @@ nav{flex:1;padding:12px 0;overflow-y:auto}
 .avatar{width:32px;height:32px;background:linear-gradient(135deg,#6e40c9,#1f6feb);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:white}
 /* Main */
 .main{flex:1;margin-left:240px;display:flex;flex-direction:column;min-height:100vh}
-.topbar{background:var(--sidebar);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.menu-toggle{display:none;background:none;border:none;color:var(--text);font-size:22px;line-height:1;cursor:pointer;padding:0 4px 0 0}.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:90}.sidebar-overlay.open{display:block}.topbar{background:var(--sidebar);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
 .page-title{font-size:16px;font-weight:600}
 .topbar-actions{display:flex;align-items:center;gap:12px}
 .content{padding:24px;flex:1}
@@ -146,7 +146,7 @@ tbody tr:last-child td{border-bottom:none}
 @keyframes spin{to{transform:rotate(360deg)}}
 /* Responsive */
 @media(max-width:768px){.sidebar{width:200px}.main{margin-left:200px}.stats-grid{grid-template-columns:1fr 1fr}.form-row{grid-template-columns:1fr}}
-@media(max-width:600px){.sidebar{transform:translateX(-100%);transition:transform 0.3s}.sidebar.open{transform:translateX(0)}.main{margin-left:0}}
+@media(max-width:600px){.sidebar{transform:translateX(-100%);transition:transform 0.3s}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.menu-toggle{display:inline-flex;align-items:center}.topbar{padding:0 12px}}
 </style>
 </head>
 <body>
@@ -254,10 +254,12 @@ tbody tr:last-child td{border-bottom:none}
 </div>
 </div>
 </aside>
+<div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
 
 <main class="main">
 <div class="topbar">
 <div style="display:flex;align-items:center;gap:12px">
+<button class="menu-toggle" onclick="toggleSidebar()" aria-label="Меню">☰</button>
 <div class="page-title" id="page-title">Дашборд</div>
 </div>
 <div class="topbar-actions">
@@ -290,6 +292,8 @@ tbody tr:last-child td{border-bottom:none}
 </div>
 
 <script>
+function toggleSidebar(){var s=document.getElementById("sidebar");if(!s)return;s.classList.toggle("open");var o=document.getElementById("sidebarOverlay");if(o)o.classList.toggle("open");}
+
 // ====== CONFIG ======
 const SUPABASE_URL = 'https://huzqgxfklegghzkgryoh.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1enFneGZrbGVnZ2h6a2dyeW9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2Mzk0NDYsImV4cCI6MjA5NzIxNTQ0Nn0.fUXyXr49ZW7zsumsTwKON0IcCQGIV0Ma8hjPtP-NgGg';
