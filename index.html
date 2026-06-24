@@ -587,16 +587,41 @@ function renderOperation(type) {
 
 
 function openOperationModal(type) {
-  const label = type === 'incoming' ? 'Прихід' : 'Видаток';
-  let productOptions = '';
-  state.products.forEach(function(p) {
-    productOptions += '<option value="' + p.id + '" data-name="' + p.name + '" data-unit="' + p.unit + '" data-price="' + p.price + '">' + p.name + ' (залишок: ' + p.quantity + ' ' + p.unit + ')</option>';
-  });
+  const isIncoming = type === 'incoming';
+  const label = isIncoming ? 'Прихід' : 'Видаток';
   document.getElementById('modal-title').textContent = 'Нова операція: ' + label;
-  document.getElementById('modal-body').innerHTML = '<div class="form-group"><label class="form-label">Товар *</label><select class="form-select" id="op-product">' + productOptions + '</select></div><div class="form-row"><div class="form-group"><label class="form-label">Кількість *</label><input type="number" class="form-input" id="op-qty" min="0.01" step="0.01"></div><div class="form-group"><label class="form-label">Ціна за од. (грн)</label><input type="number" class="form-input" id="op-price" step="0.01"></div></div><div class="form-group"><label class="form-label">Дата</label><input type="date" class="form-input" id="op-date" value="' + new Date().toISOString().split('T')[0] + '"></div><div class="form-group"><label class="form-label">Примітки</label><input class="form-input" id="op-notes" placeholder="Постачальник..."></div>';
-  document.getElementById('modal-footer').innerHTML = '<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="saveOperation(\\'' + type + '\\')">Зберегти</button>';
+  // Build select options
+  var opts = state.products.map(function(p) {
+    var o = document.createElement('option');
+    o.value = p.id;
+    o.dataset.name = p.name;
+    o.dataset.unit = p.unit;
+    o.dataset.price = p.price;
+    o.textContent = p.name + ' (залишок: ' + p.quantity + ' ' + p.unit + ')';
+    return o.outerHTML;
+  }).join('');
+  var today = new Date().toISOString().split('T')[0];
+  var body = document.createElement('div');
+  body.innerHTML = '<div class="form-group"><label class="form-label">Товар *</label><select class="form-select" id="op-product">' + opts + '</select></div>'
+    + '<div class="form-row"><div class="form-group"><label class="form-label">Кількість *</label><input type="number" class="form-input" id="op-qty" min="0.01" step="0.01"></div>'
+    + '<div class="form-group"><label class="form-label">Ціна (грн)</label><input type="number" class="form-input" id="op-price" step="0.01"></div></div>'
+    + '<div class="form-group"><label class="form-label">Дата</label><input type="date" class="form-input" id="op-date" value="' + today + '"></div>'
+    + '<div class="form-group"><label class="form-label">Примітки</label><input class="form-input" id="op-notes" placeholder="Постачальник..."></div>';
+  document.getElementById('modal-body').innerHTML = body.innerHTML;
+  var footer = document.createElement('div');
+  var btnCancel = document.createElement('button');
+  btnCancel.className = 'btn btn-secondary';
+  btnCancel.textContent = 'Скасувати';
+  btnCancel.onclick = closeModal;
+  var btnSave = document.createElement('button');
+  btnSave.className = 'btn btn-primary';
+  btnSave.textContent = 'Зберегти';
+  btnSave.onclick = function() { saveOperation(type); };
+  document.getElementById('modal-footer').innerHTML = '';
+  document.getElementById('modal-footer').appendChild(btnCancel);
+  document.getElementById('modal-footer').appendChild(btnSave);
   document.getElementById('modal-overlay').style.display = 'flex';
-  const sel = document.getElementById('op-product');
+  var sel = document.getElementById('op-product');
   if (sel && sel.options[0]) {
     document.getElementById('op-price').value = sel.options[0].dataset.price;
     sel.addEventListener('change', function() {
@@ -606,15 +631,15 @@ function openOperationModal(type) {
 }
 
 async function saveOperation(type) {
-  const sel = document.getElementById('op-product');
-  const opt = sel.options[sel.selectedIndex];
-  const product_id = parseInt(sel.value);
-  const qty = parseFloat(document.getElementById('op-qty').value);
-  const price = parseFloat(document.getElementById('op-price').value) || 0;
+  var sel = document.getElementById('op-product');
+  var opt = sel.options[sel.selectedIndex];
+  var product_id = parseInt(sel.value);
+  var qty = parseFloat(document.getElementById('op-qty').value);
+  var price = parseFloat(document.getElementById('op-price').value) || 0;
   if (!qty || qty <= 0) return showNotif('Введіть кількість', 'error');
-  const pidx = state.products.findIndex(p => p.id === product_id);
-  if (type === 'outgoing' && state.products[pidx].quantity < qty) return showNotif('Недостатньо товару на складі!', 'error');
-  const op = { id: Date.now(), type, product_id, product_name: opt.dataset.name, quantity: qty, price, date: document.getElementById('op-date').value, notes: document.getElementById('op-notes').value, created_at: new Date().toISOString() };
+  var pidx = state.products.findIndex(function(p) { return p.id === product_id; });
+  if (type === 'outgoing' && state.products[pidx].quantity < qty) return showNotif('Недостатньо товару!', 'error');
+  var op = { id: Date.now(), type: type, product_id: product_id, product_name: opt.dataset.name, quantity: qty, price: price, date: document.getElementById('op-date').value, notes: document.getElementById('op-notes').value, created_at: new Date().toISOString() };
   state.operations.push(op);
   if (type === 'incoming') state.products[pidx].quantity += qty;
   else state.products[pidx].quantity -= qty;
@@ -623,6 +648,7 @@ async function saveOperation(type) {
   renderOperation(type);
   showNotif(type === 'incoming' ? 'Прихід додано' : 'Видаток додано', 'success');
 }
+
 
 function renderInventory() {
   const total = state.products.reduce((s,p) => s + p.quantity * p.price, 0);
