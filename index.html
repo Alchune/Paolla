@@ -385,17 +385,17 @@ async function initDefaultData() {
     { id: 3, type: 'incoming', product_id: 2, product_name: 'Цукор', quantity: 100, price: 18.00, date: '2026-06-23', notes: '', created_at: new Date().toISOString() },
   ];
   state.orders = [
-    { id: 1, number: 'ЗАМ-001', client: 'ТОВ Смаколики', product: 'Шоколадний торт', quantity: 10, status: 'in_production', date: '2026-06-25', deadline: '2026-06-28' },
-    { id: 2, number: 'ЗАМ-002', client: 'Кафе Вишня', product: 'Ванільне печиво', quantity: 50, status: 'ready', date: '2026-06-22', deadline: '2026-06-24' },
-    { id: 3, number: 'ЗАМ-003', client: 'Ресторан Зоря', product: 'Шоколадний торт', quantity: 5, status: 'new', date: '2026-06-24', deadline: '2026-06-30' },
+    { id: 1, number: 'ЗАМ-001', client: 'ТОВ Смаколики', product: 'Шоколадний торт', category: 'Святкові торти', quantity: 10, status: 'in_production', date: '2026-06-25', deadline: '2026-06-28' },
+    { id: 2, number: 'ЗАМ-002', client: 'Кафе Вишня', product: 'Ванільне печиво', category: 'Печиво', quantity: 50, status: 'ready', date: '2026-06-22', deadline: '2026-06-24' },
+    { id: 3, number: 'ЗАМ-003', client: 'Ресторан Зоря', product: 'Шоколадний торт', category: 'Святкові торти', quantity: 5, status: 'new', date: '2026-06-24', deadline: '2026-06-30' },
   ];
   state.recipes = [
-    { id: 1, name: 'Шоколадний торт', output: 1, unit: 'шт', time: 180, ingredients: [{ product_id: 1, name: 'Борошно', qty: 0.5, unit: 'кг' }, { product_id: 2, name: 'Цукор', qty: 0.3, unit: 'кг' }, { product_id: 3, name: 'Масло', qty: 0.2, unit: 'кг' }] },
-    { id: 2, name: 'Ванільне печиво', output: 20, unit: 'шт', time: 60, ingredients: [{ product_id: 1, name: 'Борошно', qty: 0.3, unit: 'кг' }, { product_id: 2, name: 'Цукор', qty: 0.15, unit: 'кг' }, { product_id: 3, name: 'Масло', qty: 0.1, unit: 'кг' }] },
+    { id: 1, name: 'Шоколадний торт', output: 1, unit: 'шт', time: 180, departments: [{id:101,name:'Замішування'},{id:102,name:'Випікання'},{id:103,name:'Прикраса'}], ingredients: [{ product_id: 1, name: 'Борошно', qty: 0.5, unit: 'кг' }, { product_id: 2, name: 'Цукор', qty: 0.3, unit: 'кг' }, { product_id: 3, name: 'Масло', qty: 0.2, unit: 'кг' }] },
+    { id: 2, name: 'Ванільне печиво', output: 20, unit: 'шт', time: 60, departments: [{id:201,name:'Замішування'},{id:202,name:'Формування'},{id:203,name:'Випікання'}], ingredients: [{ product_id: 1, name: 'Борошно', qty: 0.3, unit: 'кг' }, { product_id: 2, name: 'Цукор', qty: 0.15, unit: 'кг' }, { product_id: 3, name: 'Масло', qty: 0.1, unit: 'кг' }] },
   ];
   state.production = [
-    { id: 1, recipe_name: 'Шоколадний торт', quantity: 10, status: 'in_progress', started: '2026-06-24', stage: 'Виробництво', order_id: 1 },
-    { id: 2, recipe_name: 'Ванільне печиво', quantity: 50, status: 'completed', started: '2026-06-22', stage: 'Завершено', order_id: 2 },
+    { id: 1, recipe_name: 'Шоколадний торт', recipe_id: 1, quantity: 10, unit: 'шт', status: 'in_progress', started: '2026-06-24', departments: [{id:101,name:'Замішування',status:'done'},{id:102,name:'Випікання',status:'in_progress'},{id:103,name:'Прикраса',status:'pending'}] },
+    { id: 2, recipe_name: 'Ванільне печиво', recipe_id: 2, quantity: 50, unit: 'шт', status: 'completed', started: '2026-06-22', departments: [{id:201,name:'Замішування',status:'done'},{id:202,name:'Формування',status:'done'},{id:203,name:'Випікання',status:'done'}] },
   ];
   await saveSnapshot();
 }
@@ -813,144 +813,126 @@ function orderBadge(status) {
   return badges[status] || status;
 }
 
-function renderOrders() {
-  document.getElementById('page-content').innerHTML = `
-<div class="table-container">
-<div class="table-header">
-<h3>Замовлення (${state.orders.length})</h3>
-<button class="btn btn-primary" onclick="openOrderModal()">+ Замовлення</button>
-</div>
-<table><thead><tr><th>Номер</th><th>Клієнт</th><th>Продукт</th><th>Кількість</th><th>Дедлайн</th><th>Статус</th><th>Дії</th></tr></thead><tbody>
-${state.orders.map(o => `<tr>
-<td style="font-weight:600">${o.number}</td>
-<td>${o.client}</td>
-<td>${o.product}</td>
-<td>${o.quantity} шт</td>
-<td>${o.deadline}</td>
-<td>${orderBadge(o.status)}</td>
-<td>
-<select class="form-select" style="width:160px;padding:4px 8px;font-size:12px" onchange="updateOrderStatus(${o.id}, this.value)">
-<option value="new" ${o.status==='new'?'selected':''}>Нове</option>
-<option value="in_production" ${o.status==='in_production'?'selected':''}>Виробництво</option>
-<option value="ready" ${o.status==='ready'?'selected':''}>Готово</option>
-<option value="shipped" ${o.status==='shipped'?'selected':''}>Відправлено</option>
-<option value="cancelled" ${o.status==='cancelled'?'selected':''}>Скасовано</option>
-</select>
-</td>
-</tr>`).join('') || '<tr><td colspan="7"><div class="empty-state"><div class="icon">📋</div><h3>Немає замовлень</h3></div></td></tr>'}
-</tbody></table></div>`;
-}
+undefined
 
-function openOrderModal() {
-  document.getElementById('modal-title').textContent = 'Нове замовлення';
-  const nextNum = 'ЗАМ-' + String(state.orders.length + 1).padStart(3, '0');
-  document.getElementById('modal-body').innerHTML = `
-<div class="form-row">
-<div class="form-group"><label class="form-label">Номер</label><input class="form-input" id="o-num" value="${nextNum}"></div>
-<div class="form-group"><label class="form-label">Клієнт *</label><input class="form-input" id="o-client" placeholder="Назва клієнта"></div>
-</div>
-<div class="form-row">
-<div class="form-group"><label class="form-label">Продукт *</label><input class="form-input" id="o-product" placeholder="Назва продукту"></div>
-<div class="form-group"><label class="form-label">Кількість</label><input type="number" class="form-input" id="o-qty" value="1"></div>
-</div>
-<div class="form-row">
-<div class="form-group"><label class="form-label">Дата</label><input type="date" class="form-input" id="o-date" value="${new Date().toISOString().split('T')[0]}"></div>
-<div class="form-group"><label class="form-label">Дедлайн</label><input type="date" class="form-input" id="o-deadline"></div>
-</div>`;
-  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="saveOrder()">Зберегти</button>`;
-  document.getElementById('modal-overlay').style.display = 'flex';
-}
-
-async function saveOrder() {
-  const o = { id: Date.now(), number: document.getElementById('o-num').value, client: document.getElementById('o-client').value, product: document.getElementById('o-product').value, quantity: parseInt(document.getElementById('o-qty').value) || 1, date: document.getElementById('o-date').value, deadline: document.getElementById('o-deadline').value, status: 'new' };
-  if (!o.client || !o.product) return showNotif('Заповніть клієнта та продукт', 'error');
-  state.orders.push(o);
-  await saveSnapshot();
-  closeModal();
-  renderOrders();
-  showNotif('Замовлення створено', 'success');
-}
-
-async function updateOrderStatus(id, status) {
-  const idx = state.orders.findIndex(o => o.id === id);
-  state.orders[idx].status = status;
-  await saveSnapshot();
-  showNotif('Статус оновлено', 'success');
-}
 function renderRecipes() {
-  document.getElementById('page-content').innerHTML = `
-<div class="table-container">
-<div class="table-header">
-<h3>Рецепти (${state.recipes.length})</h3>
-<button class="btn btn-primary" onclick="openRecipeModal()">+ Рецепт</button>
-</div>
-<div style="padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
-${state.recipes.map(r => `
-<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px">
-<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
-<div><h4 style="font-size:15px;margin-bottom:4px">${r.name}</h4><span class="badge badge-blue">Вихід: ${r.output} ${r.unit}</span></div>
-<span style="color:var(--text2);font-size:13px">⏱ ${r.time} хв</span>
-</div>
-<div style="font-size:13px;color:var(--text2);margin-bottom:8px;font-weight:600">Інгредієнти:</div>
-${r.ingredients.map(i => `<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid rgba(48,54,61,0.3)"><span>${i.name}</span><span>${i.qty} ${i.unit}</span></div>`).join('')}
-<div style="margin-top:12px;display:flex;gap:8px">
-<button class="btn btn-primary btn-sm" onclick="startProduction(${r.id})">▶️ Запустити</button>
-</div>
-</div>`).join('') || '<div class="empty-state"><div class="icon">📝</div><h3>Немає рецептів</h3></div>'}
-</div></div>`;
+  var html = '<div class="page-header"><h2>📝 Рецепти</h2><button class="btn" onclick="openRecipeModal()">+ Рецепт</button></div>';
+  if (state.recipes.length === 0) {
+    html += '<div class="empty-state"><div class="icon">📝</div><h3>Немає рецептів</h3></div>';
+  } else {
+    html += '<div style="display:grid;gap:12px">';
+    state.recipes.forEach(function(r) {
+      var depts = (r.departments||[]).map(function(d){return '<span class="badge badge-gray" style="margin-right:4px">'+d.name+'</span>';}).join('');
+      var ings = (r.ingredients||[]).map(function(i){return i.name+' '+i.qty+' '+i.unit;}).join(', ');
+      html += '<div class="stat-card" style="padding:16px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">';
+      html += '<div><strong style="font-size:16px">'+r.name+'</strong><div style="color:var(--text2);font-size:13px;margin-top:2px">'+r.output+' '+r.unit+' &bull; '+(r.time||0)+' хв</div></div>';
+      html += '<button class="btn" onclick="startProduction('+r.id+')">▶️ Запустити</button></div>';
+      if (depts) html += '<div style="margin-bottom:6px"><span style="color:var(--text2);font-size:12px">Відділи: </span>'+depts+'</div>';
+      if (ings) html += '<div style="color:var(--text2);font-size:13px">Інгредієнти: '+ings+'</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  document.getElementById('page-content').innerHTML = html;
 }
 
 function openRecipeModal() {
+  window._recipeDepts = [];
   document.getElementById('modal-title').textContent = 'Новий рецепт';
-  document.getElementById('modal-body').innerHTML = `
-<div class="form-group"><label class="form-label">Назва рецепту *</label><input class="form-input" id="r-name"></div>
-<div class="form-row">
-<div class="form-group"><label class="form-label">Вихід (кількість)</label><input type="number" class="form-input" id="r-output" value="1"></div>
-<div class="form-group"><label class="form-label">Одиниця</label><select class="form-select" id="r-unit"><option>шт</option><option>кг</option><option>л</option><option>упак</option></select></div>
-</div>
-<div class="form-group"><label class="form-label">Час виробництва (хвилини)</label><input type="number" class="form-input" id="r-time" value="60"></div>
-<div class="form-group"><label class="form-label">Інгредієнти</label>
-<div id="ingredients-list"></div>
-<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addIngredient()">+ Інгредієнт</button>
-</div>`;
-  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="saveRecipe()">Зберегти</button>`;
   document.getElementById('modal-overlay').style.display = 'flex';
+  document.getElementById('modal-body').innerHTML =
+    '<div class="form-group"><label class="form-label">Назва *</label><input class="form-input" id="r-name"></div>' +
+    '<div class="form-row"><div class="form-group"><label class="form-label">Вихід (к-сть)</label><input type="number" class="form-input" id="r-output" value="1"></div>' +
+    '<div class="form-group"><label class="form-label">Одиниця</label><select class="form-select" id="r-unit"><option>шт</option><option>кг</option><option>л</option><option>упак</option></select></div>' +
+    '<div class="form-group"><label class="form-label">Час (хв)</label><input type="number" class="form-input" id="r-time" value="60"></div></div>' +
+    '<div class="form-label" style="font-weight:600;margin-bottom:6px">Відділи (етапи)</div>' +
+    '<div id="departments-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;min-height:28px"></div>' +
+    '<div style="display:flex;gap:6px;margin-bottom:12px"><input class="form-input" id="dept-input" placeholder="Назва відділу" style="flex:1"><button class="btn btn-secondary" type="button" onclick="addDepartmentToRecipe()">Додати</button></div>' +
+    '<div class="form-label" style="font-weight:600;margin-bottom:6px">Інгредієнти</div>' +
+    '<div id="ingredients-list"></div>' +
+    '<button class="btn btn-secondary" style="margin-top:6px" type="button" onclick="addIngredient()">+ Інгредієнт</button>';
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn" onclick="saveRecipe()">Зберегти</button>';
   addIngredient();
+  var deptInp = document.getElementById('dept-input');
+  if (deptInp) deptInp.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); addDepartmentToRecipe(); } });
 }
 
-let ingCounter = 0;
+window._recipeDepts = [];
+function addDepartmentToRecipe() {
+  var inp = document.getElementById('dept-input');
+  var name = inp ? inp.value.trim() : '';
+  if (!name) return;
+  if (!window._recipeDepts) window._recipeDepts = [];
+  var deptId = Date.now() + Math.floor(Math.random()*1000);
+  window._recipeDepts.push({id: deptId, name: name});
+  var list = document.getElementById('departments-list');
+  if (list) {
+    var span = document.createElement('span');
+    span.className = 'badge badge-blue';
+    span.style.cssText = 'padding:4px 10px;display:inline-flex;gap:4px;align-items:center';
+    var txt = document.createTextNode(name + ' ');
+    var rm = document.createElement('span');
+    rm.textContent = '×';
+    rm.style.cssText = 'cursor:pointer;opacity:.7';
+    var capturedId = deptId;
+    rm.addEventListener('click', function() {
+      window._recipeDepts = (window._recipeDepts||[]).filter(function(d){return d.id !== capturedId;});
+      span.parentNode && span.parentNode.removeChild(span);
+    });
+    span.appendChild(txt);
+    span.appendChild(rm);
+    list.appendChild(span);
+  }
+  inp.value = '';
+}
+
 function addIngredient() {
-  const id = ++ingCounter;
-  const div = document.createElement('div');
-  div.style = 'display:flex;gap:8px;margin-bottom:8px;align-items:center';
-  div.id = 'ing-' + id;
-  div.innerHTML = `
-<select class="form-select" id="ing-p-${id}" style="flex:2">${state.products.map(p=>`<option value="${p.id}" data-name="${p.name}" data-unit="${p.unit}">${p.name}</option>`).join('')}</select>
-<input type="number" class="form-input" id="ing-q-${id}" placeholder="К-сть" style="flex:1" min="0.001" step="0.001">
-<span id="ing-u-${id}" style="color:var(--text2);font-size:13px;width:30px">${state.products[0]?.unit||''}</span>
-<button class="btn btn-secondary btn-sm" onclick="document.getElementById('ing-${id}').remove()">✕</button>`;
-  document.getElementById('ingredients-list').appendChild(div);
-  document.getElementById('ing-p-' + id).addEventListener('change', function() {
-    const opt = this.options[this.selectedIndex];
-    const p = state.products.find(x => x.id == opt.value);
-    document.getElementById('ing-u-' + id).textContent = p?.unit || '';
-  });
+  var divId = 'ing-' + Date.now();
+  var div = document.createElement('div');
+  div.style.cssText = 'display:flex;gap:6px;margin-bottom:6px;align-items:center';
+  div.id = divId;
+  var sel = document.createElement('select');
+  sel.className = 'form-select item-product';
+  sel.style.flex = '2';
+  sel.innerHTML = state.products.map(function(p){return '<option value="'+p.id+'" data-name="'+p.name+'" data-unit="'+(p.unit||'')+'">'+p.name+'</option>';}).join('');
+  var qtyInp = document.createElement('input');
+  qtyInp.type = 'number';
+  qtyInp.className = 'form-input item-qty';
+  qtyInp.placeholder = 'К-сть';
+  qtyInp.style.cssText = 'flex:1;width:80px';
+  qtyInp.min = '0.001';
+  qtyInp.step = '0.001';
+  var unitSpan = document.createElement('span');
+  unitSpan.style.cssText = 'color:var(--text2);font-size:13px;min-width:30px';
+  sel.addEventListener('change', function(){var opt=sel.options[sel.selectedIndex];unitSpan.textContent=opt?(opt.dataset.unit||''):'';});
+  if (sel.options[0]) unitSpan.textContent = sel.options[0].dataset.unit || '';
+  var rmBtn = document.createElement('button');
+  rmBtn.type = 'button'; rmBtn.className = 'btn btn-sm btn-danger'; rmBtn.textContent = '×';
+  rmBtn.addEventListener('click', function(){div.parentNode && div.parentNode.removeChild(div);});
+  div.appendChild(sel); div.appendChild(qtyInp); div.appendChild(unitSpan); div.appendChild(rmBtn);
+  var list = document.getElementById('ingredients-list');
+  if (list) list.appendChild(div);
 }
 
 async function saveRecipe() {
-  const name = document.getElementById('r-name').value;
+  var name = document.getElementById('r-name') ? document.getElementById('r-name').value.trim() : '';
   if (!name) return showNotif('Введіть назву', 'error');
-  const ings = [];
-  for (const div of document.getElementById('ingredients-list').children) {
-    const id = div.id.replace('ing-', '');
-    const sel = document.getElementById('ing-p-' + id);
-    const qty = parseFloat(document.getElementById('ing-q-' + id).value);
-    if (sel && qty) {
-      const p = state.products.find(x => x.id == sel.value);
-      ings.push({ product_id: parseInt(sel.value), name: p.name, qty, unit: p.unit });
-    }
+  var departments = (window._recipeDepts||[]).map(function(d){return {id:d.id, name:d.name};});
+  var ings = [];
+  var ingList = document.getElementById('ingredients-list');
+  if (ingList) {
+    Array.from(ingList.children).forEach(function(row){
+      var sel = row.querySelector('.item-product');
+      var qtyInp = row.querySelector('.item-qty');
+      if (sel && qtyInp && sel.value && parseFloat(qtyInp.value) > 0) {
+        var p = state.products.find(function(x){return String(x.id)===String(sel.value);});
+        ings.push({ product_id: parseInt(sel.value), name: p?p.name:sel.value, qty: parseFloat(qtyInp.value), unit: p?(p.unit||''):'' });
+      }
+    });
   }
-  state.recipes.push({ id: Date.now(), name, output: parseFloat(document.getElementById('r-output').value)||1, unit: document.getElementById('r-unit').value, time: parseInt(document.getElementById('r-time').value)||60, ingredients: ings });
+  state.recipes.push({ id: Date.now(), name: name, output: parseFloat(document.getElementById('r-output').value)||1, unit: document.getElementById('r-unit').value, time: parseInt(document.getElementById('r-time').value)||60, departments: departments, ingredients: ings });
+  window._recipeDepts = [];
   await saveSnapshot();
   closeModal();
   renderRecipes();
@@ -958,67 +940,107 @@ async function saveRecipe() {
 }
 
 function renderProduction() {
-  document.getElementById('page-content').innerHTML = `
-<div class="table-container">
-<div class="table-header">
-<h3>Виробництво (${state.production.length})</h3>
-<button class="btn btn-primary" onclick="navigate('recipes')">+ Запустити рецепт</button>
-</div>
-<table><thead><tr><th>Рецепт</th><th>Кількість</th><th>Стадія</th><th>Статус</th><th>Почато</th><th>Дії</th></tr></thead><tbody>
-${state.production.map(p => {
-const badge = p.status === 'completed' ? '<span class="badge badge-green">✅ Завершено</span>' : p.status === 'paused' ? '<span class="badge badge-yellow">⏸ Пауза</span>' : '<span class="badge badge-blue">⚙️ В роботі</span>';
-return `<tr>
-<td><strong>${p.recipe_name}</strong></td>
-<td>${p.quantity} шт</td>
-<td><span class="badge badge-gray">${p.stage}</span></td>
-<td>${badge}</td>
-<td>${p.started}</td>
-<td>
-${p.status !== 'completed' ? `
-<button class="btn btn-primary btn-sm" onclick="completeProduction(${p.id})">✅ Завершити</button>
-<button class="btn btn-secondary btn-sm" onclick="updateProductionStage(${p.id})">📝 Стадія</button>
-` : ''}
-</td>
-</tr>`}).join('') || '<tr><td colspan="6"><div class="empty-state"><div class="icon">⚙️</div><h3>Немає виробництва</h3></div></td></tr>'}
-</tbody></table></div>`;
+  var cats = [...new Set(state.production.map(function(p){return p.category;}).filter(Boolean))];
+  var models = [...new Set(state.production.map(function(p){return p.recipe_name;}).filter(Boolean))];
+  var filterCat = window._prodFilterCat || '';
+  var filterModel = window._prodFilterModel || '';
+  var matchFn = function(p){ return (!filterCat||p.category===filterCat) && (!filterModel||p.recipe_name===filterModel); };
+  var active = state.production.filter(function(p){ return p.status !== 'completed' && matchFn(p); });
+  var done = state.production.filter(function(p){ return p.status === 'completed' && matchFn(p); });
+  var catOpts = cats.map(function(c){return '<option value="'+c+'" '+(filterCat===c?'selected':'')+'>'+c+'</option>';}).join('');
+  var modelOpts = models.map(function(m){return '<option value="'+m+'" '+(filterModel===m?'selected':'')+'>'+m+'</option>';}).join('');
+  var html = '<div class="page-header"><h2>⚙️ Виробництво</h2><button class="btn" onclick="navigate('recipes')">📋 Рецепти</button></div>';
+  html += '<div class="form-row" style="margin-bottom:12px;gap:8px">';
+  html += '<select class="form-select" style="flex:1" onchange="window._prodFilterCat=this.value;renderProduction()"><option value="">— Всі категорії —</option>'+catOpts+'</select>';
+  html += '<select class="form-select" style="flex:1" onchange="window._prodFilterModel=this.value;renderProduction()"><option value="">— Всі моделі —</option>'+modelOpts+'</select>';
+  html += '</div>';
+  html += '<h3 style="margin:0 0 10px;color:var(--text)">🔵 У виробництві ('+active.length+')</h3>';
+  if (active.length === 0) {
+    html += '<div style="color:var(--text2);margin-bottom:20px">Немає активних нарядів</div>';
+  } else {
+    html += '<div style="display:grid;gap:10px;margin-bottom:24px">';
+    active.forEach(function(prod) {
+      var depts = prod.departments || [];
+      var allDone = depts.length > 0 && depts.every(function(d){return d.status==='done';});
+      var doneCnt = depts.filter(function(d){return d.status==='done';}).length;
+      var deptsHtml = depts.map(function(d) {
+        var cls = d.status==='done'?'badge-green':d.status==='in_progress'?'badge-blue':'badge-gray';
+        var icon = d.status==='done'?'✅':d.status==='in_progress'?'⏳':'⏸️';
+        return '<button onclick="advanceDeptStatus('+prod.id+','+d.id+')" style="cursor:pointer;border:none;background:none;padding:2px 0" title="Натисніть щоб змінити статус"><span class="badge '+cls+'" style="margin:2px">'+icon+' '+d.name+'</span></button>';
+      }).join('');
+      html += '<div class="stat-card" style="padding:14px">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
+      html += '<div><strong style="font-size:15px">'+prod.recipe_name+'</strong> &nbsp;<span style="color:var(--text2)">'+prod.quantity+' '+(prod.unit||'шт')+'</span></div>';
+      html += '<div style="display:flex;gap:6px">';
+      if (allDone) html += '<button class="btn" style="font-size:12px;padding:5px 12px" onclick="completeProduction('+prod.id+')">📦 На склад</button>';
+      if (depts.length === 0) html += '<button class="btn btn-secondary" style="font-size:12px;padding:5px 12px" onclick="completeProduction('+prod.id+')">✅ Завершити</button>';
+      html += '</div></div>';
+      if (depts.length > 0) {
+        html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">'+deptsHtml+'</div>';
+        html += '<div style="height:6px;background:var(--border);border-radius:3px;margin-bottom:4px"><div style="height:6px;background:var(--accent);border-radius:3px;width:'+Math.round(doneCnt/depts.length*100)+'%"></div></div>';
+        html += '<div style="font-size:12px;color:var(--text2)">'+doneCnt+'/'+depts.length+' відділів готово &bull; Розпочато: '+prod.started+'</div>';
+      } else {
+        html += '<div style="font-size:12px;color:var(--text2)">Відділи не визначено &bull; Розпочато: '+prod.started+'</div>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  html += '<h3 style="margin:0 0 10px;color:var(--text)">✅ Завершено ('+done.length+')</h3>';
+  if (done.length === 0) {
+    html += '<div style="color:var(--text2)">Немає завершених</div>';
+  } else {
+    html += '<table class="data-table"><thead><tr><th>Модель</th><th>К-сть</th><th>Завершено</th></tr></thead><tbody>';
+    done.forEach(function(prod){ html += '<tr><td>'+prod.recipe_name+'</td><td>'+prod.quantity+' '+(prod.unit||'шт')+'</td><td>'+prod.started+'</td></tr>'; });
+    html += '</tbody></table>';
+  }
+  document.getElementById('page-content').innerHTML = html;
+}
+
+async function advanceDeptStatus(prodId, deptId) {
+  var prod = state.production.find(function(p){return p.id===prodId;});
+  if (!prod || !prod.departments) return;
+  var dept = prod.departments.find(function(d){return d.id===deptId;});
+  if (!dept) return;
+  dept.status = dept.status==='pending' ? 'in_progress' : dept.status==='in_progress' ? 'done' : 'pending';
+  var allDone = prod.departments.every(function(d){return d.status==='done';});
+  if (allDone) showNotif('Всі відділи готові! Натисніть "На склад" для завершення', 'success');
+  await saveSnapshot();
+  renderProduction();
 }
 
 function openStartProductionModal(recipeId) {
-  const r = state.recipes.find(x => x.id === recipeId);
-  document.getElementById('modal-title').textContent = 'Запустити виробництво';
-  document.getElementById('modal-body').innerHTML = `
-<div style="background:var(--bg);border-radius:8px;padding:12px;margin-bottom:16px">
-<strong>${r.name}</strong><br>
-<span style="color:var(--text2);font-size:13px">Час: ${r.time} хв • Вихід: ${r.output} ${r.unit}</span>
-</div>
-<div class="form-group"><label class="form-label">Кількість порцій</label><input type="number" class="form-input" id="prod-qty" value="1" min="1"></div>
-<div style="background:var(--bg);border-radius:8px;padding:12px;margin-top:12px">
-<div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text2)">Потрібні матеріали:</div>
-${r.ingredients.map(i => {
-const p = state.products.find(x => x.id === i.product_id);
-const available = p?.quantity || 0;
-const ok = available >= i.qty;
-return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0">
-<span>${i.name}</span>
-<span style="color:${ok?'var(--accent)':'var(--danger)'}">${i.qty} ${i.unit} ${ok ? '✓' : '⚠️ мало!'}</span>
-</div>`;
-}).join('')}
-</div>`;
-  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="confirmStartProduction(${r.id})">▶️ Запустити</button>`;
+  var r = state.recipes.find(function(x){return x.id===recipeId;});
+  if (!r) return;
+  document.getElementById('modal-title').textContent = 'Запустити: ' + r.name;
   document.getElementById('modal-overlay').style.display = 'flex';
+  var ingHtml = (r.ingredients||[]).map(function(i){
+    var p = state.products.find(function(x){return x.id===i.product_id;});
+    var ok = p && p.quantity >= i.qty;
+    return '<div style="display:flex;justify-content:space-between;padding:4px 0"><span>'+i.name+'</span><span style="color:'+(ok?'var(--accent)':'var(--danger)')+'">'+i.qty+' '+i.unit+' '+(ok?'✓':'⚠️ мало!')+'</span></div>';
+  }).join('');
+  var deptsHtml = (r.departments||[]).length > 0
+    ? '<div style="margin-top:12px"><strong>Відділи:</strong> '+(r.departments||[]).map(function(d){return '<span class="badge badge-gray" style="margin-right:4px">'+d.name+'</span>';}).join('')+'</div>' : '';
+  document.getElementById('modal-body').innerHTML =
+    '<div class="form-group"><label class="form-label">Кількість порцій</label><input type="number" class="form-input" id="prod-qty" value="1" min="1"></div>' +
+    (ingHtml ? '<div style="margin-top:8px"><strong>Інгредієнти (на 1 порцію):</strong>'+ingHtml+'</div>' : '') +
+    deptsHtml;
+  document.getElementById('modal-footer').innerHTML =
+    '<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn" onclick="confirmStartProduction('+recipeId+')">▶️ Запустити</button>';
 }
 
 function startProduction(recipeId) { openStartProductionModal(recipeId); }
 
 async function confirmStartProduction(recipeId) {
-  const r = state.recipes.find(x => x.id === recipeId);
-  const qty = parseInt(document.getElementById('prod-qty').value) || 1;
-  // Deduct materials
-  for (const ing of r.ingredients) {
-    const idx = state.products.findIndex(p => p.id === ing.product_id);
-    if (idx >= 0) state.products[idx].quantity = Math.max(0, state.products[idx].quantity - ing.qty * qty);
-  }
-  state.production.push({ id: Date.now(), recipe_name: r.name, recipe_id: r.id, quantity: qty * r.output, status: 'in_progress', started: new Date().toISOString().split('T')[0], stage: 'Підготовка' });
+  var r = state.recipes.find(function(x){return x.id===recipeId;});
+  if (!r) return;
+  var qty = parseInt(document.getElementById('prod-qty').value)||1;
+  (r.ingredients||[]).forEach(function(ing){
+    var p = state.products.find(function(x){return x.id===ing.product_id;});
+    if (p) p.quantity = Math.max(0,(Number(p.quantity)||0)-ing.qty*qty);
+  });
+  var departments = (r.departments||[]).map(function(d){return {id:d.id,name:d.name,status:'pending'};});
+  state.production.push({ id:Date.now(), recipe_name:r.name, recipe_id:r.id, quantity:qty*r.output, unit:r.unit, status:'in_progress', started:new Date().toISOString().split('T')[0], departments:departments });
   await saveSnapshot();
   closeModal();
   navigate('production');
@@ -1026,32 +1048,19 @@ async function confirmStartProduction(recipeId) {
 }
 
 async function completeProduction(id) {
-  const idx = state.production.findIndex(p => p.id === id);
-  const prod = state.production[idx];
-  state.production[idx].status = 'completed';
-  state.production[idx].stage = 'Завершено';
-  // Add to products
-  const recipe = state.recipes.find(r => r.id === prod.recipe_id);
+  var prod = state.production.find(function(p){return p.id===id;});
+  if (!prod) return;
+  prod.status = 'completed';
+  var recipe = state.recipes.find(function(r){return r.id===prod.recipe_id;});
   if (recipe) {
-    const pName = recipe.name;
-    const existing = state.products.find(p => p.name === pName && p.category === 'Готова продукція');
-    if (existing) existing.quantity += prod.quantity;
-    else state.products.push({ id: Date.now(), name: pName + Date.now(), category: 'Готова продукція', unit: recipe.unit, quantity: prod.quantity, min_qty: 0, price: 0 });
+    var pName = recipe.name;
+    var existing = state.products.find(function(p){return p.name===pName;});
+    if (existing) { existing.quantity = (Number(existing.quantity)||0) + Number(prod.quantity); }
+    else { state.products.push({ id:Date.now(), name:pName, category:'Готова продукція', unit:recipe.unit||'шт', quantity:Number(prod.quantity), min_qty:0, price:0 }); }
   }
   await saveSnapshot();
   renderProduction();
-  showNotif('Виробництво завершено! Товар додано на склад.', 'success');
-}
-
-async function updateProductionStage(id) {
-  const stages = ['Підготовка', 'Змішування', 'Випікання', 'Охолодження', 'Пакування', 'Контроль якості'];
-  const idx = state.production.findIndex(p => p.id === id);
-  const current = stages.indexOf(state.production[idx].stage);
-  const next = stages[(current + 1) % stages.length];
-  state.production[idx].stage = next;
-  await saveSnapshot();
-  renderProduction();
-  showNotif('Стадія: ' + next, 'success');
+  showNotif('Наряд завершено! Товар додано на склад.', 'success');
 }
 
 function renderReports() {
@@ -1164,6 +1173,7 @@ function closeModal(e) {
 </script>
 </body>
 </html>
+ 
  
  
  
