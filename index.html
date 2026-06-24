@@ -209,7 +209,7 @@ tbody tr:last-child td{border-bottom:none}
 <button class="nav-item" onclick="navigate('orders')" id="nav-orders">
 📋 Замовлення
 </button>
-<button class="nav-item" onclick="navigate(&apos;recipes&apos;)" id="nav-recipes">
+<button class="nav-item" onclick="navigate('recipes')" id="nav-recipes">
 📝 Рецепти
 </button>
 <button class="nav-item" onclick="navigate('production')" id="nav-production">
@@ -949,7 +949,7 @@ function renderProduction() {
   var done = state.production.filter(function(p){ return p.status === 'completed' && matchFn(p); });
   var catOpts = cats.map(function(c){return '<option value="'+c+'" '+(filterCat===c?'selected':'')+'>'+c+'</option>';}).join('');
   var modelOpts = models.map(function(m){return '<option value="'+m+'" '+(filterModel===m?'selected':'')+'>'+m+'</option>';}).join('');
-  var html = '<div class="page-header"><h2>⚙️ Виробництво</h2><button class="btn" onclick="navigate('recipes')">📋 Рецепти</button></div>';
+  var html = '<div class="page-header"><h2>⚙️ Виробництво</h2><button class="btn" onclick="navigate(&apos;recipes&apos;)">📋 Рецепти</button></div>';
   html += '<div class="form-row" style="margin-bottom:12px;gap:8px">';
   html += '<select class="form-select" style="flex:1" onchange="window._prodFilterCat=this.value;renderProduction()"><option value="">— Всі категорії —</option>'+catOpts+'</select>';
   html += '<select class="form-select" style="flex:1" onchange="window._prodFilterModel=this.value;renderProduction()"><option value="">— Всі моделі —</option>'+modelOpts+'</select>';
