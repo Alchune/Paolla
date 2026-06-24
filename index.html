@@ -562,47 +562,35 @@ function renderOutgoing() { renderOperation('outgoing'); }
 function renderOperation(type) {
   const ops = state.operations.filter(o => o.type === type);
   const label = type === 'incoming' ? 'Прихід' : 'Видаток';
-  document.getElementById('page-content').innerHTML = `
-<div class="table-container">
-<div class="table-header">
-<h3>${label} товарів (${ops.length})</h3>
-<button class="btn btn-primary" onclick="openOperationModal('${type}')">+ ${label}</button>
-</div>
-<table><thead><tr><th>Дата</th><th>Товар</th><th>Кількість</th><th>Ціна</th><th>Сума</th><th>Примітки</th></tr></thead><tbody>
-${ops.reverse().map(o => `<tr>
-<td>${o.date}</td><td>${o.product_name}</td>
-<td><strong>${o.quantity}</strong></td>
-<td>${formatMoney(o.price)} грн</td>
-<td>${formatMoney(o.quantity * o.price)} грн</td>
-<td style="color:var(--text2)">${o.notes||'—'}</td>
-</tr>`).join('') || '<tr><td colspan="6"><div class="empty-state"><div class="icon">${type==="incoming"?"⬇️":"⬆️"}</div><h3>Немає операцій</h3></div></td></tr>'}
-</tbody></table></div>`;
+  const icon = type === 'incoming' ? '⬇️' : '⬆️';
+  let rows = '';
+  if (ops.length === 0) {
+    rows = '<tr><td colspan="6"><div class="empty-state"><div class="icon">' + icon + '</div><h3>Немає операцій</h3><p>Додайте першу операцію</p></div></td></tr>';
+  } else {
+    ops.slice().reverse().forEach(function(o) {
+      rows += '<tr><td>' + o.date + '</td><td>' + o.product_name + '</td><td><strong>' + o.quantity + '</strong></td><td>' + formatMoney(o.price) + ' грн</td><td>' + formatMoney(o.quantity * o.price) + ' грн</td><td style="color:var(--text2)">' + (o.notes || '—') + '</td></tr>';
+    });
+  }
+  document.getElementById('page-content').innerHTML = '<div class="table-container"><div class="table-header"><h3>' + label + ' товарів (' + ops.length + ')</h3><button class="btn btn-primary" onclick="openOperationModal(\\'' + type + '\\')">' + '+ ' + label + '</button></div><table><thead><tr><th>Дата</th><th>Товар</th><th>Кількість</th><th>Ціна</th><th>Сума</th><th>Примітки</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
 }
 
 function openOperationModal(type) {
   const label = type === 'incoming' ? 'Прихід' : 'Видаток';
-  document.getElementById('modal-title').textContent = 'Нова операція: ' + label;
-  document.getElementById('modal-body').innerHTML = `
-<div class="form-group"><label class="form-label">Товар *</label>
-<select class="form-select" id="op-product">
-${state.products.map(p => `<option value="${p.id}" data-name="${p.name}" data-unit="${p.unit}" data-price="${p.price}">${p.name} (залишок: ${p.quantity} ${p.unit})</option>`).join('')}
-</select></div>
-<div class="form-row">
-<div class="form-group"><label class="form-label">Кількість *</label><input type="number" class="form-input" id="op-qty" min="0.01" step="0.01"></div>
-<div class="form-group"><label class="form-label">Ціна за од. (грн)</label><input type="number" class="form-input" id="op-price" step="0.01"></div>
-</div>
-<div class="form-group"><label class="form-label">Дата</label><input type="date" class="form-input" id="op-date" value="${new Date().toISOString().split('T')[0]}"></div>
-<div class="form-group"><label class="form-label">Примітки</label><input class="form-input" id="op-notes" placeholder="Постачальник, замовлення..."></div>
-`;
-  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="saveOperation('${type}')">Зберегти</button>`;
-  document.getElementById('modal-overlay').style.display = 'flex';
-  // Auto-fill price
-  document.getElementById('op-product').addEventListener('change', function() {
-    const opt = this.options[this.selectedIndex];
-    document.getElementById('op-price').value = opt.dataset.price;
+  let productOptions = '';
+  state.products.forEach(function(p) {
+    productOptions += '<option value="' + p.id + '" data-name="' + p.name + '" data-unit="' + p.unit + '" data-price="' + p.price + '">' + p.name + ' (залишок: ' + p.quantity + ' ' + p.unit + ')</option>';
   });
-  const firstOpt = document.getElementById('op-product').options[0];
-  if (firstOpt) document.getElementById('op-price').value = firstOpt.dataset.price;
+  document.getElementById('modal-title').textContent = 'Нова операція: ' + label;
+  document.getElementById('modal-body').innerHTML = '<div class="form-group"><label class="form-label">Товар *</label><select class="form-select" id="op-product">' + productOptions + '</select></div><div class="form-row"><div class="form-group"><label class="form-label">Кількість *</label><input type="number" class="form-input" id="op-qty" min="0.01" step="0.01"></div><div class="form-group"><label class="form-label">Ціна за од. (грн)</label><input type="number" class="form-input" id="op-price" step="0.01"></div></div><div class="form-group"><label class="form-label">Дата</label><input type="date" class="form-input" id="op-date" value="' + new Date().toISOString().split('T')[0] + '"></div><div class="form-group"><label class="form-label">Примітки</label><input class="form-input" id="op-notes" placeholder="Постачальник..."></div>';
+  document.getElementById('modal-footer').innerHTML = '<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="saveOperation(\\'' + type + '\\')">\u0417берегти</button>';
+  document.getElementById('modal-overlay').style.display = 'flex';
+  const sel = document.getElementById('op-product');
+  if (sel && sel.options[0]) {
+    document.getElementById('op-price').value = sel.options[0].dataset.price;
+    sel.addEventListener('change', function() {
+      document.getElementById('op-price').value = this.options[this.selectedIndex].dataset.price;
+    });
+  }
 }
 
 async function saveOperation(type) {
