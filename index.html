@@ -606,7 +606,8 @@ function openOperationModal(type) {
   var counterpartyLabel = isIncoming ? 'Постачальник' : 'Покупець';
   var today = new Date().toISOString().split('T')[0];
 
-  openModal(title);
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-overlay').style.display = 'flex';
   var body = document.getElementById('modal-body');
   var footer = document.getElementById('modal-footer');
 
@@ -1164,4 +1165,5 @@ function closeModal(e) {
 </script>
 </body>
 </html>
+ 
  
