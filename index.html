@@ -146,7 +146,7 @@ tbody tr:last-child td{border-bottom:none}
 @keyframes spin{to{transform:rotate(360deg)}}
 /* Responsive */
 @media(max-width:768px){.sidebar{width:200px}.main{margin-left:200px}.stats-grid{grid-template-columns:1fr 1fr}.form-row{grid-template-columns:1fr}}
-@media(max-width:600px){.sidebar{transform:translateX(-100%);transition:transform 0.3s}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.menu-toggle{display:inline-flex;align-items:center}.topbar{padding:0 12px}}
+@media(max-width:600px){.sidebar{transform:translateX(-100%);transition:transform 0.3s}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.menu-toggle{display:inline-flex;align-items:center}.topbar{padding:0 12px}/* mobile-fit */.modal{width:calc(100vw - 16px);max-width:calc(100vw - 16px)}.modal-body{padding:16px;overflow-x:hidden}th,td{padding:8px 6px;font-size:13px}.data-table{display:block;width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}.data-table thead,.data-table tbody,.data-table tr{display:table;width:100%;table-layout:fixed}.data-table .item-product,.data-table .item-qty,.data-table .item-price{min-width:0}.form-input,.form-select{font-size:13px;padding:8px 8px}.form-row{grid-template-columns:1fr}/* dash-fit */.content>div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}.table-container{overflow-x:auto;-webkit-overflow-scrolling:touch}/* empty-fit */.table-header{flex-wrap:wrap;gap:8px}.table-container table{table-layout:fixed;width:100%}.table-container th,.table-container td{padding:8px 6px;white-space:normal;word-break:break-word;overflow-wrap:anywhere}}}
 </style>
 </head>
 <body>
@@ -457,7 +457,7 @@ function renderDashboard() {
 <div class="stat-card green"><div class="label">Товарів на складі</div><div class="value">${state.products.length}</div><div class="sub">позицій</div></div>
 <div class="stat-card yellow"><div class="label">Мало залишків</div><div class="value">${low}</div><div class="sub">потребують поповнення</div></div>
 <div class="stat-card blue"><div class="label">Активні замовлення</div><div class="value">${active_orders}</div><div class="sub">в роботі</div></div>
-<div class="stat-card"><div class="label">Вартість складу</div><div class="value">${formatMoney(total_val)}</div><div class="sub">грн загально</div></div>
+<div class="stat-card"><div class="label">Вартість складу</div><div class="value">${formatMoney(total_val)}</div><div class="sub">загально</div></div>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
 <div class="table-container">
@@ -637,7 +637,7 @@ function renderProductRows(products) {
 <td><strong>${p.name}</strong></td>
 <td><span class="badge badge-gray">${p.category}</span></td>
 <td>${p.quantity} ${p.unit} <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${Math.min(100,(p.quantity/Math.max(p.min_qty*3,1))*100)}%;background:${p.quantity<=p.min_qty?'var(--danger)':'var(--accent)'}"></div></div></td>
-<td>${formatMoney(p.price)} грн</td>
+<td>${formatMoney(p.price)}</td>
 <td>${status}</td>
 <td><button class="btn btn-secondary btn-sm" onclick="editProduct(${p.id})">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteProduct(${p.id})">🗑️</button></td>
 </tr>`;
@@ -652,7 +652,7 @@ function renderProductGrid(products) {
       + '<div class="ic-thumb">📦</div>'
       + '<div class="ic-name">' + p.name + '</div>'
       + '<div class="ic-meta"><span class="badge badge-gray">' + p.category + '</span>' + status + '</div>'
-      + '<div class="ic-meta">' + p.quantity + ' ' + p.unit + ' • ' + formatMoney(p.price) + ' грн</div>'
+      + '<div class="ic-meta">' + p.quantity + ' ' + p.unit + ' • ' + formatMoney(p.price) + '</div>'
       + '<div class="ic-actions"><button class="btn btn-secondary btn-sm" onclick="editProduct(' + p.id + ')">✏️ Змінити</button><button class="btn btn-secondary btn-sm" onclick="deleteProduct(' + p.id + ')">🗑️</button></div>'
       + '</div>';
   }).join('');
@@ -687,7 +687,7 @@ function openProductModal(id) {
 <div class="form-group"><label class="form-label">Залишок</label><input type="number" class="form-input" id="p-qty" value="${p.quantity||0}"></div>
 <div class="form-group"><label class="form-label">Мінімальний залишок</label><input type="number" class="form-input" id="p-min" value="${p.min_qty||0}"></div>
 </div>
-<div class="form-group"><label class="form-label">Ціна (грн)</label><input type="number" class="form-input" id="p-price" value="${p.price||0}"></div>
+<div class="form-group"><label class="form-label">Ціна</label><input type="number" class="form-input" id="p-price" value="${p.price||0}"></div>
 `;
   document.getElementById('modal-footer').innerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="saveProduct(${id||0})">Зберегти</button>`;
   document.getElementById('modal-overlay').style.display = 'flex';
@@ -736,7 +736,7 @@ function renderOperation(type) {
   var btnLabel = isIncoming ? '+ Новий прихід' : '+ Новий видаток';
   var ops = state.operations.filter(function(o) { return o.type === type; });
   var html = '<div class="page-header"><h2>' + icon + ' ' + title + '</h2><button class="btn" id="add-op-btn">' + btnLabel + '</button></div>';
-  html += '<table class="data-table"><thead><tr><th>Дата</th><th>Контрагент</th><th>Товари</th><th>Сума (грн)</th><th>Примітки</th><th></th></tr></thead><tbody>';
+  html += '<table class="data-table"><thead><tr><th>Дата</th><th>Контрагент</th><th>Товари</th><th>Сума</th><th>Примітки</th><th></th></tr></thead><tbody>';
   if (ops.length === 0) {
     html += '<tr><td colspan="6"><div class="empty-state"><div class="icon">' + icon + '</div><h3>Немає операцій</h3><p>Додайте першу операцію</p></div></td></tr>';
   } else {
@@ -798,7 +798,7 @@ function openOperationModal(type) {
     '</div>' +
     '<div class="form-label" style="margin-bottom:6px;font-weight:600">Товари *</div>' +
     '<table class="data-table" id="op-items-table" style="margin-bottom:8px">' +
-    '<thead><tr><th>Товар</th><th>Кількість</th><th>Ціна (грн)</th><th></th></tr></thead>' +
+    '<thead><tr><th>Товар</th><th>Кількість</th><th>Ціна</th><th></th></tr></thead>' +
     '<tbody id="op-items-body"></tbody>' +
     '</table>' +
     '<button class="btn" id="op-add-row" type="button">+ Додати товар</button>';
@@ -962,7 +962,7 @@ function renderInventory() {
 <div class="stat-card red"><div class="label">Немає</div><div class="value">${state.products.filter(p=>p.quantity===0).length}</div><div class="sub">позицій</div></div>
 </div>
 <div class="table-container">
-<div class="table-header"><h3>Залишки товарів</h3><span style="color:var(--text2);font-size:13px">Загальна вартість: <strong style="color:var(--text)">${formatMoney(total)} грн</strong></span></div>
+<div class="table-header"><h3>Залишки товарів</h3><span style="color:var(--text2);font-size:13px">Загальна вартість: <strong style="color:var(--text)">${formatMoney(total)}</strong></span></div>
 <table><thead><tr><th>Товар</th><th>Категорія</th><th>Залишок</th><th>Мін. залишок</th><th>Рівень</th><th>Вартість</th></tr></thead><tbody>
 ${state.products.map(p => {
 const pct = Math.min(100, (p.quantity / Math.max(p.min_qty * 3, 1)) * 100);
@@ -973,7 +973,7 @@ return `<tr>
 <td><strong>${p.quantity}</strong> ${p.unit}</td>
 <td>${p.min_qty} ${p.unit}</td>
 <td style="width:150px"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div><span style="font-size:11px;color:var(--text2)">${Math.round(pct)}%</span></td>
-<td>${formatMoney(p.quantity * p.price)} грн</td>
+<td>${formatMoney(p.quantity * p.price)}</td>
 </tr>`;
 }).join('')}
 </tbody></table></div>`;
@@ -1322,8 +1322,8 @@ function renderReports() {
   state.products.forEach(p => { byCategory[p.category] = (byCategory[p.category]||0) + p.quantity * p.price; });
   document.getElementById('page-content').innerHTML = `
 <div class="stats-grid">
-<div class="stat-card green"><div class="label">Загальний прихід</div><div class="value">${formatMoney(totalIn)}</div><div class="sub">грн</div></div>
-<div class="stat-card blue"><div class="label">Загальний видаток</div><div class="value">${formatMoney(totalOut)}</div><div class="sub">грн</div></div>
+<div class="stat-card green"><div class="label">Загальний прихід</div><div class="value">${formatMoney(totalIn)}</div><div class="sub"></div></div>
+<div class="stat-card blue"><div class="label">Загальний видаток</div><div class="value">${formatMoney(totalOut)}</div><div class="sub"></div></div>
 <div class="stat-card"><div class="label">Операцій</div><div class="value">${state.operations.length}</div><div class="sub">всього</div></div>
 <div class="stat-card yellow"><div class="label">Замовлень</div><div class="value">${state.orders.length}</div><div class="sub">всього</div></div>
 </div>
@@ -1331,7 +1331,7 @@ function renderReports() {
 <div class="table-container">
 <div class="table-header"><h3>📊 По категоріях</h3></div>
 <table><thead><tr><th>Категорія</th><th>Вартість</th></tr></thead><tbody>
-${Object.entries(byCategory).map(([cat,val]) => `<tr><td><span class="badge badge-gray">${cat}</span></td><td>${formatMoney(val)} грн</td></tr>`).join('')}
+${Object.entries(byCategory).map(([cat,val]) => `<tr><td><span class="badge badge-gray">${cat}</span></td><td>${formatMoney(val)}</td></tr>`).join('')}
 </tbody></table></div>
 <div class="table-container">
 <div class="table-header"><h3>📈 Замовлення по статусах</h3></div>
