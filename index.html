@@ -224,10 +224,7 @@ tbody tr:last-child td{border-bottom:none}
 </button>
 <div class="nav-section">Виробництво</div>
 <button class="nav-item" onclick="navigate('orders')" id="nav-orders">
-📋 Замовлення
-</button>
-<button class="nav-item" onclick="navigate('recipes')" id="nav-recipes">
-📝 Рецепти
+📋 Наряди
 </button>
 <button class="nav-item" onclick="navigate('production')" id="nav-production">
 ⚙️ Виробництво
@@ -466,7 +463,7 @@ function navigate(page) {
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
   const navEl = document.getElementById('nav-' + page);
   if (navEl) navEl.classList.add('active');
-  const titles = { dashboard: 'Дашборд', products: 'Товари', incoming: 'Прихід товарів', outgoing: 'Видаток товарів', inventory: 'Залишки', orders: 'Замовлення', clients: 'Контрагенти', recipes: 'Рецепти', production: 'Виробництво', reports: 'Звіти та статистика', warehouse: 'Склади', team: 'Команда', profile: 'Профіль' };
+  const titles = { dashboard: 'Дашборд', products: 'Товари', incoming: 'Прихід товарів', outgoing: 'Видаток товарів', inventory: 'Залишки', orders: 'Наряди', clients: 'Контрагенти', recipes: 'Рецепти', production: 'Виробництво', reports: 'Звіти та статистика', warehouse: 'Склади', team: 'Команда', profile: 'Профіль' };
   document.getElementById('page-title').textContent = titles[page] || page;
   const renderers = { dashboard: renderDashboard, products: renderProducts, incoming: renderIncoming, outgoing: renderOutgoing, inventory: renderInventory, orders: renderOrders, clients: renderClients, recipes: renderRecipes, production: renderProduction, reports: renderReports, warehouse: renderWarehouse, team: renderTeam };
   if (renderers[page]) renderers[page]();
@@ -1019,7 +1016,7 @@ function renderOrders() {
   });
   var catOpts = cats.map(function(c){return '<option value="'+c+'" '+(filterCat===c?'selected':'')+'>'+c+'</option>';}).join('');
   var modelOpts = models.map(function(m){return '<option value="'+m+'" '+(filterModel===m?'selected':'')+'>'+m+'</option>';}).join('');
-  var html = '<div class="page-header"><h2>📋 Замовлення</h2><button class="btn" onclick="openOrderModal()">+ Замовлення</button></div>';
+  var html = '<div class="page-header"><h2>📋 Наряди</h2><button class="btn" onclick="openOrderModal()">+ Наряд</button></div>';
   html += '<div class="form-row" style="margin-bottom:12px;gap:8px">';
   html += '<select class="form-select" style="flex:1" onchange="window._orderFilterCat=this.value;renderOrders()"><option value="">— Всі категорії —</option>'+catOpts+'</select>';
   html += '<select class="form-select" style="flex:1" onchange="window._orderFilterModel=this.value;renderOrders()"><option value="">— Всі моделі —</option>'+modelOpts+'</select>';
@@ -1067,7 +1064,7 @@ async function saveOrder() {
   await saveSnapshot();
   closeModal();
   renderOrders();
-  showNotif('Замовлення створено', 'success');
+  showNotif('Наряд створено', 'success');
 }
 
 async function updateOrderStatus(id, status) {
