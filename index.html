@@ -1047,9 +1047,9 @@ function openOrderModal() {
   window._orderOps = [];
   document.getElementById('modal-body').innerHTML =
     '<div class="form-row"><div class="form-group"><label class="form-label">Назва наряду</label><input class="form-input" id="o-num" value="'+nextNum+'"></div>' +
-    '<div class="form-group"><label class="form-label">Контрагент *</label><input class="form-input" id="o-client" placeholder="Контрагент"></div></div>' +
+    '<div class="form-group"><label class="form-label">Контрагент *</label><select class="form-input" id="o-client"><option value="">— Оберіть контрагента —</option>' + (state.clients||[]).map(function(c){ return '<option value="'+c.name+'">'+c.name+'</option>'; }).join('') + '</select></div></div>' +
     '<div class="form-row"><div class="form-group"><label class="form-label">Товар *</label><select class="form-input" id="o-product"><option value="">— Оберіть товар —</option>' + (state.products||[]).map(function(p){ return '<option value="'+p.name+'">'+p.name+'</option>'; }).join('') + '</select></div>' +
-    '<div class="form-group"><label class="form-label">Категорія</label><input class="form-input" id="o-category" placeholder="Категорія"></div></div>' +
+    '</div>' +
     '<div class="form-row"><div class="form-group"><label class="form-label">Кількість</label><input type="number" class="form-input" id="o-qty" value="1"></div>' +
     '<div class="form-group"><label class="form-label">Дедлайн</label><input type="date" class="form-input" id="o-deadline"></div></div>' +
     '<div class="form-group"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
@@ -1115,7 +1115,7 @@ async function saveOrder() {
   var product = document.getElementById('o-product').value.trim();
   if (!client || !product) return showNotif('Заповніть контрагента та модель', 'error');
   var operations = (window._orderOps || []).filter(function(op){ return op.workshop; }).map(function(op){ return { workshop: op.workshop }; });
-  state.orders.push({ id: Date.now(), number: document.getElementById('o-num').value, client: client, product: product, category: document.getElementById('o-category').value.trim(), quantity: parseInt(document.getElementById('o-qty').value)||1, status: 'new', date: new Date().toISOString().split('T')[0], deadline: document.getElementById('o-deadline').value, operations: operations });
+  state.orders.push({ id: Date.now(), number: document.getElementById('o-num').value, client: client, product: product, quantity: parseInt(document.getElementById('o-qty').value)||1, status: 'new', date: new Date().toISOString().split('T')[0], deadline: document.getElementById('o-deadline').value, operations: operations });
   await saveSnapshot();
   closeModal();
   renderOrders();
