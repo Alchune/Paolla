@@ -367,13 +367,13 @@ async function loadWarehouse() {
       try {
         await sb.from('warehouse_members').upsert(
           { warehouse_id: savedId, user_id: state.user.id, access_mode: 'editor' },
-          { onConflict: 'warehouse_id,user_id' }
+          { onConflict: 'warehouse_id,user_id', ignoreDuplicates: true }
         );
       } catch(e) { console.log('join upsert error:', e); }
       const { data: wh } = await sb.from('warehouses').select('*').eq('id', savedId).single();
       state.warehouse = wh || { id: savedId, name: '' };
       const roleEl = document.getElementById('user-role');
-      if (roleEl) roleEl.textContent = 'editor';
+      if (roleEl) { try { const { data: meRow } = await sb.from('warehouse_members').select('access_mode').eq('warehouse_id', savedId).eq('user_id', state.user.id).single(); roleEl.textContent = (meRow && meRow.access_mode) || 'editor'; } catch(e) { roleEl.textContent = 'editor'; } }
       await loadSnapshotForCurrent();
       const nameEl = document.getElementById('warehouse-name');
       if (nameEl) nameEl.textContent = (wh && wh.name) || ('Склад ' + savedId.substring(0,8));
