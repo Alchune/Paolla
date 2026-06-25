@@ -1351,54 +1351,50 @@ function setProductionView(mode) {
 }
 
 function renderProduction() {
-  var cats = [...new Set(state.production.map(function(p){return p.category;}).filter(Boolean))];
-  var models = [...new Set(state.production.map(function(p){return p.recipe_name;}).filter(Boolean))];
+  var orders = state.orders || [];
+  var cats = [...new Set(orders.map(function(o){return o.category;}).filter(Boolean))];
+  var models = [...new Set(orders.map(function(o){return o.product;}).filter(Boolean))];
   var filterCat = window._prodFilterCat || '';
   var filterModel = window._prodFilterModel || '';
-  var matchFn = function(p){ return (!filterCat||p.category===filterCat) && (!filterModel||p.recipe_name===filterModel); };
-  var active = state.production.filter(function(p){ return p.status !== 'completed' && matchFn(p); });
-  var done = state.production.filter(function(p){ return p.status === 'completed' && matchFn(p); });
+  var matchFn = function(o){ return (!filterCat||o.category===filterCat) && (!filterModel||o.product===filterModel); };
+  var active = orders.filter(function(o){ return !o.received && matchFn(o); });
+  var done = orders.filter(function(o){ return o.received && matchFn(o); });
   var catOpts = cats.map(function(c){return '<option value="'+c+'" '+(filterCat===c?'selected':'')+'>'+c+'</option>';}).join('');
   var modelOpts = models.map(function(m){return '<option value="'+m+'" '+(filterModel===m?'selected':'')+'>'+m+'</option>';}).join('');
-    var _pv = state.productionView === 'grid' ? 'grid' : 'list';
-  var _pvToggle = '<div class="view-toggle">'
-    + '<button class="' + (_pv!=='grid'?'active':'') + '" onclick="setProductionView(\'list\')" title="Списком">&#9776;</button>'
-    + '<button class="' + (_pv==='grid'?'active':'') + '" onclick="setProductionView(\'grid\')" title="Сіткою">&#9638;</button>'
-    + '</div>';
-var html = '<div class="page-header"><h2>⚙️ Виробництво</h2><button class="btn" onclick="navigate(&apos;recipes&apos;)">📋 Рецепти</button></div>';
+  var html = '<div class="page-header"><h2>⚙️ Виробництво</h2></div>';
   html += '<div class="form-row" style="margin-bottom:12px;gap:8px">';
   html += '<select class="form-select" style="flex:1" onchange="window._prodFilterCat=this.value;renderProduction()"><option value="">— Всі категорії —</option>'+catOpts+'</select>';
   html += '<select class="form-select" style="flex:1" onchange="window._prodFilterModel=this.value;renderProduction()"><option value="">— Всі моделі —</option>'+modelOpts+'</select>';
-  html += _pvToggle;
   html += '</div>';
   html += '<h3 style="margin:0 0 10px;color:var(--text)">🔵 У виробництві ('+active.length+')</h3>';
   if (active.length === 0) {
-    html += '<div style="color:var(--text2);margin-bottom:20px">Немає активних нарядів</div>';
+    html += '<div style="color:var(--text2);margin-bottom:24px">Немає активних нарядів</div>';
   } else {
-    html += _pv==='grid' ? '<div class="card-grid" style="margin-bottom:24px">' : '<div style="display:grid;gap:10px;margin-bottom:24px">';
-    active.forEach(function(prod) {
-      var depts = prod.departments || [];
-      var allDone = depts.length > 0 && depts.every(function(d){return d.status==='done';});
-      var doneCnt = depts.filter(function(d){return d.status==='done';}).length;
-      var deptsHtml = depts.map(function(d) {
-        var cls = d.status==='done'?'badge-green':d.status==='in_progress'?'badge-blue':'badge-gray';
-        var icon = d.status==='done'?'✅':d.status==='in_progress'?'⏳':'⏸️';
-        return '<button onclick="advanceDeptStatus('+prod.id+','+d.id+')" style="cursor:pointer;border:none;background:none;padding:2px 0" title="Натисніть щоб змінити статус"><span class="badge '+cls+'" style="margin:2px">'+icon+' '+d.name+'</span></button>';
+    html += '<div style="display:grid;gap:10px;margin-bottom:24px">';
+    active.forEach(function(o){
+      var ops = o.operations || [];
+      var total = ops.length;
+      var doneCnt = ops.filter(function(op){return op.done;}).length;
+      var allOpsDone = total > 0 && doneCnt === total;
+      var firstPending = -1;
+      for (var i=0;i<ops.length;i++){ if(!ops[i].done){ firstPending=i; break; } }
+      var opsHtml = ops.map(function(op, idx){
+        var st = op.done ? 'done' : (idx===firstPending ? 'active' : 'wait');
+        var cls = st==='done'?'badge-green':st==='active'?'badge-blue':'badge-gray';
+        var icon = st==='done'?'✅':st==='active'?'⏳':'⏸️';
+        return '<span class="badge '+cls+'" style="margin:2px">'+icon+' '+op.workshop+'</span>';
       }).join('');
-      html += '<div class="stat-card" style="padding:14px">';
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
-      html += '<div><strong style="font-size:15px">'+prod.recipe_name+'</strong> &nbsp;<span style="color:var(--text2)">'+prod.quantity+' '+(prod.unit||'шт')+'</span></div>';
-      html += '<div style="display:flex;gap:6px">';
-      if (allDone) html += '<button class="btn" style="font-size:12px;padding:5px 12px" onclick="completeProduction('+prod.id+')">📦 На склад</button>';
-      if (depts.length === 0) html += '<button class="btn btn-secondary" style="font-size:12px;padding:5px 12px" onclick="completeProduction('+prod.id+')">✅ Завершити</button>';
-      html += '</div></div>';
-      if (depts.length > 0) {
-        html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">'+deptsHtml+'</div>';
-        html += '<div style="height:6px;background:var(--border);border-radius:3px;margin-bottom:4px"><div style="height:6px;background:var(--accent);border-radius:3px;width:'+Math.round(doneCnt/depts.length*100)+'%"></div></div>';
-        html += '<div style="font-size:12px;color:var(--text2)">'+doneCnt+'/'+depts.length+' відділів готово &bull; Розпочато: '+prod.started+'</div>';
-      } else {
-        html += '<div style="font-size:12px;color:var(--text2)">Відділи не визначено &bull; Розпочато: '+prod.started+'</div>';
-      }
+      var recvCls = allOpsDone ? 'badge-blue' : 'badge-gray';
+      var recvIcon = allOpsDone ? '⏳' : '⏸️';
+      opsHtml += '<span class="badge '+recvCls+'" style="margin:2px">'+recvIcon+' Прийняття на склад</span>';
+      var pct = total > 0 ? Math.round(doneCnt/total*100) : 0;
+      html += '<div class="card" style="padding:14px;cursor:pointer" onclick="openOrderView('+o.id+')">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
+      html += '<div style="font-weight:700;font-size:15px">'+o.number+' · '+(o.product||'')+'</div>';
+      html += '<div style="color:var(--text2);font-size:13px">'+(o.quantity||1)+' шт · '+doneCnt+'/'+total+' цехів</div>';
+      html += '</div>';
+      html += '<div style="height:6px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:8px"><div style="height:100%;width:'+pct+'%;background:var(--accent2)"></div></div>';
+      html += '<div style="display:flex;flex-wrap:wrap;gap:2px">'+opsHtml+'</div>';
       html += '</div>';
     });
     html += '</div>';
@@ -1407,8 +1403,8 @@ var html = '<div class="page-header"><h2>⚙️ Виробництво</h2><butt
   if (done.length === 0) {
     html += '<div style="color:var(--text2)">Немає завершених</div>';
   } else {
-    html += '<table class="data-table"><thead><tr><th>Модель</th><th>К-сть</th><th>Завершено</th></tr></thead><tbody>';
-    done.forEach(function(prod){ html += '<tr><td>'+prod.recipe_name+'</td><td>'+prod.quantity+' '+(prod.unit||'шт')+'</td><td>'+prod.started+'</td></tr>'; });
+    html += '<table class="data-table"><thead><tr><th>Наряд</th><th>Модель</th><th>К-сть</th><th>Прийнято</th></tr></thead><tbody>';
+    done.forEach(function(o){ html += '<tr style="cursor:pointer" onclick="openOrderView('+o.id+')"><td>'+o.number+'</td><td>'+(o.product||'')+'</td><td>'+(o.quantity||1)+' шт</td><td>'+(o.date||'')+'</td></tr>'; });
     html += '</tbody></table>';
   }
   document.getElementById('page-content').innerHTML = html;
