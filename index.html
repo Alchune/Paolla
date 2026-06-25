@@ -351,6 +351,17 @@ async function logoutUser() {
 // ====== INIT ======
 async function initApp(user) {
   state.user = user;
+  try {
+    const {data:pendingInv} = await sb.from("invitations")
+      .select("*").eq("email",user.email).gt("expires_at",new Date().toISOString()).limit(1).maybeSingle();
+    if (pendingInv) {
+      await sb.from("warehouse_members").upsert(
+        {warehouse_id:pendingInv.warehouse_id,user_id:user.id,access_mode:pendingInv.access_mode,display_name:(user.user_metadata&&user.user_metadata.full_name)||user.email.split("@")[0]},
+        {onConflict:"warehouse_id,user_id"}
+      );
+      await sb.from("invitations").delete().eq("id",pendingInv.id);
+    }
+  } catch(_) {}
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   const name = user.user_metadata?.full_name || user.email.split('@')[0];
@@ -1678,11 +1689,35 @@ function renderTeam() {
 </tbody></table></div>`;
 }
 
+async function sendInvite() {
+  const email = (document.getElementById("invite-email")||{}).value||"";
+  const role = (document.getElementById("invite-role")||{}).value||"editor";
+  if (!email) return showNotif("Вкажіть email","error");
+  if (!state.warehouse||!state.warehouse.id) return showNotif("Склад не вибрано","error");
+  try {
+    const {error:invErr} = await sb.from("invitations").insert({
+      email: email.toLowerCase().trim(),
+      warehouse_id: state.warehouse.id,
+      access_mode: role,
+      invited_by: state.user.id
+    });
+    if (invErr) throw invErr;
+    const {error:otpErr} = await sb.auth.signInWithOtp({
+      email: email.toLowerCase().trim(),
+      options: {shouldCreateUser:true}
+    });
+    if (otpErr) throw otpErr;
+    closeModal();
+    showNotif("Запрошення відправлено на "+email,"success");
+  } catch(e) {
+    showNotif("Помилка: "+(e.message||e),"error");
+  }
+}
 function openInviteModal() {
   document.getElementById('modal-title').textContent = 'Запросити користувача';
   document.getElementById('modal-body').innerHTML = `<div class="form-group"><label class="form-label">Email користувача</label><input class="form-input" id="invite-email" placeholder="user@example.com"></div>
 <div class="form-group"><label class="form-label">Роль</label><select class="form-select" id="invite-role"><option value="manager">Менеджер</option><option value="worker">Працівник</option><option value="viewer">Спостерігач</option></select></div>`;
-  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="showNotif('Запрошення відправлено','success');closeModal()">Запросити</button>`;
+  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="sendInvite()">Запросити</button>`;
   document.getElementById('modal-overlay').style.display = 'flex';
 }
 
