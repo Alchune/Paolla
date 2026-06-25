@@ -409,7 +409,7 @@ async function loadSnapshotForCurrent() {
     state.workshops = [];
     if (snap && snap.payload) {
       try {
-        const decoded = JSON.parse(atob(snap.payload.split('.')[1]));
+        const decoded = JSON.parse(decodeURIComponent(escape(atob(snap.payload.split('.')[1]))));
         if (decoded.products) state.products = Array.from(new Map(decoded.products.map(x => [x.id, x])).values());
         if (decoded.operations) state.operations = decoded.operations;
         if (decoded.orders) state.orders = Array.from(new Map(decoded.orders.map(function(x){ return [x.id, x]; })).values());
