@@ -411,7 +411,7 @@ async function loadSnapshotForCurrent() {
     if (snap && snap.payload) {
       try {
         const decoded = JSON.parse(atob(snap.payload.split('.')[1]));
-        if (decoded.products) state.products = decoded.products;
+        if (decoded.products) state.products = Array.from(new Map(decoded.products.map(x => [x.id, x])).values());
         if (decoded.operations) state.operations = decoded.operations;
         if (decoded.orders) state.orders = decoded.orders;
         if (decoded.recipes) state.recipes = decoded.recipes;
@@ -734,7 +734,7 @@ async function saveProduct(id) {
     const idx = state.products.findIndex(x => x.id === id);
     state.products[idx] = { ...state.products[idx], ...p };
   } else {
-    p.id = Date.now();
+    p.id = 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
     state.products.push(p);
   }
   await saveSnapshot();
