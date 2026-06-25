@@ -1158,6 +1158,22 @@ function openOrderView(id) {
       html += '</div></div>';
     });
   }
+  // Віртуальний фінальний крок: Прийняття на склад (не входить у operations, додається завжди останнім)
+  var allOpsDone = ops.length === 0 || ops.every(function(op){ return op.done; });
+  var recvIcon = o.received ? '<span style="color:var(--accent)">✅</span>' : (allOpsDone ? '<span style="color:var(--accent2)">▶</span>' : '<span style="color:var(--text2)">○</span>');
+  var recvState = o.received ? 'Готово' : (allOpsDone ? 'В роботі' : 'Очікує');
+  html += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0">';
+  html += '<div style="font-size:16px;line-height:1.4">'+recvIcon+'</div>';
+  html += '<div style="flex:1">';
+  html += '<div style="font-weight:600">Прийняття на склад</div>';
+  html += '<div style="color:var(--text2);font-size:12px;margin-top:2px">'+(o.product||'')+' · '+(o.quantity||1)+' шт.</div>';
+  html += '<div style="color:var(--text2);font-size:12px;margin-top:2px">'+recvState+'</div>';
+  if (o.received) {
+    html += '<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="receiveOrderStock('+id+',false)">Скасувати</button>';
+  } else if (allOpsDone) {
+    html += '<button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="receiveOrderStock('+id+',true)">Позначити готовим</button>';
+  }
+  html += '</div></div>';
   html += '</div></div>';
   document.getElementById('modal-body').innerHTML = html;
   document.getElementById('modal-footer').innerHTML = '<button class="btn btn-secondary" onclick="closeModal()">Закрити</button>';
@@ -1172,12 +1188,35 @@ async function toggleOrderOp(orderId, idx, done) {
   } else {
     for (var i = idx; i < o.operations.length; i++) { o.operations[i].done = false; }
   }
-  var allDone = o.operations.length > 0 && o.operations.every(function(op){ return op.done; });
+  var allDone = o.operations.length === 0 || o.operations.every(function(op){ return op.done; });
   var anyDone = o.operations.some(function(op){ return op.done; });
-  o.status = allDone ? 'ready' : (anyDone ? 'in_production' : 'new');
+  o.status = o.received ? 'ready' : (allDone || anyDone ? 'in_production' : 'new');
   await saveSnapshot();
   openOrderView(orderId);
   renderOrders();
+}
+
+async function receiveOrderStock(orderId, done) {
+  var o = state.orders.find(function(x){ return x.id === orderId; });
+  if (!o) return;
+  var opsDone = !o.operations || o.operations.length === 0 || o.operations.every(function(op){ return op.done; });
+  if (done && !opsDone) { showNotif('Спершу завершіть усі цехи', 'error'); return; }
+  var qty = parseInt(o.quantity) || 1;
+  if (done && !o.received) {
+    var p = state.products.find(function(pr){ return pr.name === o.product; });
+    if (p) { p.stock = (parseInt(p.stock)||0) + qty; }
+    o.received = true;
+    o.status = 'ready';
+  } else if (!done && o.received) {
+    var p2 = state.products.find(function(pr){ return pr.name === o.product; });
+    if (p2) { p2.stock = Math.max(0, (parseInt(p2.stock)||0) - qty); }
+    o.received = false;
+    o.status = opsDone ? 'in_production' : 'new';
+  }
+  await saveSnapshot();
+  openOrderView(orderId);
+  renderOrders();
+  renderProducts && renderProducts();
 }
 
 
