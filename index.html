@@ -1704,7 +1704,7 @@ async function sendInvite() {
     if (invErr) throw invErr;
     const {error:otpErr} = await sb.auth.signInWithOtp({
       email: email.toLowerCase().trim(),
-      options: {shouldCreateUser:true}
+      options: {shouldCreateUser:true, emailRedirectTo:'https://alchune.github.io/Paolla'}
     });
     if (otpErr) throw otpErr;
     closeModal();
