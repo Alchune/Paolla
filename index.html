@@ -1694,8 +1694,8 @@ async function createAccess() {
       body: JSON.stringify({ email: email.toLowerCase().trim(), password })
     });
     const signUpData = await resp.json();
-    if (signUpData.error || signUpData.message) throw new Error(signUpData.error_description || signUpData.msg || signUpData.message || 'Помилка реєстрації');
-    const userId = signUpData.id;
+    if (signUpData.error_code || signUpData.error) throw new Error(signUpData.msg || signUpData.error_description || signUpData.message || 'Помилка реєстрації');
+    const userId = signUpData.user?.id;
     if (!userId) throw new Error('Не вдалось отримати ID користувача');
     const displayName = email.split('@')[0];
     const { error: memberErr } = await sb.from('warehouse_members').upsert({
