@@ -351,18 +351,7 @@ async function logoutUser() {
 // ====== INIT ======
 async function initApp(user) {
   state.user = user;
-  try {
-    const {data:pendingInv} = await sb.from("invitations")
-      .select("*").eq("email",user.email).gt("expires_at",new Date().toISOString()).limit(1).maybeSingle();
-    if (pendingInv) {
-      await sb.from("warehouse_members").upsert(
-        {warehouse_id:pendingInv.warehouse_id,user_id:user.id,access_mode:pendingInv.access_mode,display_name:(user.user_metadata&&user.user_metadata.full_name)||user.email.split("@")[0]},
-        {onConflict:"warehouse_id,user_id"}
-      );
-      await sb.from("invitations").delete().eq("id",pendingInv.id);
-    }
-  } catch(_) {}
-  document.getElementById('auth-screen').style.display = 'none';
+document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   const name = user.user_metadata?.full_name || user.email.split('@')[0];
   document.getElementById('user-name').textContent = name;
@@ -1689,39 +1678,52 @@ function renderTeam() {
 </tbody></table></div>`;
 }
 
-async function sendInvite() {
-  const email = (document.getElementById("invite-email")||{}).value||"";
-  const role = (document.getElementById("invite-role")||{}).value||"editor";
-  if (!email) return showNotif("Вкажіть email","error");
-  if (!state.warehouse||!state.warehouse.id) return showNotif("Склад не вибрано","error");
+async function createAccess() {
+  const email = (document.getElementById('invite-email')||{}).value||'';
+  const password = (document.getElementById('invite-password')||{}).value||'';
+  const role = (document.getElementById('invite-role')||{}).value||'viewer';
+  if (!email || !password) { showNotif('Вкажіть email та пароль','error'); return; }
+  if (password.length < 6) { showNotif('Пароль мінімум 6 символів','error'); return; }
+  const btn = document.querySelector('#modal-footer .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
   try {
-    const {error:invErr} = await sb.from("invitations").insert({
-      email: email.toLowerCase().trim(),
+    const { data, error: signUpErr } = await sb.auth.signUp({ email: email.toLowerCase().trim(), password });
+    if (signUpErr) throw signUpErr;
+    const userId = data?.user?.id;
+    if (!userId) throw new Error('Не вдалось отримати ID користувача');
+    const displayName = email.split('@')[0];
+    const { error: memberErr } = await sb.from('warehouse_members').upsert({
       warehouse_id: state.warehouse.id,
+      user_id: userId,
       access_mode: role,
-      invited_by: state.user.id
-    });
-    if (invErr) throw invErr;
-    const {error:otpErr} = await sb.auth.signInWithOtp({
-      email: email.toLowerCase().trim(),
-      options: {shouldCreateUser:true, emailRedirectTo:'https://alchune.github.io/Paolla'}
-    });
-    if (otpErr) throw otpErr;
-    closeModal();
-    showNotif("Запрошення відправлено на "+email,"success");
+      display_name: displayName
+    }, { onConflict: 'warehouse_id,user_id' });
+    if (memberErr) throw memberErr;
+    document.getElementById('modal-body').innerHTML = `<div style="background:var(--card);border-radius:8px;padding:16px;border:1px solid var(--accent)">
+      <p style="color:var(--accent);font-weight:600;margin-bottom:12px">✅ Доступ створено!</p>
+      <p style="color:var(--text2);font-size:12px;margin-bottom:4px">Передайте ці дані користувачу:</p>
+      <div style="background:var(--bg);border-radius:6px;padding:12px;font-family:monospace;font-size:14px">
+        <div style="margin-bottom:6px"><span style="color:var(--text2)">Email: </span><strong>${email.toLowerCase().trim()}</strong></div>
+        <div><span style="color:var(--text2)">Пароль: </span><strong>${password}</strong></div>
+      </div>
+      <p style="color:var(--text2);font-size:11px;margin-top:8px">Сайт: https://alchune.github.io/Paolla</p>
+    </div>`;
+    document.getElementById('modal-footer').innerHTML = `<button class="btn btn-primary" onclick="closeModal()">Готово</button>`;
+    if (state.team) loadTeam();
   } catch(e) {
-    showNotif("Помилка: "+(e.message||e),"error");
+    showNotif(e.message||'Помилка','error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Створити доступ'; }
   }
 }
 function openInviteModal() {
-  document.getElementById('modal-title').textContent = 'Запросити користувача';
-  document.getElementById('modal-body').innerHTML = `<div class="form-group"><label class="form-label">Email користувача</label><input class="form-input" id="invite-email" placeholder="user@example.com"></div>
+  document.getElementById('modal-title').textContent = 'Створити доступ';
+  document.getElementById('modal-body').innerHTML = `<div class="form-group"><label class="form-label">Email</label><input class="form-input" id="invite-email" type="email" placeholder="user@example.com"></div>
+<div class="form-group"><label class="form-label">Пароль</label><input class="form-input" id="invite-password" type="text" placeholder="Мінімум 6 символів"></div>
 <div class="form-group"><label class="form-label">Роль</label><select class="form-select" id="invite-role"><option value="manager">Менеджер</option><option value="worker">Працівник</option><option value="viewer">Спостерігач</option></select></div>`;
-  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="sendInvite()">Запросити</button>`;
+  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="createAccess()">Створити доступ</button>`;
   document.getElementById('modal-overlay').style.display = 'flex';
 }
 
-// ====== UTILS ======
 function formatMoney(n) { return new Intl.NumberFormat('uk-UA', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n || 0); }
 
 function showNotif(text, type = 'success') {
