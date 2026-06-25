@@ -660,7 +660,7 @@ function renderProductRows(products) {
   return products.map(p => {
     const status = p.quantity === 0 ? '<span class="badge badge-red">Немає</span>' : p.quantity <= p.min_qty ? '<span class="badge badge-yellow">Мало</span>' : '<span class="badge badge-green">В наявності</span>';
     return `<tr>
-<td>${p.photo?`<img src="${p.photo}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:8px;">`:''}<strong>${p.name}</strong></td>
+<td>${p.image?`<img src="${p.image}" loading="lazy" style="width:32px;height:32px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:8px;cursor:pointer" onclick="openProductGallery('${p.id}')">`:''}<strong>${p.name}</strong></td>
 <td><span class="badge badge-gray">${p.category}</span></td>
 <td>${p.quantity} ${p.unit} <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${Math.min(100,(p.quantity/Math.max(p.min_qty*3,1))*100)}%;background:${p.quantity<=p.min_qty?'var(--danger)':'var(--accent)'}"></div></div></td>
 <td>${formatMoney(p.price)}</td>
@@ -675,7 +675,7 @@ function renderProductGrid(products) {
   var cards = products.map(function(p) {
     var status = p.quantity === 0 ? '<span class="badge badge-red">Немає</span>' : p.quantity <= p.min_qty ? '<span class="badge badge-yellow">Мало</span>' : '<span class="badge badge-green">В наявності</span>';
     return '<div class="item-card">'
-      + '<div class="ic-thumb">' + (p.photo ? '<img src="' + p.photo + '" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">' : '📦') + '</div>'
+      + '<div class="ic-thumb"' + (p.image ? ' style="cursor:pointer" onclick="openProductGallery(\'' + p.id + '\')"' : '') + '>' + (p.image ? '<img src="' + p.image + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">' : '📦') + '</div>'
       + '<div class="ic-name">' + p.name + '</div>'
       + '<div class="ic-meta"><span class="badge badge-gray">' + p.category + '</span>' + status + '</div>'
       + '<div class="ic-meta">' + p.quantity + ' ' + p.unit + ' • ' + formatMoney(p.price) + '</div>'
@@ -690,16 +690,15 @@ function filterProducts(q) {
   document.getElementById('products-body').innerHTML = state.productView === 'grid' ? renderProductGrid(filtered) : renderProductTable(filtered);
 }
 
-function onProductPhoto(e) {
-  const f = e.target.files && e.target.files[0];
-  if (!f) return;
-  const reader = new FileReader();
-  reader.onload = function() {
-    document.getElementById('p-photo').value = reader.result;
-    const pv = document.getElementById('p-photo-preview');
-    pv.src = reader.result; pv.style.display = '';
-  };
-  reader.readAsDataURL(f);
+function openProductGallery(id) {
+  const p = state.products.find(x => String(x.id) === String(id));
+  if (!p) return;
+  var imgs = (p.images && p.images.length) ? p.images : (p.image ? [p.image] : []);
+  if (!imgs.length) return;
+  document.getElementById('modal-title').textContent = 'Фото товару';
+  document.getElementById('modal-body').innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;">' + imgs.map(function(u){ return '<a href="' + u + '" target="_blank" rel="noopener"><img src="' + u + '" loading="lazy" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;border:1px solid var(--border);"></a>'; }).join('') + '</div>';
+  document.getElementById('modal-footer').innerHTML = '';
+  document.getElementById('modal-overlay').style.display = 'flex';
 }
 
 function openProductModal(id) {
@@ -726,7 +725,6 @@ function openProductModal(id) {
 <div class="form-group"><label class="form-label">Мінімальний залишок</label><input type="number" class="form-input" id="p-min" value="${p.min_qty||0}"></div>
 </div>
 <div class="form-group"><label class="form-label">Ціна</label><input type="number" class="form-input" id="p-price" value="${p.price||0}"></div>
-<div class="form-group" style="margin-top:14px;"><label class="form-label">Фото товару</label><input type="hidden" id="p-photo" value="${p.photo||''}"><div style="display:flex;align-items:center;gap:12px;"><img id="p-photo-preview" src="${p.photo||''}" style="width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid var(--border);${p.photo?'':'display:none;'}"><input type="file" accept="image/*" class="form-input" onchange="onProductPhoto(event)"></div></div>
 `;
   document.getElementById('modal-footer').innerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="saveProduct(${id||0})">Зберегти</button>`;
   document.getElementById('modal-overlay').style.display = 'flex';
@@ -741,8 +739,7 @@ async function saveProduct(id) {
     unit: document.getElementById('p-unit').value,
     quantity: parseFloat(document.getElementById('p-qty').value) || 0,
     min_qty: parseFloat(document.getElementById('p-min').value) || 0,
-    price: parseFloat(document.getElementById('p-price').value) || 0,
-    photo: document.getElementById('p-photo').value || ''
+    price: parseFloat(document.getElementById('p-price').value) || 0
   };
   if (!p.name) return showNotif('Введіть назву товару', 'error');
   if (id) {
