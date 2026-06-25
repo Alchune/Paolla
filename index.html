@@ -702,6 +702,7 @@ function openProductGallery(id) {
 }
 
 function openProductModal(id) {
+  window.__editingProductId = id || null;
   const p = id ? state.products.find(x => x.id === id) : {};
   document.getElementById('modal-title').textContent = id ? 'Редагувати товар' : 'Новий товар';
   document.getElementById('modal-body').innerHTML = `
@@ -724,14 +725,71 @@ function openProductModal(id) {
 <div class="form-group"><label class="form-label">Залишок</label><input type="number" class="form-input" id="p-qty" value="${p.quantity||0}"></div>
 <div class="form-group"><label class="form-label">Мінімальний залишок</label><input type="number" class="form-input" id="p-min" value="${p.min_qty||0}"></div>
 </div>
-<div class="form-group"><label class="form-label">Ціна</label><input type="number" class="form-input" id="p-price" value="${p.price||0}"></div>
+<div class="form-group"><label class="form-label">Ціна</label><input type="number" class="form-input" id="p-price" value="${p.price||0}"></div><div class="form-group"><label class="form-label">Фото</label><input type="hidden" id="p-image" value="${p.image||''}"><input type="hidden" id="p-images" value='${JSON.stringify(p.images||[])}'><input type="file" accept="image/*" id="p-photo-file" class="form-input" onchange="uploadProductPhoto(this)"><div id="p-photo-preview" style="margin-top:8px"></div></div>
 `;
   document.getElementById('modal-footer').innerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="saveProduct(${id||0})">Зберегти</button>`;
+  renderProductPhotoPreview();
   document.getElementById('modal-overlay').style.display = 'flex';
 }
 
 function editProduct(id) { openProductModal(id); }
 
+async function uploadProductPhoto(inp) {
+  const file = inp.files && inp.files[0];
+  if (!file) return;
+  const prev = document.getElementById("p-photo-preview");
+  if (prev) prev.textContent = "Завантаження...";
+  try {
+    const whId = (state.warehouse && state.warehouse.id) || "default";
+    const pid = (window.__editingProductId) || ("p_" + Date.now() + "_" + Math.random().toString(36).slice(2,7));
+    window.__editingProductId = pid;
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+    const path = whId + "/" + pid + "/" + Date.now() + "." + ext;
+    const up = await sb.storage.from("product-photos").upload(path, file, { upsert: true, contentType: file.type || "image/jpeg" });
+    if (up.error) throw up.error;
+    const url = sb.storage.from("product-photos").getPublicUrl(path).data.publicUrl;
+    const imgEl = document.getElementById("p-image");
+    const imgsEl = document.getElementById("p-images");
+    let arr = [];
+    try { arr = JSON.parse(imgsEl.value || "[]"); } catch(e) { arr = []; }
+    if (!Array.isArray(arr)) arr = [];
+    arr.push(url);
+    imgEl.value = url;
+    imgsEl.value = JSON.stringify(arr);
+    renderProductPhotoPreview();
+    showNotif("Фото завантажено", "success");
+  } catch (e) {
+    if (prev) prev.textContent = "";
+    showNotif("Помилка завантаження: " + (e.message || e), "error");
+  } finally {
+    inp.value = "";
+  }
+}
+function renderProductPhotoPreview() {
+  const prev = document.getElementById("p-photo-preview");
+  const imgsEl = document.getElementById("p-images");
+  if (!prev || !imgsEl) return;
+  let arr = [];
+  try { arr = JSON.parse(imgsEl.value || "[]"); } catch(e) { arr = []; }
+  if (!Array.isArray(arr)) arr = [];
+  prev.innerHTML = arr.map(function(u, i){
+    return "<span style=\"position:relative;display:inline-block;margin:4px\">" +
+      "<img src=\"" + u + "\" style=\"width:64px;height:64px;object-fit:cover;border-radius:8px\">" +
+      "<button type=\"button\" onclick=\"removeProductPhoto(" + i + ")\" style=\"position:absolute;top:-6px;right:-6px;background:#e00;color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;line-height:1\">×</button>" +
+      "</span>";
+  }).join("");
+}
+function removeProductPhoto(i) {
+  const imgEl = document.getElementById("p-image");
+  const imgsEl = document.getElementById("p-images");
+  let arr = [];
+  try { arr = JSON.parse(imgsEl.value || "[]"); } catch(e) { arr = []; }
+  if (!Array.isArray(arr)) arr = [];
+  arr.splice(i, 1);
+  imgsEl.value = JSON.stringify(arr);
+  imgEl.value = arr[0] || "";
+  renderProductPhotoPreview();
+}
 async function saveProduct(id) {
   const p = {
     name: document.getElementById('p-name').value,
@@ -739,7 +797,9 @@ async function saveProduct(id) {
     unit: document.getElementById('p-unit').value,
     quantity: parseFloat(document.getElementById('p-qty').value) || 0,
     min_qty: parseFloat(document.getElementById('p-min').value) || 0,
-    price: parseFloat(document.getElementById('p-price').value) || 0
+    price: parseFloat(document.getElementById('p-price').value) || 0,
+    image: (function(){ var e=document.getElementById('p-image'); return e? e.value : ''; })(),
+    images: (function(){ var e=document.getElementById('p-images'); if(!e) return []; try{ var a=JSON.parse(e.value||'[]'); return Array.isArray(a)?a:[]; }catch(_){ return []; } })()
   };
   if (!p.name) return showNotif('Введіть назву товару', 'error');
   if (id) {
