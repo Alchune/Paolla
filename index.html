@@ -1687,9 +1687,15 @@ async function createAccess() {
   const btn = document.querySelector('#modal-footer .btn-primary');
   if (btn) { btn.disabled = true; btn.textContent = '...'; }
   try {
-    const { data, error: signUpErr } = await sb.auth.signUp({ email: email.toLowerCase().trim(), password });
-    if (signUpErr) throw signUpErr;
-    const userId = data?.user?.id;
+    // Raw fetch signup - does NOT change current admin session
+    const resp = await fetch(sb.supabaseUrl + '/auth/v1/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': sb.supabaseKey, 'Authorization': 'Bearer ' + sb.supabaseKey },
+      body: JSON.stringify({ email: email.toLowerCase().trim(), password })
+    });
+    const signUpData = await resp.json();
+    if (signUpData.error || signUpData.message) throw new Error(signUpData.error_description || signUpData.msg || signUpData.message || 'Помилка реєстрації');
+    const userId = signUpData.id;
     if (!userId) throw new Error('Не вдалось отримати ID користувача');
     const displayName = email.split('@')[0];
     const { error: memberErr } = await sb.from('warehouse_members').upsert({
@@ -1715,6 +1721,7 @@ async function createAccess() {
     if (btn) { btn.disabled = false; btn.textContent = 'Створити доступ'; }
   }
 }
+
 function openInviteModal() {
   document.getElementById('modal-title').textContent = 'Створити доступ';
   document.getElementById('modal-body').innerHTML = `<div class="form-group"><label class="form-label">Email</label><input class="form-input" id="invite-email" type="email" placeholder="user@example.com"></div>
