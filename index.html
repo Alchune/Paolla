@@ -412,7 +412,7 @@ async function loadSnapshotForCurrent() {
         const decoded = JSON.parse(atob(snap.payload.split('.')[1]));
         if (decoded.products) state.products = Array.from(new Map(decoded.products.map(x => [x.id, x])).values());
         if (decoded.operations) state.operations = decoded.operations;
-        if (decoded.orders) state.orders = decoded.orders;
+        if (decoded.orders) state.orders = Array.from(new Map(decoded.orders.map(function(x){ return [x.id, x]; })).values());
         if (decoded.recipes) state.recipes = decoded.recipes;
         if (decoded.production) state.production = decoded.production;
         if (decoded.clients) state.clients = decoded.clients;
@@ -455,6 +455,7 @@ async function loadData() {}
 
 async function saveSnapshot() {
   if (!state.warehouse) return;
+  state.orders = Array.from(new Map(state.orders.map(function(x){ return [x.id, x]; })).values());
   const data = { products: state.products, operations: state.operations, orders: state.orders, recipes: state.recipes, production: state.production, clients: state.clients, workshops: state.workshops };
   const payload = btoa(JSON.stringify({ alg: 'none' })) + '.' + btoa(unescape(encodeURIComponent(JSON.stringify(data)))) + '.';
   await sb.from('warehouse_snapshots').upsert({ warehouse_id: state.warehouse.id, payload, modified_at: new Date().toISOString(), created_at: new Date().toISOString() });
