@@ -310,7 +310,8 @@ let state = {
   clients: [],
   clientView: (typeof localStorage!=='undefined' && localStorage.getItem('paolla_clientView')) || 'list',
   productView: (typeof localStorage!=='undefined' && localStorage.getItem('paolla_productView')) || 'list',
-  productionView: (typeof localStorage!=='undefined' && localStorage.getItem('paolla_productionView')) || 'list'
+  productionView: (typeof localStorage!=='undefined' && localStorage.getItem('paolla_productionView')) || 'list',
+  workshops: []
 };
 
 // ====== AUTH ======
@@ -405,6 +406,7 @@ async function loadSnapshotForCurrent() {
     if (!state.warehouse) return;
     const { data: snap } = await sb.from('warehouse_snapshots').select('*').eq('warehouse_id', state.warehouse.id).single();
     state.products = []; state.operations = []; state.orders = []; state.recipes = []; state.production = []; state.clients = [];
+    state.workshops = [];
     if (snap && snap.payload) {
       try {
         const decoded = JSON.parse(atob(snap.payload.split('.')[1]));
@@ -414,6 +416,7 @@ async function loadSnapshotForCurrent() {
         if (decoded.recipes) state.recipes = decoded.recipes;
         if (decoded.production) state.production = decoded.production;
         if (decoded.clients) state.clients = decoded.clients;
+        if (decoded.workshops) state.workshops = decoded.workshops;
       } catch(e) { console.log('Snapshot parse error:', e); }
     }
 }
@@ -433,9 +436,9 @@ async function initDefaultData() {
     { id: 3, type: 'incoming', product_id: 2, product_name: 'Цукор', quantity: 100, price: 18.00, date: '2026-06-23', notes: '', created_at: new Date().toISOString() },
   ];
   state.orders = [
-    { id: 1, number: 'ЗАМ-001', client: 'ТОВ Смаколики', product: 'Шоколадний торт', category: 'Святкові торти', quantity: 10, status: 'in_production', date: '2026-06-25', deadline: '2026-06-28' },
-    { id: 2, number: 'ЗАМ-002', client: 'Кафе Вишня', product: 'Ванільне печиво', category: 'Печиво', quantity: 50, status: 'ready', date: '2026-06-22', deadline: '2026-06-24' },
-    { id: 3, number: 'ЗАМ-003', client: 'Ресторан Зоря', product: 'Шоколадний торт', category: 'Святкові торти', quantity: 5, status: 'new', date: '2026-06-24', deadline: '2026-06-30' },
+    { id: 1, number: '0001', client: 'ТОВ Смаколики', product: 'Шоколадний торт', category: 'Святкові торти', quantity: 10, status: 'in_production', date: '2026-06-25', deadline: '2026-06-28' },
+    { id: 2, number: '0002', client: 'Кафе Вишня', product: 'Ванільне печиво', category: 'Печиво', quantity: 50, status: 'ready', date: '2026-06-22', deadline: '2026-06-24' },
+    { id: 3, number: '0003', client: 'Ресторан Зоря', product: 'Шоколадний торт', category: 'Святкові торти', quantity: 5, status: 'new', date: '2026-06-24', deadline: '2026-06-30' },
   ];
   state.recipes = [
     { id: 1, name: 'Шоколадний торт', output: 1, unit: 'шт', time: 180, departments: [{id:101,name:'Замішування'},{id:102,name:'Випікання'},{id:103,name:'Прикраса'}], ingredients: [{ product_id: 1, name: 'Борошно', qty: 0.5, unit: 'кг' }, { product_id: 2, name: 'Цукор', qty: 0.3, unit: 'кг' }, { product_id: 3, name: 'Масло', qty: 0.2, unit: 'кг' }] },
@@ -452,7 +455,7 @@ async function loadData() {}
 
 async function saveSnapshot() {
   if (!state.warehouse) return;
-  const data = { products: state.products, operations: state.operations, orders: state.orders, recipes: state.recipes, production: state.production, clients: state.clients };
+  const data = { products: state.products, operations: state.operations, orders: state.orders, recipes: state.recipes, production: state.production, clients: state.clients, workshops: state.workshops };
   const payload = btoa(JSON.stringify({ alg: 'none' })) + '.' + btoa(unescape(encodeURIComponent(JSON.stringify(data)))) + '.';
   await sb.from('warehouse_snapshots').upsert({ warehouse_id: state.warehouse.id, payload, modified_at: new Date().toISOString(), created_at: new Date().toISOString() });
 }
@@ -1021,13 +1024,14 @@ function renderOrders() {
   html += '<select class="form-select" style="flex:1" onchange="window._orderFilterCat=this.value;renderOrders()"><option value="">— Всі категорії —</option>'+catOpts+'</select>';
   html += '<select class="form-select" style="flex:1" onchange="window._orderFilterModel=this.value;renderOrders()"><option value="">— Всі моделі —</option>'+modelOpts+'</select>';
   html += '</div>';
-  html += '<table class="data-table"><thead><tr><th>Номер</th><th>Контрагент</th><th>Модель</th><th>Категорія</th><th>К-сть</th><th>Дедлайн</th><th>Статус</th><th>Дії</th></tr></thead><tbody>';
+  html += '<table class="data-table"><thead><tr><th>Номер</th><th>Контрагент</th><th>Модель</th><th>Категорія</th><th>Цехи</th><th>К-сть</th><th>Дедлайн</th><th>Статус</th><th>Дії</th></tr></thead><tbody>';
   if (filtered.length === 0) {
-    html += '<tr><td colspan="8"><div class="empty-state"><div class="icon">📋</div><h3>Немає замовлень</h3></div></td></tr>';
+    html += '<tr><td colspan="9"><div class="empty-state"><div class="icon">📋</div><h3>Немає нарядів</h3></div></td></tr>';
   } else {
     filtered.forEach(function(o){
       var b = o.status==='ready' ? '<span class="badge badge-green">✅ Готово</span>' : o.status==='in_production' ? '<span class="badge badge-blue">⚙️ Виробництво</span>' : o.status==='shipped' ? '<span class="badge badge-gray">📦 Відправлено</span>' : o.status==='cancelled' ? '<span class="badge badge-red">❌ Скасовано</span>' : '<span class="badge badge-yellow">🆕 Нове</span>';
-      html += '<tr><td><strong>'+o.number+'</strong></td><td>'+o.client+'</td><td>'+o.product+'</td><td>'+(o.category||'—')+'</td><td>'+o.quantity+' шт</td><td>'+(o.deadline||'—')+'</td><td>'+b+'</td>';
+      var cexBadges = (o.operations && o.operations.length) ? o.operations.map(function(op){ return '<span class="badge badge-gray" style="margin:1px">'+op.workshop+'</span>'; }).join(' ') : '—';
+      html += '<tr><td><strong>'+o.number+'</strong></td><td>'+o.client+'</td><td>'+o.product+'</td><td>'+(o.category||'—')+'</td><td>'+cexBadges+'</td><td>'+o.quantity+' шт</td><td>'+(o.deadline||'—')+'</td><td>'+b+'</td>';
       html += '<td><select class="form-select" style="width:auto;font-size:12px" onchange="updateOrderStatus('+o.id+',this.value)">';
       html += '<option value="new" '+(o.status==='new'?'selected':'')+'>Нове</option>';
       html += '<option value="in_production" '+(o.status==='in_production'?'selected':'')+'>Виробництво</option>';
@@ -1042,25 +1046,81 @@ function renderOrders() {
 }
 
 function openOrderModal() {
-  document.getElementById('modal-title').textContent = 'Нове замовлення';
+  document.getElementById('modal-title').textContent = 'Новий наряд';
   document.getElementById('modal-overlay').style.display = 'flex';
-  var nextNum = 'ЗАМ-' + String(state.orders.length + 1).padStart(3, '0');
+  var nextNum = String(state.orders.length + 1).padStart(4, '0');
+  window._orderOps = [];
   document.getElementById('modal-body').innerHTML =
-    '<div class="form-row"><div class="form-group"><label class="form-label">Номер</label><input class="form-input" id="o-num" value="'+nextNum+'"></div>' +
+    '<div class="form-row"><div class="form-group"><label class="form-label">Назва наряду</label><input class="form-input" id="o-num" value="'+nextNum+'"></div>' +
     '<div class="form-group"><label class="form-label">Контрагент *</label><input class="form-input" id="o-client" placeholder="Контрагент"></div></div>' +
     '<div class="form-row"><div class="form-group"><label class="form-label">Модель *</label><input class="form-input" id="o-product" placeholder="Модель"></div>' +
     '<div class="form-group"><label class="form-label">Категорія</label><input class="form-input" id="o-category" placeholder="Категорія"></div></div>' +
     '<div class="form-row"><div class="form-group"><label class="form-label">Кількість</label><input type="number" class="form-input" id="o-qty" value="1"></div>' +
-    '<div class="form-group"><label class="form-label">Дедлайн</label><input type="date" class="form-input" id="o-deadline"></div></div>';
+    '<div class="form-group"><label class="form-label">Дедлайн</label><input type="date" class="form-input" id="o-deadline"></div></div>' +
+    '<div class="form-group"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+    '<label class="form-label" style="margin:0">Виробничі операції</label>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="newWorkshop()">+ Новий цех</button></div>' +
+    '<div id="o-ops"></div>' +
+    '<button type="button" class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addOrderOp()">+ Додати операцію</button></div>';
   document.getElementById('modal-footer').innerHTML =
     '<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn" onclick="saveOrder()">Зберегти</button>';
+  renderOrderOps();
+}
+
+function renderOrderOps() {
+  var ops = window._orderOps || [];
+  var box = document.getElementById('o-ops');
+  if (!box) return;
+  if (!ops.length) {
+    box.innerHTML = '<div style="color:var(--text2);font-size:13px;padding:8px 0">Ще немає операцій. Натисніть «+ Додати операцію».</div>';
+    return;
+  }
+  var html = '';
+  ops.forEach(function(op, idx){
+    var opts = (state.workshops||[]).map(function(w){
+      return '<option value="'+w+'" '+(op.workshop===w?'selected':'')+'>'+w+'</option>';
+    }).join('');
+    html += '<div class="form-row" style="align-items:center;gap:8px;margin-bottom:6px">' +
+      '<span style="color:var(--text2);width:20px;text-align:center">'+(idx+1)+'</span>' +
+      '<select class="form-select" style="flex:1" onchange="window._orderOps['+idx+'].workshop=this.value">' +
+      '<option value="">— Оберіть цех —</option>'+opts+'</select>' +
+      '<button type="button" class="btn btn-danger btn-sm" onclick="removeOrderOp('+idx+')">−</button>' +
+      '</div>';
+  });
+  box.innerHTML = html;
+}
+
+function addOrderOp() {
+  if (!window._orderOps) window._orderOps = [];
+  window._orderOps.push({ workshop: '' });
+  renderOrderOps();
+}
+
+function removeOrderOp(idx) {
+  if (!window._orderOps) return;
+  window._orderOps.splice(idx, 1);
+  renderOrderOps();
+}
+
+function newWorkshop() {
+  var name = prompt('Назва нового цеху:');
+  if (!name) return;
+  name = name.trim();
+  if (!name) return;
+  if (!state.workshops) state.workshops = [];
+  if (state.workshops.indexOf(name) === -1) state.workshops.push(name);
+  if (!window._orderOps) window._orderOps = [];
+  window._orderOps.push({ workshop: name });
+  renderOrderOps();
+  saveSnapshot();
 }
 
 async function saveOrder() {
   var client = document.getElementById('o-client').value.trim();
   var product = document.getElementById('o-product').value.trim();
   if (!client || !product) return showNotif('Заповніть контрагента та модель', 'error');
-  state.orders.push({ id: Date.now(), number: document.getElementById('o-num').value, client: client, product: product, category: document.getElementById('o-category').value.trim(), quantity: parseInt(document.getElementById('o-qty').value)||1, status: 'new', date: new Date().toISOString().split('T')[0], deadline: document.getElementById('o-deadline').value });
+  var operations = (window._orderOps || []).filter(function(op){ return op.workshop; }).map(function(op){ return { workshop: op.workshop }; });
+  state.orders.push({ id: Date.now(), number: document.getElementById('o-num').value, client: client, product: product, category: document.getElementById('o-category').value.trim(), quantity: parseInt(document.getElementById('o-qty').value)||1, status: 'new', date: new Date().toISOString().split('T')[0], deadline: document.getElementById('o-deadline').value, operations: operations });
   await saveSnapshot();
   closeModal();
   renderOrders();
