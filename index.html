@@ -1204,12 +1204,12 @@ async function receiveOrderStock(orderId, done) {
   var qty = parseInt(o.quantity) || 1;
   if (done && !o.received) {
     var p = state.products.find(function(pr){ return pr.name === o.product; });
-    if (p) { p.stock = (parseInt(p.stock)||0) + qty; }
+    if (p) { p.quantity = (parseInt(p.quantity)||0) + qty; }
     o.received = true;
     o.status = 'ready';
   } else if (!done && o.received) {
     var p2 = state.products.find(function(pr){ return pr.name === o.product; });
-    if (p2) { p2.stock = Math.max(0, (parseInt(p2.stock)||0) - qty); }
+    if (p2) { p2.quantity = Math.max(0, (parseInt(p2.quantity)||0) - qty); }
     o.received = false;
     o.status = opsDone ? 'in_production' : 'new';
   }
