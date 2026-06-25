@@ -1024,21 +1024,15 @@ function renderOrders() {
   html += '<select class="form-select" style="flex:1" onchange="window._orderFilterCat=this.value;renderOrders()"><option value="">— Всі категорії —</option>'+catOpts+'</select>';
   html += '<select class="form-select" style="flex:1" onchange="window._orderFilterModel=this.value;renderOrders()"><option value="">— Всі моделі —</option>'+modelOpts+'</select>';
   html += '</div>';
-  html += '<table class="data-table"><thead><tr><th>Номер</th><th>Контрагент</th><th>Модель</th><th>Категорія</th><th>Цехи</th><th>К-сть</th><th>Дедлайн</th><th>Статус</th><th>Дії</th></tr></thead><tbody>';
+  html += '<table class="data-table"><thead><tr><th>Номер</th><th>Контрагент</th><th>Модель</th><th>Категорія</th><th>Цехи</th><th>К-сть</th><th>Дедлайн</th><th>Статус</th><th></th></tr></thead><tbody>';
   if (filtered.length === 0) {
-    html += '<tr><td colspan="9"><div class="empty-state"><div class="icon">📋</div><h3>Немає нарядів</h3></div></td></tr>';
+    html += '<tr><td colspan="8"><div class="empty-state"><div class="icon">📋</div><h3>Немає нарядів</h3></div></td></tr>';
   } else {
     filtered.forEach(function(o){
       var b = o.status==='ready' ? '<span class="badge badge-green">✅ Готово</span>' : o.status==='in_production' ? '<span class="badge badge-blue">⚙️ Виробництво</span>' : o.status==='shipped' ? '<span class="badge badge-gray">📦 Відправлено</span>' : o.status==='cancelled' ? '<span class="badge badge-red">❌ Скасовано</span>' : '<span class="badge badge-yellow">🆕 Нове</span>';
-      var cexBadges = (o.operations && o.operations.length) ? o.operations.map(function(op){ return '<span class="badge badge-gray" style="margin:1px">'+op.workshop+'</span>'; }).join(' ') : '—';
-      html += '<tr><td><strong>'+o.number+'</strong></td><td>'+o.client+'</td><td>'+o.product+'</td><td>'+(o.category||'—')+'</td><td>'+cexBadges+'</td><td>'+o.quantity+' шт</td><td>'+(o.deadline||'—')+'</td><td>'+b+'</td>';
-      html += '<td><select class="form-select" style="width:auto;font-size:12px" onchange="updateOrderStatus('+o.id+',this.value)">';
-      html += '<option value="new" '+(o.status==='new'?'selected':'')+'>Нове</option>';
-      html += '<option value="in_production" '+(o.status==='in_production'?'selected':'')+'>Виробництво</option>';
-      html += '<option value="ready" '+(o.status==='ready'?'selected':'')+'>Готово</option>';
-      html += '<option value="shipped" '+(o.status==='shipped'?'selected':'')+'>Відправлено</option>';
-      html += '<option value="cancelled" '+(o.status==='cancelled'?'selected':'')+'>Скасовано</option>';
-      html += '</select></td></tr>';
+      var cexBadges = (o.operations && o.operations.length) ? o.operations.map(function(op){ return '<span class="badge '+(op.done?'badge-green':'badge-gray')+'" style="margin:1px">'+(op.done?'✅ ':'')+op.workshop+'</span>'; }).join(' ') : '—';
+      html += '<tr><td><strong>'+o.number+'</strong></td><td>'+o.client+'</td><td>'+o.product+'</td><td>'+(o.category||'—')+'</td><td>'+cexBadges+'</td><td>'+o.quantity+' шт</td><td>'+(o.deadline||'—')+'</td><td>'+b+'</td><td><button class="btn btn-secondary btn-sm" onclick="openOrderView('+o.id+')">Відкрити</button></td></tr>';
+
     });
   }
   html += '</tbody></table>';
@@ -1131,6 +1125,58 @@ async function updateOrderStatus(id, status) {
   var o = state.orders.find(function(x){return x.id===id;});
   if (o) o.status = status;
   await saveSnapshot();
+  renderOrders();
+}
+
+function openOrderView(id) {
+  var o = state.orders.find(function(x){ return x.id === id; });
+  if (!o) return;
+  window._viewOrderId = id;
+  document.getElementById('modal-title').textContent = o.number;
+  var ops = o.operations || [];
+  var firstPending = -1;
+  for (var i = 0; i < ops.length; i++) { if (!ops[i].done) { firstPending = i; break; } }
+  var html = '<div class="form-group"><label class="form-label">Модель</label><input class="form-input" value="'+(o.product||'')+'" readonly></div>';
+  html += '<div class="form-group"><label class="form-label">Операції</label><div class="op-list">';
+  if (!ops.length) {
+    html += '<div style="color:var(--text2);font-size:13px;padding:8px 0">У цьому наряді немає операцій.</div>';
+  } else {
+    ops.forEach(function(op, idx){
+      var isActive = idx === firstPending;
+      var icon = op.done ? '<span style="color:var(--accent)">✅</span>' : (isActive ? '<span style="color:var(--accent2)">▶</span>' : '<span style="color:var(--text2)">○</span>');
+      var stateLabel = op.done ? 'Готово' : (isActive ? 'В роботі' : 'Очікує');
+      html += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">';
+      html += '<div style="font-size:16px;line-height:1.4">'+icon+'</div>';
+      html += '<div style="flex:1">';
+      html += '<div style="font-weight:600">'+op.workshop+'</div>';
+      html += '<div style="color:var(--text2);font-size:12px;margin-top:2px">'+stateLabel+'</div>';
+      if (isActive) {
+        html += '<button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="toggleOrderOp('+id+','+idx+',true)">Позначити готовим</button>';
+      } else if (op.done) {
+        html += '<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="toggleOrderOp('+id+','+idx+',false)">Скасувати</button>';
+      }
+      html += '</div></div>';
+    });
+  }
+  html += '</div></div>';
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-footer').innerHTML = '<button class="btn btn-secondary" onclick="closeModal()">Закрити</button>';
+  document.getElementById('modal-overlay').style.display = 'flex';
+}
+
+async function toggleOrderOp(orderId, idx, done) {
+  var o = state.orders.find(function(x){ return x.id === orderId; });
+  if (!o || !o.operations || !o.operations[idx]) return;
+  if (done) {
+    o.operations[idx].done = true;
+  } else {
+    for (var i = idx; i < o.operations.length; i++) { o.operations[i].done = false; }
+  }
+  var allDone = o.operations.length > 0 && o.operations.every(function(op){ return op.done; });
+  var anyDone = o.operations.some(function(op){ return op.done; });
+  o.status = allDone ? 'ready' : (anyDone ? 'in_production' : 'new');
+  await saveSnapshot();
+  openOrderView(orderId);
   renderOrders();
 }
 
