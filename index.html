@@ -830,7 +830,8 @@ function renderOperation(type) {
   var title = isIncoming ? 'Прихід товарів' : 'Видаток товарів';
   var btnLabel = isIncoming ? '+ Новий прихід' : '+ Новий видаток';
   var ops = state.operations.filter(function(o) { return o.type === type; });
-  var html = '<div class="page-header"><h2>' + icon + ' ' + title + '</h2><button class="btn" id="add-op-btn">' + btnLabel + '</button></div>';
+  var html = '<div class="table-container">';
+  html += '<div class="table-header"><h3>' + icon + ' ' + title + '</h3><div class="table-search"><button class="btn btn-primary" id="add-op-btn">' + btnLabel + '</button></div></div>';
   html += '<table class="data-table"><thead><tr><th>Дата</th><th>Контрагент</th><th>Сума</th><th>Дії</th></tr></thead><tbody>';
   if (ops.length === 0) {
     html += '<tr><td colspan="4"><div class="empty-state"><div class="icon">' + icon + '</div><h3>Немає операцій</h3><p>Додайте першу операцію</p></div></td></tr>';
@@ -856,7 +857,7 @@ function renderOperation(type) {
       html += '</tr>';
     });
   }
-  html += '</tbody></table>';
+  html += '</tbody></table></div>';
   document.getElementById('page-content').innerHTML = html;
   var btn = document.getElementById('add-op-btn');
   if (btn) btn.addEventListener('click', function() { openOperationModal(type); });
