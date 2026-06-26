@@ -831,9 +831,9 @@ function renderOperation(type) {
   var btnLabel = isIncoming ? '+ Новий прихід' : '+ Новий видаток';
   var ops = state.operations.filter(function(o) { return o.type === type; });
   var html = '<div class="page-header"><h2>' + icon + ' ' + title + '</h2><button class="btn" id="add-op-btn">' + btnLabel + '</button></div>';
-  html += '<table class="data-table"><thead><tr><th>Дата</th><th>Контрагент</th><th>Товари</th><th>Сума</th><th>Примітки</th><th></th></tr></thead><tbody>';
+  html += '<table class="data-table"><thead><tr><th>Дата</th><th>Контрагент</th><th>Сума</th><th>Дії</th></tr></thead><tbody>';
   if (ops.length === 0) {
-    html += '<tr><td colspan="6"><div class="empty-state"><div class="icon">' + icon + '</div><h3>Немає операцій</h3><p>Додайте першу операцію</p></div></td></tr>';
+    html += '<tr><td colspan="4"><div class="empty-state"><div class="icon">' + icon + '</div><h3>Немає операцій</h3><p>Додайте першу операцію</p></div></td></tr>';
   } else {
     ops.slice().reverse().forEach(function(o) {
       var items = o.items;
@@ -851,10 +851,8 @@ function renderOperation(type) {
       html += '<tr>';
       html += '<td>' + (o.date || '—') + '</td>';
       html += '<td>' + counterparty + '</td>';
-      html += '<td style="max-width:220px;white-space:normal">' + itemsSummary + '</td>';
       html += '<td>' + totalStr + '</td>';
-      html += '<td>' + (o.notes || '—') + '</td>';
-      html += '<td><button class="btn btn-sm btn-danger" onclick="deleteOperation(' + o.id + ',&apos;' + type + '&apos;)">✕</button></td>';
+      html += '<td><button class="btn btn-sm" title="Редагувати" onclick="editOperation(' + o.id + ',&apos;' + type + '&apos;)">✏️</button> <button class="btn btn-sm btn-danger" onclick="deleteOperation(' + o.id + ',&apos;' + type + '&apos;)">✕</button></td>';
       html += '</tr>';
     });
   }
@@ -865,7 +863,7 @@ function renderOperation(type) {
 }
 
 
-function openOperationModal(type) {
+function openOperationModal(type, editOp) {
   var isIncoming = (type === 'incoming');
   var title = isIncoming ? 'Новий прихід' : 'Новий видаток';
   var counterpartyLabel = isIncoming ? 'Постачальник' : 'Покупець';
@@ -946,7 +944,23 @@ function openOperationModal(type) {
     tbody.appendChild(tr);
   }
 
-  addItemRow();
+  if (editOp && editOp.items && editOp.items.length) {
+    var ib = document.getElementById('op-items-body');
+    if (ib) ib.innerHTML = '';
+    editOp.items.forEach(function(it) {
+      addItemRow();
+      var lastRow = ib.lastElementChild;
+      if (!lastRow) return;
+      var s = lastRow.querySelector('.item-product');
+      var q = lastRow.querySelector('.item-qty');
+      var p = lastRow.querySelector('.item-price');
+      if (s) s.value = it.product_id;
+      if (q) q.value = it.quantity;
+      if (p) p.value = it.price;
+    });
+  } else {
+    addItemRow();
+  }
 
   document.getElementById('op-add-row').addEventListener('click', function() { addItemRow(); });
 
@@ -961,14 +975,23 @@ function openOperationModal(type) {
   btnSave.type = 'button';
   btnSave.className = 'btn';
   btnSave.textContent = 'Зберегти';
-  btnSave.addEventListener('click', function() { saveOperation(type); });
+  if (editOp) {
+    document.getElementById('modal-title').textContent = isIncoming ? 'Редагувати прихід' : 'Редагувати видаток';
+    var cpEl = document.getElementById('op-counterparty');
+    var dtEl = document.getElementById('op-date');
+    var ntEl = document.getElementById('op-notes');
+    if (cpEl) cpEl.value = editOp.counterparty || '';
+    if (dtEl) dtEl.value = editOp.date || '';
+    if (ntEl) ntEl.value = editOp.notes || '';
+  }
+  btnSave.addEventListener('click', function() { saveOperation(type, editOp ? editOp.id : null); });
 
   footer.appendChild(btnCancel);
   footer.appendChild(btnSave);
 }
 
 
-async function saveOperation(type) {
+async function saveOperation(type, editId) {
   var counterpartyEl = document.getElementById('op-counterparty');
   var counterparty = counterpartyEl ? counterpartyEl.value.trim() : '';
   var dateEl = document.getElementById('op-date');
@@ -1011,12 +1034,45 @@ async function saveOperation(type) {
     }
   });
 
+  if (editId != null) {
+    var existing = state.operations.find(function(o) { return o.id === editId; });
+    if (existing) {
+      var oldItems = existing.items || [];
+      oldItems.forEach(function(it) {
+        var prod = state.products.find(function(p) { return String(p.id) === String(it.product_id); });
+        if (prod) {
+          if (existing.type === 'incoming') { prod.quantity = Math.max(0, (Number(prod.quantity) || 0) - Number(it.quantity)); }
+          else { prod.quantity = (Number(prod.quantity) || 0) + Number(it.quantity); }
+        }
+      });
+      existing.counterparty = counterparty;
+      existing.date = date;
+      existing.notes = notes;
+      existing.items = items;
+    }
+    await saveSnapshot();
+    closeModal();
+    renderOperation(type);
+    showNotif('Операцію оновлено', 'success');
+    return;
+  }
   var op = { id: Date.now(), type: type, counterparty: counterparty, date: date, notes: notes, items: items };
   state.operations.push(op);
   await saveSnapshot();
   closeModal();
   renderOperation(type);
   showNotif('Операцію збережено', 'success');
+}
+
+
+function editOperation(id, type) {
+  var op = state.operations.find(function(o) { return o.id === id; });
+  if (!op) { showNotif('Операцію не знайдено', 'error'); return; }
+  var normItems = op.items;
+  if ((!normItems || !normItems.length) && op.product_name) {
+    normItems = [{product_id: op.product_id, product_name: op.product_name, quantity: op.quantity, price: op.price}];
+  }
+  openOperationModal(type, {id: op.id, counterparty: op.counterparty, date: op.date, notes: op.notes, items: normItems || []});
 }
 
 
