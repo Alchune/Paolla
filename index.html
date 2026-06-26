@@ -132,7 +132,7 @@ tbody tr:last-child td{border-bottom:none}
 .view-toggle button:hover{color:var(--text)}
 .view-toggle button.active{background:var(--card);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,0.3)}
 /* Card grid (rounded squares) */
-.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(150px,100%),1fr));gap:14px}
 .item-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px;transition:all 0.2s;position:relative}
 .item-card:hover{border-color:#8b949e;transform:translateY(-2px)}
 .item-card .ic-thumb{width:100%;aspect-ratio:1/1;border-radius:12px;background:linear-gradient(135deg,rgba(35,134,54,0.15),rgba(31,111,235,0.15));display:flex;align-items:center;justify-content:center;font-size:42px;margin-bottom:4px}
