@@ -969,7 +969,7 @@ function openOperationModal(type, editOp) {
   btnCancel.type = 'button';
   btnCancel.className = 'btn btn-secondary';
   btnCancel.textContent = 'Скасувати';
-  btnCancel.addEventListener('click', closeModal);
+  btnCancel.addEventListener('click', function() { closeModal(); });
 
   var btnSave = document.createElement('button');
   btnSave.type = 'button';
