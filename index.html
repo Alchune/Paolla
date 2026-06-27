@@ -172,6 +172,12 @@ tbody tr:last-child td{border-bottom:none}
 
 /* Компактна червона кнопка видалення в рядках форми */
 .form-row .btn-danger,.form-row .btn-danger.btn-sm{width:36px!important;min-width:36px!important;height:36px!important;padding:0!important;justify-self:end!important;align-self:center!important;border-radius:12px!important;font-size:18px!important;line-height:1!important;}
+
+/* Рядок операції: цех ліворуч, червона "–" одразу праворуч в тій самій лінії */
+.form-row:has(.btn-danger){display:flex!important;align-items:center;gap:8px;}
+.form-row:has(.btn-danger) > span{flex:0 0 auto;}
+.form-row:has(.btn-danger) .form-select{flex:1 1 auto;}
+.form-row:has(.btn-danger) .btn-danger{flex:0 0 auto;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;line-height:1!important;padding:0!important;}
 </style>
 </head>
 <body>
