@@ -726,7 +726,7 @@ function openProductModal(id) {
 </div>
 <div class="form-group"><label class="form-label">Ціна</label><input type="number" class="form-input" id="p-price" value="${p.price||0}"></div><div class="form-group"><label class="form-label">Фото</label><input type="hidden" id="p-image" value="${p.image||''}"><input type="hidden" id="p-images" value='${JSON.stringify(p.images||[])}'><input type="file" accept="image/*" id="p-photo-file" class="form-input" onchange="uploadProductPhoto(this)"><div id="p-photo-preview" style="margin-top:8px"></div></div>
 `;
-  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="saveProduct(${id||0})">Зберегти</button>`;
+  document.getElementById('modal-footer').innerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="saveProduct('${id||''}')">Зберегти</button>`;
   renderProductPhotoPreview();
   document.getElementById('modal-overlay').style.display = 'flex';
 }
