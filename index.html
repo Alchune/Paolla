@@ -1903,7 +1903,7 @@ function closeModal(e) {
         edit.className='btn btn-secondary btn-sm js-edit-btn';
         edit.textContent='Редагувати';
         edit.style.marginRight='6px';
-        edit.setAttribute('onclick','openOrderView('+id+')');
+        edit.setAttribute('onclick','editOrder('+id+')');
         var dup = document.createElement('button');
         dup.className='btn btn-secondary btn-sm js-dup-btn';
         dup.textContent='Дублювати';
@@ -1922,6 +1922,66 @@ function closeModal(e) {
       };
       window._renderOrdersPatched = true;
     }
+  
+    // ===== Real in-place editing of orders (added) =====
+    window.editOrder = function(id){
+      var ord = (state.orders||[]).find(function(o){ return o.id===id || String(o.id)===String(id); });
+      if(!ord) return;
+      window._editingOrderId = ord.id;
+      openOrderModal();
+      var setSel = function(sel,val){ if(!sel) return; var o=Array.prototype.slice.call(sel.options).find(function(o){return o.value===val||o.textContent.trim()===val;}); if(o){ sel.value=o.value; sel.dispatchEvent(new Event('change',{bubbles:true})); } };
+      setTimeout(function(){
+        var num=document.getElementById('o-num'); if(num) num.value=ord.number||'';
+        setSel(document.getElementById('o-client'), ord.client);
+        setSel(document.getElementById('o-product'), ord.product);
+        var qty=document.getElementById('o-qty'); if(qty){ qty.value=ord.quantity; qty.dispatchEvent(new Event('input',{bubbles:true})); }
+        var dl=document.getElementById('o-deadline'); if(dl && ord.deadline){ dl.value=ord.deadline; dl.dispatchEvent(new Event('input',{bubbles:true})); }
+        var ops = ord.operations||[];
+        var addBtn = Array.prototype.slice.call(document.querySelectorAll('button')).find(function(b){ return b.textContent.trim()==='+ Додати операцію'; });
+        var i=0;
+        var addNext=function(){
+          if(i>=ops.length) return;
+          if(addBtn) addBtn.click();
+          setTimeout(function(){
+            var cex=Array.prototype.slice.call(document.querySelectorAll('select')).filter(function(s){ return Array.prototype.slice.call(s.options).some(function(o){return o.textContent.indexOf('Оберіть цех')>=0;}) && s.offsetParent!==null; });
+            var t=cex[i]; if(t) setSel(t, ops[i].workshop);
+            i++; setTimeout(addNext,40);
+          },40);
+        };
+        addNext();
+      }, 70);
+    };
+    if(!window._saveOrderEditPatched && typeof saveOrder==='function'){
+      var _origSaveOrder = saveOrder;
+      saveOrder = function(){
+        var editId = window._editingOrderId;
+        if(editId==null){ return _origSaveOrder.apply(this, arguments); }
+        var beforeIds = (state.orders||[]).map(function(o){return o.id;});
+        var origOrder = (state.orders||[]).find(function(o){return o.id===editId||String(o.id)===String(editId);});
+        var origStatus = origOrder ? origOrder.status : 'new';
+        var r = _origSaveOrder.apply(this, arguments);
+        setTimeout(function(){
+          var added = (state.orders||[]).find(function(o){ return beforeIds.indexOf(o.id)<0; });
+          if(added && origOrder){
+            origOrder.number = added.number;
+            origOrder.client = added.client;
+            origOrder.product = added.product;
+            origOrder.quantity = added.quantity;
+            origOrder.deadline = added.deadline;
+            origOrder.operations = added.operations;
+            origOrder.status = origStatus;
+            var idx = state.orders.indexOf(added);
+            if(idx>=0) state.orders.splice(idx,1);
+            try{ saveSnapshot(); }catch(e){}
+            try{ renderOrders(); }catch(e){}
+          }
+          window._editingOrderId = null;
+        }, 0);
+        return r;
+      };
+      window._saveOrderEditPatched = true;
+    }
+
 
 </script>
 </body>
