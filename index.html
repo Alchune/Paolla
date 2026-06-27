@@ -1856,6 +1856,73 @@ function closeModal(e) {
   const { data: { session } } = await sb.auth.getSession();
   if (session?.user) { await initApp(session.user); }
 })();
+  
+    // ===== Edit/Duplicate buttons for orders (added) =====
+    window.duplicateOrder = function(id){
+      var srcBtn = Array.prototype.slice.call(document.querySelectorAll('button')).find(function(b){ return b.textContent.trim()==='Відкрити' && (b.getAttribute('onclick')||'').indexOf('openOrderView('+id+')')>=0; });
+      var row = srcBtn ? srcBtn.closest('tr') : null;
+      var cells = row ? Array.prototype.slice.call(row.children) : [];
+      var txt = function(i){ return (cells[i] && cells[i].textContent || '').trim(); };
+      var cehiCell = cells[4];
+      var cehiList = cehiCell ? Array.prototype.slice.call(cehiCell.querySelectorAll('*')).map(function(e){return e.textContent.trim();}).filter(function(v,i,a){return v && a.indexOf(v)===i;}) : [];
+      if(!cehiList.length){ cehiList = txt(4).split('\n').map(function(s){return s.trim();}).filter(Boolean); }
+      var src = { client: txt(1), product: txt(2), qty: txt(5).replace(/[^0-9.]/g,'') || '1' };
+      openOrderModal();
+      var setSel = function(sel,val){ if(!sel||!val) return false; var o=Array.prototype.slice.call(sel.options).find(function(o){return o.value===val||o.textContent.trim()===val;}); if(o){ sel.value=o.value; sel.dispatchEvent(new Event('change',{bubbles:true})); return true; } return false; };
+      setTimeout(function(){
+        setSel(document.getElementById('o-client'), src.client);
+        setSel(document.getElementById('o-product'), src.product);
+        var qty = document.getElementById('o-qty');
+        if(qty){ qty.value=src.qty; qty.dispatchEvent(new Event('input',{bubbles:true})); }
+        var addBtn = Array.prototype.slice.call(document.querySelectorAll('button')).find(function(b){ return b.textContent.trim()==='+ Додати операцію'; });
+        var i=0;
+        var addNext = function(){
+          if(i>=cehiList.length) return;
+          if(addBtn) addBtn.click();
+          setTimeout(function(){
+            var cexSelects = Array.prototype.slice.call(document.querySelectorAll('select')).filter(function(s){ return Array.prototype.slice.call(s.options).some(function(o){return o.textContent.indexOf('Оберіть цех')>=0;}) && s.offsetParent!==null; });
+            var target = cexSelects[i];
+            if(target) setSel(target, cehiList[i]);
+            i++;
+            setTimeout(addNext, 50);
+          }, 50);
+        };
+        addNext();
+      }, 80);
+    };
+    window.injectOrderActionButtons = function(){
+      var openBtns = Array.prototype.slice.call(document.querySelectorAll('button')).filter(function(b){ return b.textContent.trim()==='Відкрити'; });
+      openBtns.forEach(function(openBtn){
+        var oc = openBtn.getAttribute('onclick')||'';
+        var m = oc.match(/openOrderView\((\d+)\)/);
+        if(!m) return;
+        var id = m[1];
+        var cell = openBtn.parentElement;
+        if(cell.querySelector('.js-edit-btn')) return;
+        var edit = document.createElement('button');
+        edit.className='btn btn-secondary btn-sm js-edit-btn';
+        edit.textContent='Редагувати';
+        edit.style.marginRight='6px';
+        edit.setAttribute('onclick','openOrderView('+id+')');
+        var dup = document.createElement('button');
+        dup.className='btn btn-secondary btn-sm js-dup-btn';
+        dup.textContent='Дублювати';
+        dup.style.marginRight='6px';
+        dup.setAttribute('onclick','duplicateOrder('+id+')');
+        cell.insertBefore(edit, openBtn);
+        cell.insertBefore(dup, openBtn);
+      });
+    };
+    if(!window._renderOrdersPatched && typeof renderOrders==='function'){
+      var _origRenderOrders = renderOrders;
+      renderOrders = function(){
+        var r = _origRenderOrders.apply(this, arguments);
+        setTimeout(function(){ try{ window.injectOrderActionButtons(); }catch(e){} }, 30);
+        return r;
+      };
+      window._renderOrdersPatched = true;
+    }
+
 </script>
 </body>
 </html>
