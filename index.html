@@ -562,7 +562,7 @@ function renderClientGrid(clients) {
       + (c.phone ? '<div class="ic-meta">📞 ' + c.phone + '</div>' : '')
       + (c.email ? '<div class="ic-meta">✉️ ' + c.email + '</div>' : '')
       + (c.address ? '<div class="ic-meta">📍 ' + c.address + '</div>' : '')
-      + '<div class="ic-actions"><button class="btn btn-secondary btn-sm" onclick="editClient(' + c.id + ')">✏️ Змінити</button><button class="btn btn-secondary btn-sm" onclick="deleteClient(' + c.id + ')">🗑️</button></div>'
+      + '<div class="ic-actions"><button class="btn btn-secondary btn-sm" onclick="editClient(' + c.id + ')">✏️</button><button class="btn btn-secondary btn-sm" onclick="deleteClient(' + c.id + ')">🗑️</button></div>'
       + '</div>';
   }).join('');
   return '<div class="card-grid">' + cards + '</div>';
@@ -664,7 +664,7 @@ function renderProductRows(products) {
 <td>${p.quantity} ${p.unit} <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${Math.min(100,(p.quantity/Math.max(p.min_qty*3,1))*100)}%;background:${p.quantity<=p.min_qty?'var(--danger)':'var(--accent)'}"></div></div></td>
 <td>${formatMoney(p.price)}</td>
 <td>${status}</td>
-<td><button class="btn btn-secondary btn-sm" onclick="editProduct(${p.id})">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteProduct(${p.id})">🗑️</button></td>
+<td><button class="btn btn-secondary btn-sm" onclick="editProduct('${p.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteProduct('${p.id}')">🗑️</button></td>
 </tr>`;
   }).join('') || '<tr><td colspan="7"><div class="empty-state"><div class="icon">📦</div><h3>Немає товарів</h3><p>Додайте першу позицію</p></div></td></tr>';
 }
@@ -678,7 +678,7 @@ function renderProductGrid(products) {
       + '<div class="ic-name">' + p.name + '</div>'
       + '<div class="ic-meta"><span class="badge badge-gray">' + p.category + '</span>' + status + '</div>'
       + '<div class="ic-meta">' + p.quantity + ' ' + p.unit + ' • ' + formatMoney(p.price) + '</div>'
-      + '<div class="ic-actions"><button class="btn btn-secondary btn-sm" onclick="editProduct(' + p.id + ')">✏️ Змінити</button><button class="btn btn-secondary btn-sm" onclick="deleteProduct(' + p.id + ')">🗑️</button></div>'
+      + '<div class="ic-actions"><button class="btn btn-secondary btn-sm" onclick="editProduct(\'' + p.id + '\')">✏️ Змінити</button><button class="btn btn-secondary btn-sm" onclick="deleteProduct(\'' + p.id + '\')">🗑️</button></div>'
       + '</div>';
   }).join('');
   return '<div class="card-grid">' + cards + '</div>';
