@@ -52,6 +52,7 @@ nav{flex:1;padding:12px 0;overflow-y:auto}
 /* Tables */
 .table-container{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:24px}
 .table-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+      .page-header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
 .table-header h3{font-size:15px;font-weight:600}
 .table-search{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .search-input{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px 12px;color:var(--text);font-size:13px;flex:1 1 140px;width:auto;min-width:0}
@@ -239,7 +240,7 @@ tbody tr:last-child td{border-bottom:none}
 </button>
 <div class="nav-section">Склад</div>
 <button class="nav-item" onclick="navigate('products')" id="nav-products">
-📦 Товари/матеріали
+📦 Товари
 </button>
 <button class="nav-item" onclick="navigate('incoming')" id="nav-incoming">
 ⬇️ Прихід товарів
