@@ -1982,6 +1982,46 @@ function closeModal(e) {
       };
       window._saveOrderEditPatched = true;
     }
+    // ===== Order search box (added) =====
+    window._orderSearch = window._orderSearch || '';
+    window.applyOrderSearch = function(){
+      var q = (window._orderSearch||'').trim().toLowerCase();
+      var tables = Array.prototype.slice.call(document.querySelectorAll('table'));
+      var table = tables.find(function(t){ var th=t.querySelector('thead'); return th && th.textContent.toLowerCase().indexOf('\u043d\u043e\u043c\u0435\u0440')>=0; }) || tables.find(function(t){ return t.querySelector('tbody'); });
+      if(!table) return;
+      var rows = Array.prototype.slice.call(table.querySelectorAll('tbody tr'));
+      rows.forEach(function(tr){
+        if(!q){ tr.style.display=''; return; }
+        tr.style.display = tr.textContent.toLowerCase().indexOf(q)>=0 ? '' : 'none';
+      });
+    };
+    window.injectOrderSearch = function(){
+      var selects = Array.prototype.slice.call(document.querySelectorAll('select')).filter(function(s){return s.offsetParent!==null;});
+      if(selects.length<2) return;
+      var bar = selects[0].parentElement;
+      while(bar && !bar.contains(selects[1])) bar = bar.parentElement;
+      if(!bar || !bar.parentElement) return;
+      var existing = bar.parentElement.querySelector('.js-order-search');
+      if(existing){ existing.value = window._orderSearch||''; return; }
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'form-input js-order-search';
+      input.placeholder = '\u{1f50d} \u041f\u043e\u0448\u0443\u043a \u043d\u0430\u0440\u044f\u0434\u0443 (\u043d\u043e\u043c\u0435\u0440, \u043a\u043e\u043d\u0442\u0440\u0430\u0433\u0435\u043d\u0442, \u0442\u043e\u0432\u0430\u0440, \u0446\u0435\u0445)...';
+      input.style.width = '100%';
+      input.style.marginBottom = '12px';
+      input.value = window._orderSearch||'';
+      input.addEventListener('input', function(){ window._orderSearch = input.value; window.applyOrderSearch(); });
+      bar.parentElement.insertBefore(input, bar);
+    };
+    if(!window._orderSearchRenderPatched && typeof renderOrders==='function'){
+      var _origRenderOrdersSearch = renderOrders;
+      renderOrders = function(){
+        var r = _origRenderOrdersSearch.apply(this, arguments);
+        setTimeout(function(){ try{ window.injectOrderSearch(); window.applyOrderSearch(); }catch(e){} }, 40);
+        return r;
+      };
+      window._orderSearchRenderPatched = true;
+    }
 
 
 </script>
