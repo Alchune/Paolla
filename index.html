@@ -678,7 +678,7 @@ function renderProductGrid(products) {
       + '<div class="ic-name">' + p.name + '</div>'
       + '<div class="ic-meta"><span class="badge badge-gray">' + p.category + '</span>' + status + '</div>'
       + '<div class="ic-meta">' + p.quantity + ' ' + p.unit + ' • ' + formatMoney(p.price) + '</div>'
-      + '<div class="ic-actions"><button class="btn btn-secondary btn-sm" onclick="editProduct(\'' + p.id + '\')">✏️ Змінити</button><button class="btn btn-secondary btn-sm" onclick="deleteProduct(\'' + p.id + '\')">🗑️</button></div>'
+      + '<div class="ic-actions"><button class="btn btn-secondary btn-sm" onclick="editProduct(\'' + p.id + '\')">✏️</button><button class="btn btn-secondary btn-sm" onclick="deleteProduct(\'' + p.id + '\')">🗑️</button></div>'
       + '</div>';
   }).join('');
   return '<div class="card-grid">' + cards + '</div>';
