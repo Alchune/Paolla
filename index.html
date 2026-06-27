@@ -2024,6 +2024,74 @@ function closeModal(e) {
     }
 
 
+
+
+    /* --- Operations filter override for Production page --- */
+    (function(){
+      if(window._renderProductionOpPatch) return; window._renderProductionOpPatch=true;
+      var RECV='\u041f\u0440\u0438\u0439\u043d\u044f\u0442\u0442\u044f \u043d\u0430 \u0441\u043a\u043b\u0430\u0434';
+      function currentStage(o){var ops=o.operations||[];for(var i=0;i<ops.length;i++){if(!ops[i].done)return ops[i].workshop;}return RECV;}
+      window.renderProduction = function(){
+        var orders = state.orders || [];
+        var opSet=[]; var seen={};
+        orders.forEach(function(o){ (o.operations||[]).forEach(function(op){ if(op.workshop && !seen[op.workshop]){ seen[op.workshop]=1; opSet.push(op.workshop);} }); });
+        if(!seen[RECV]){ opSet.push(RECV); seen[RECV]=1; }
+        var models = Array.from(new Set(orders.map(function(o){return o.product;}).filter(Boolean)));
+        var filterOp = window._prodFilterOp || '';
+        var filterModel = window._prodFilterModel || '';
+        var matchFn = function(o){ return (!filterOp || currentStage(o)===filterOp) && (!filterModel||o.product===filterModel); };
+        var active = orders.filter(function(o){ return !o.received && matchFn(o); });
+        var done = orders.filter(function(o){ return o.received && (!filterModel||o.product===filterModel); });
+        var opOpts = opSet.map(function(c){return '<option value="'+c+'" '+(filterOp===c?'selected':'')+'>'+c+'</option>';}).join('');
+        var modelOpts = models.map(function(m){return '<option value="'+m+'" '+(filterModel===m?'selected':'')+'>'+m+'</option>';}).join('');
+        var html = '<div class="page-header"><h2>\u2699\ufe0f \u0412\u0438\u0440\u043e\u0431\u043d\u0438\u0446\u0442\u0432\u043e</h2></div>';
+        html += '<div class="form-row" style="margin-bottom:12px;gap:8px;">';
+        html += '<select class="form-select" style="flex:1" onchange="window._prodFilterOp=this.value;renderProduction()"><option value="">\u2014 \u0412\u0441\u0456 \u043e\u043f\u0435\u0440\u0430\u0446\u0456\u0457 \u2014</option>'+opOpts+'</select>';
+        html += '<select class="form-select" style="flex:1" onchange="window._prodFilterModel=this.value;renderProduction()"><option value="">\u2014 \u0412\u0441\u0456 \u043c\u043e\u0434\u0435\u043b\u0456 \u2014</option>'+modelOpts+'</select>';
+        html += '</div>';
+        html += '<h3 style="margin:0 0 10px;color:var(--text)">\ud83d\udd35 \u0423 \u0432\u0438\u0440\u043e\u0431\u043d\u0438\u0446\u0442\u0432\u0456 ('+active.length+')</h3>';
+        if (active.length === 0) {
+          html += '<div style="color:var(--text2);margin-bottom:24px">\u041d\u0435\u043c\u0430\u0454 \u0430\u043a\u0442\u0438\u0432\u043d\u0438\u0445 \u043d\u0430\u0440\u044f\u0434\u0456\u0432</div>';
+        } else {
+          html += '<div style="display:grid;gap:10px;margin-bottom:24px">';
+          active.forEach(function(o){
+            var ops = o.operations || []; var total = ops.length;
+            var doneCnt = ops.filter(function(op){return op.done;}).length;
+            var allOpsDone = total > 0 && doneCnt === total;
+            var firstPending = -1;
+            for (var i=0;i<ops.length;i++){ if(!ops[i].done){ firstPending=i; break; } }
+            var opsHtml = ops.map(function(op, idx){
+              var st = op.done ? 'done' : (idx===firstPending ? 'active' : 'wait');
+              var cls = st==='done'?'badge-green':st==='active'?'badge-blue':'badge-gray';
+              var icon = st==='done'?'\u2705':st==='active'?'\u23f3':'\u23f8\ufe0f';
+              return '<span class="badge '+cls+'" style="margin:2px">'+icon+' '+op.workshop+'</span>';
+            }).join('');
+            var recvCls = allOpsDone ? 'badge-blue' : 'badge-gray';
+            var recvIcon = allOpsDone ? '\u23f3' : '\u23f8\ufe0f';
+            opsHtml += '<span class="badge '+recvCls+'" style="margin:2px">'+recvIcon+' '+RECV+'</span>';
+            var pct = total > 0 ? Math.round(doneCnt/total*100) : 0;
+            html += '<div class="card" style="padding:14px;cursor:pointer" onclick="openOrderView(\''+o.id+'\')">';
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
+            html += '<div style="font-weight:700;font-size:15px">'+o.number+' \u00b7 '+(o.product||'')+'</div>';
+            html += '<div style="color:var(--text2);font-size:13px">'+(o.quantity||1)+' \u0448\u0442 \u00b7 '+doneCnt+'/'+total+' \u0446\u0435\u0445\u0456\u0432</div>';
+            html += '</div>';
+            html += '<div style="height:6px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:8px"><div style="height:100%;width:'+pct+'%;background:var(--primary)"></div></div>';
+            html += '<div style="display:flex;flex-wrap:wrap;gap:2px">'+opsHtml+'</div>';
+            html += '</div>';
+          });
+          html += '</div>';
+        }
+        html += '<h3 style="margin:0 0 10px;color:var(--text)">\u2705 \u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u043e ('+done.length+')</h3>';
+        if (done.length === 0) {
+          html += '<div style="color:var(--text2)">\u041d\u0435\u043c\u0430\u0454 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u0438\u0445</div>';
+        } else {
+          html += '<table class="data-table"><thead><tr><th>\u041d\u0430\u0440\u044f\u0434</th><th>\u0422\u043e\u0432\u0430\u0440</th><th>\u041a-\u0441\u0442\u044c</th><th>\u041f\u0440\u0438\u0439\u043d\u044f\u0442\u043e</th></tr></thead><tbody>';
+          done.forEach(function(o){ html += '<tr style="cursor:pointer" onclick="openOrderView(\''+o.id+'\')"><td>'+o.number+'</td><td>'+(o.product||'')+'</td><td>'+(o.quantity||1)+'</td><td>'+(o.receivedDate||o.date||'')+'</td></tr>'; });
+          html += '</tbody></table>';
+        }
+        var c = document.getElementById('page-content'); if(c) c.innerHTML = html;
+      };
+    })();
 </script>
 </body>
 </html>
