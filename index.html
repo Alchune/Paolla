@@ -2127,5 +2127,82 @@ function closeModal(e) {
       })();
 </script>
 </script>
+<script>
+      /* UI: іконки для дій + клік по рядку (Наряди, Товари, Прихід/Видаток) */
+      (function(){
+              var EDIT='✏️', DUP='⧉', DEL='🗑️';
+              function iconify(btn, icon, title, danger){
+                        btn.textContent=icon;
+                        btn.title=title;
+                        btn.className='btn btn-sm'+(danger?' btn-danger':'')+' js-icon-btn';
+                        btn.style.cssText='margin:0 2px;padding:5px 8px;line-height:1;';
+              }
+              function makeClickable(container, runCode, actionEls){
+                        if(!container || container.dataset.rowClick) return;
+                        container.dataset.rowClick='1';
+                        container.style.cursor='pointer';
+                        container.addEventListener('click', function(ev){
+                                    for(var i=0;i<actionEls.length;i++){ if(actionEls[i] && actionEls[i].contains(ev.target)) return; }
+                                    if(ev.target.closest && ev.target.closest('button,a,input,select,textarea,label')) return;
+                                    try { (0,eval)(runCode); } catch(e){ console.error(e); }
+                        });
+              }
+              function enhanceOrders(){
+                        Array.prototype.slice.call(document.querySelectorAll('button')).forEach(function(b){
+                                    var m=(b.getAttribute('onclick')||'').match(/^openOrderView\((\d+)\)/); if(!m) return;
+                                    var cell=b.parentElement; if(cell && !cell.querySelector('button[onclick^="deleteOrder"]')){
+                                                  var del=document.createElement('button'); del.setAttribute('onclick','deleteOrder('+m[1]+')'); cell.appendChild(del);
+                                    }
+                        });
+                        Array.prototype.slice.call(document.querySelectorAll('button')).forEach(function(b){
+                                    var oc=b.getAttribute('onclick')||'';
+                                    if(/^editOrder\(/.test(oc)) iconify(b,EDIT,'Редагувати',false);
+                                    else if(/^duplicateOrder\(/.test(oc)) iconify(b,DUP,'Дублювати',false);
+                                    else if(/^deleteOrder\(/.test(oc)) iconify(b,DEL,'Видалити',true);
+                        });
+                        Array.prototype.slice.call(document.querySelectorAll('button')).forEach(function(b){
+                                    var m=(b.getAttribute('onclick')||'').match(/^openOrderView\((\d+)\)/); if(!m) return;
+                                    var tr=b.closest('tr'); var cell=b.closest('td');
+                                    if(cell){ cell.style.whiteSpace='nowrap'; cell.style.textAlign='right'; cell.style.width='1%'; }
+                                    if(tr) makeClickable(tr, 'openOrderView('+m[1]+')', [cell]);
+                                    b.remove();
+                        });
+              }
+              function enhanceByEdit(editRe, getContainer){
+                        Array.prototype.slice.call(document.querySelectorAll('button')).forEach(function(b){
+                                    var oc=b.getAttribute('onclick')||'';
+                                    if(editRe.test(oc)){
+                                                  if(b.textContent.trim()!==EDIT) iconify(b,EDIT,'Редагувати',false);
+                                                  var container=getContainer(b);
+                                                  var cell=b.closest('td');
+                                                  makeClickable(container, oc, [cell || b.parentElement]);
+                                    }
+                        });
+              }
+              function enhanceProducts(){
+                        enhanceByEdit(/^editProduct\(/, function(b){ return b.closest('tr') || b.closest('.item-card'); });
+                        Array.prototype.slice.call(document.querySelectorAll('button[onclick^="deleteProduct"]')).forEach(function(b){ if(b.textContent.trim()!==DEL) iconify(b,DEL,'Видалити',true); });
+              }
+              function enhanceOperations(){
+                        enhanceByEdit(/^editOperation\(/, function(b){ return b.closest('tr'); });
+                        Array.prototype.slice.call(document.querySelectorAll('button[onclick^="deleteOperation"]')).forEach(function(b){ if(b.textContent.trim()!==DEL) iconify(b,DEL,'Видалити',true); });
+              }
+              function enhanceAll(){
+                        try{ enhanceOrders(); }catch(e){}
+                        try{ enhanceProducts(); }catch(e){}
+                        try{ enhanceOperations(); }catch(e){}
+              }
+              window.__enhanceAll = enhanceAll;
+              var origInject = window.injectOrderActionButtons;
+              window.injectOrderActionButtons = function(){ if(typeof origInject==='function') origInject.apply(this,arguments); enhanceAll(); };
+              function start(){
+                        var pc = document.getElementById('page-content') || document.body;
+                        var obs = new MutationObserver(function(){ clearTimeout(window.__enhT); window.__enhT=setTimeout(enhanceAll, 30); });
+                        obs.observe(pc, {childList:true, subtree:true});
+                        enhanceAll();
+              }
+              if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', start); else start();
+      })();
+</script>
 </body>
 </html>
