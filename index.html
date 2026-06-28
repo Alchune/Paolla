@@ -2093,5 +2093,39 @@ function closeModal(e) {
       };
     })();
 </script>
+<script>
+      /* Кнопка "Видалити" для нарядів */
+      (function(){
+            window.deleteOrder = async function(id){
+                  if(!confirm('Видалити цей наряд?')) return;
+                  try { state.orders = (state.orders||[]).filter(function(o){ return String(o.id) !== String(id); });
+                       if(typeof saveSnapshot==='function') await saveSnapshot();
+                       if(typeof renderOrders==='function') renderOrders();
+                       if(typeof showNotif==='function') showNotif('Наряд видалено','success');
+                      } catch(e){ if(typeof showNotif==='function') showNotif('Помилка видалення','error'); console.error(e); }
+            };
+            var origInject = window.injectOrderActionButtons;
+            window.injectOrderActionButtons = function(){
+                  if(typeof origInject==='function') origInject.apply(this, arguments);
+                  var openBtns = Array.prototype.slice.call(document.querySelectorAll('button')).filter(function(b){ return b.textContent.trim()==='Відкрити'; });
+                  openBtns.forEach(function(openBtn){
+                        var oc = openBtn.getAttribute('onclick')||'';
+                        var m = oc.match(/openOrderView\((\d+)\)/);
+                        if(!m) return;
+                        var id = m[1];
+                        var cell = openBtn.parentElement;
+                        if(!cell || cell.querySelector('.js-del-btn')) return;
+                        var del = document.createElement('button');
+                        del.className='btn btn-danger btn-sm js-del-btn';
+                        del.textContent='Видалити';
+                        del.style.marginTop='6px';
+                        del.setAttribute('onclick','deleteOrder('+id+')');
+                        cell.appendChild(del);
+                  });
+            };
+            if(typeof window.injectOrderActionButtons==='function'){ try { window.injectOrderActionButtons(); } catch(e){} }
+      })();
+</script>
+</script>
 </body>
 </html>
