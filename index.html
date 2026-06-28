@@ -1018,7 +1018,7 @@ function openOperationModal(type, editOp) {
   }
   btnSave.addEventListener('click', function() { saveOperation(type, editOp ? editOp.id : null); });
 
-  footer.appendChild(btnCancel);
+  var btnPrint = document.createElement('button'); btnPrint.type = 'button'; btnPrint.className = 'btn btn-secondary'; btnPrint.style.marginRight = 'auto'; btnPrint.textContent = '\uD83D\uDDA8 \u0414\u0440\u0443\u043A'; btnPrint.addEventListener('click', function() { printOperation(editOp); }); footer.appendChild(btnPrint); footer.appendChild(btnCancel);
   footer.appendChild(btnSave);
 }
 
@@ -1840,7 +1840,7 @@ function showNotif(text, type = 'success') {
   setTimeout(() => n.style.display = 'none', 3500);
 }
 
-function closeModal(e) {
+function printOperation(op) { var title = op ? (op.type === 'income' ? '\u041F\u0440\u0438\u0445\u0456\u0434 \u2116' + op.id : '\u0412\u0438\u0434\u0430\u0442\u043E\u043A \u2116' + op.id) : '\u041E\u043F\u0435\u0440\u0430\u0446\u0456\u044F'; var w = window.open('', '_blank', 'width=700,height=600'); var items = op && op.items ? op.items.map(function(it) { return '<tr><td style="padding:6px 10px;border-bottom:1px solid #eee">' + (it.product_name || it.product || '') + '</td><td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:center">' + (it.qty || it.quantity || '') + ' ' + (it.unit || '') + '</td><td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right">' + (it.price || '') + '</td></tr>'; }).join('') : ''; w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + title + '</title><style>body{font-family:Arial,sans-serif;padding:24px}table{width:100%;border-collapse:collapse}th{background:#f0f4f8;padding:8px 10px;text-align:left}@media print{button{display:none}}</style></head><body><h2>' + title + '</h2><p>\u041A\u043E\u043D\u0442\u0440\u0430\u0433\u0435\u043D\u0442: <b>' + (op && op.counterparty || '') + '</b></p><p>\u0414\u0430\u0442\u0430: <b>' + (op && op.date || '') + '</b></p>' + (op && op.notes ? '<p>\u041F\u0440\u0438\u043C\u0456\u0442\u043A\u0438: ' + op.notes + '</p>' : '') + '<table><thead><tr><th>\u0422\u043E\u0432\u0430\u0440</th><th>\u041A\u0456\u043B\u044C\u043A\u0456\u0441\u0442\u044C</th><th>\u0426\u0456\u043D\u0430</th></tr></thead><tbody>' + items + '</tbody></table><br><button onclick="window.print()">\uD83D\uDDA8 \u041D\u0430\u0434\u0440\u0443\u043A\u0443\u0432\u0430\u0442\u0438</button></body></html>'); w.document.close(); }function closeModal(e) {
   if (!e || e.target === document.getElementById('modal-overlay')) document.getElementById('modal-overlay').style.display = 'none';
 }
 
