@@ -2197,10 +2197,9 @@ function closeModal(e) {
                     var tables = document.querySelectorAll('#page-content table');
                     Array.prototype.slice.call(tables).forEach(function(t){
                               var p = t.parentElement;
-                              if(p && p.classList.contains('js-table-scroll')) return;
-                              var wrap = document.createElement('div');
+setInterval(sched,700);                              var wrap = document.createElement('div');
                               wrap.className='js-table-scroll';
-                              wrap.style.cssText='overflow-x:auto;max-width:100%;';
+            setInterval(function(){try{av();}catch(e){}},700);                  wrap.style.cssText='overflow-x:auto;max-width:100%;';
                               t.parentNode.insertBefore(wrap, t);
                               wrap.appendChild(t);
                     });
