@@ -148,7 +148,7 @@ tbody tr:last-child td{border-bottom:none}
 @keyframes spin{to{transform:rotate(360deg)}}
 /* Responsive */
 @media(max-width:768px){.sidebar{width:200px}.main{margin-left:200px}.stats-grid{grid-template-columns:1fr 1fr}.form-row{grid-template-columns:1fr}}
-@media(max-width:600px){.sidebar{transform:translateX(-100%);transition:transform 0.3s}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.menu-toggle{display:inline-flex;align-items:center}.topbar{padding:0 12px}/* mobile-fit */.modal{width:calc(100vw - 16px);max-width:calc(100vw - 16px)}.modal-body{padding:16px;overflow-x:hidden;overflow-y:auto;flex:1 1 auto;min-height:0}th,td{padding:8px 6px;font-size:13px}.data-table{display:block;width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}.data-table thead,.data-table tbody,.data-table tr{display:table;width:100%;table-layout:fixed}.data-table .item-product,.data-table .item-qty,.data-table .item-price{min-width:0}.form-input,.form-select{font-size:13px;padding:8px 8px}.form-row{grid-template-columns:1fr}/* dash-fit */.content>div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}.table-container{overflow-x:auto;-webkit-overflow-scrolling:touch}/* empty-fit */.table-header{flex-wrap:wrap;gap:8px}.table-container table{table-layout:fixed;width:100%}.table-container th,.table-container td{padding:8px 6px;white-space:normal;word-break:break-word;overflow-wrap:anywhere}}}
+@media(max-width:600px){.sidebar{transform:translateX(-100%);transition:transform 0.3s}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.menu-toggle{display:inline-flex;align-items:center}.topbar{padding:0 12px}/* mobile-fit */.modal{width:calc(100vw - 16px);max-width:calc(100vw - 16px)}.modal-body{padding:16px;overflow-x:hidden;overflow-y:auto;flex:1 1 auto;min-height:0}th,td{padding:8px 6px;font-size:13px}.data-table{display:block;width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}.data-table thead,.data-table tbody,.data-table tr{display:table;width:100%;table-layout:fixed}.data-table .item-product,.data-table .item-qty,.data-table .item-price{min-width:0}.form-input,.form-select{font-size:13px;padding:8px 8px}.form-row{grid-template-columns:1fr}/* dash-fit */.content>div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}.table-container{overflow-x:auto;-webkit-overflow-scrolling:touch}/* empty-fit */.table-header{flex-wrap:wrap;gap:8px}.table-container table{table-layout:fixed;width:100%}.table-container th,.table-container td{padding:8px 6px;white-space:normal;word-break:break-word;overflow-wrap:anywhere}}
   /* ===== Apple Liquid Glass - Light Theme ===== */ :root{--bg:#eef1f7;--card:rgba(255,255,255,0.55);--border:rgba(255,255,255,0.7);--text:#1c2330;--text2:#6b7488;--accent:#0a84ff;--accent2:#5e5ce6;--sidebar:rgba(255,255,255,0.6);} body{background:#eef1f7!important;color:#1c2330!important;position:relative;overflow-x:hidden;} body::before{content:"";position:fixed;inset:-20%;z-index:-2;background:radial-gradient(40% 50% at 18% 22%,rgba(120,90,255,0.35),transparent 60%),radial-gradient(45% 55% at 82% 18%,rgba(10,132,255,0.32),transparent 60%),radial-gradient(50% 55% at 75% 85%,rgba(255,120,180,0.30),transparent 62%),radial-gradient(45% 50% at 12% 88%,rgba(0,210,180,0.28),transparent 60%);filter:saturate(1.1);animation:glassFloat 22s ease-in-out infinite alternate;} body::after{content:"";position:fixed;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(255,255,255,0.55),rgba(255,255,255,0.30));} @keyframes glassFloat{0%{transform:translate3d(0,0,0) scale(1);}50%{transform:translate3d(2%,-1.5%,0) scale(1.05);}100%{transform:translate3d(-2%,1.5%,0) scale(1.04);}} .sidebar,.stat-card,.table-container,.modal,.auth-card,.chart-container,.item-card,.notification,.topbar{background:linear-gradient(160deg,rgba(255,255,255,0.75),rgba(255,255,255,0.45))!important;-webkit-backdrop-filter:blur(28px) saturate(180%);backdrop-filter:blur(28px) saturate(180%);border:1px solid rgba(255,255,255,0.8)!important;box-shadow:0 8px 32px rgba(80,90,130,0.18),inset 0 1px 0 rgba(255,255,255,0.9)!important;color:#1c2330!important;} .sidebar{border-radius:0 26px 26px 0!important;border-left:none!important;} .topbar{border-radius:20px!important;margin:8px 10px 0!important;} .stat-card,.table-container,.item-card,.chart-container,.auth-card,.modal{border-radius:22px!important;position:relative;overflow:hidden;display:flex;flex-direction:column;} .stat-card::before,.table-container::before,.modal::before{content:"";position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(180deg,rgba(255,255,255,0.6),transparent);pointer-events:none;} .stat-card{transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s;} .stat-card:hover{transform:translateY(-4px);box-shadow:0 16px 44px rgba(80,90,130,0.28),inset 0 1px 0 rgba(255,255,255,1)!important;} .nav-item{border-radius:14px!important;transition:all .25s ease;color:#3a4356!important;} .nav-item:hover{background:rgba(255,255,255,0.6)!important;} .nav-item.active{background:linear-gradient(135deg,rgba(10,132,255,0.9),rgba(120,90,255,0.85))!important;border:1px solid rgba(255,255,255,0.6)!important;box-shadow:0 6px 18px rgba(10,132,255,0.35),inset 0 1px 0 rgba(255,255,255,0.6)!important;color:#fff!important;} .btn{border-radius:14px!important;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);transition:all .25s ease;border:1px solid rgba(255,255,255,0.7)!important;} .btn-primary{background:linear-gradient(135deg,rgba(10,132,255,0.95),rgba(94,92,230,0.95))!important;color:#fff!important;box-shadow:0 6px 18px rgba(10,132,255,0.35),inset 0 1px 0 rgba(255,255,255,0.6)!important;} .btn-primary:hover{transform:translateY(-2px);filter:brightness(1.05);} .btn-secondary{background:rgba(255,255,255,0.6)!important;color:#1c2330!important;box-shadow:inset 0 1px 0 rgba(255,255,255,0.9)!important;} .btn-secondary:hover{background:rgba(255,255,255,0.85)!important;} .search-input,.form-input,.form-select{background:rgba(255,255,255,0.6)!important;border:1px solid rgba(255,255,255,0.85)!important;border-radius:14px!important;color:#1c2330!important;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);} .search-input:focus,.form-input:focus,.form-select:focus{border-color:rgba(10,132,255,0.7)!important;box-shadow:0 0 0 3px rgba(10,132,255,0.2)!important;} thead th{background:rgba(255,255,255,0.45)!important;color:#4a5366!important;backdrop-filter:blur(8px);} tbody td{color:#1c2330!important;} tbody tr:hover{background:rgba(255,255,255,0.5)!important;} .badge{-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.6)!important;border-radius:999px!important;} .avatar,.logo-icon{box-shadow:0 6px 16px rgba(80,90,130,0.25),inset 0 1px 0 rgba(255,255,255,0.7)!important;border-radius:14px!important;} .modal-overlay{background:rgba(180,190,210,0.35)!important;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);} .logo h1,.page-title,.table-header h3,.stat-card .value{color:#1c2330!important;} .logo span,.nav-section,.stat-card .label,.stat-card .sub{color:#6b7488!important;} ::-webkit-scrollbar-thumb{background:rgba(120,130,160,0.35);border-radius:10px;} ::-webkit-scrollbar{width:10px;height:10px;} ::-webkit-scrollbar-track{background:transparent;} /* Apple-style inset table separators */ .table-container td,.table-container th,tbody td,td,thead th{border-bottom:none!important} tbody tr{background-image:linear-gradient(to right,transparent 16px,rgba(60,60,67,0.13) 16px,rgba(60,60,67,0.13) calc(100% - 16px),transparent calc(100% - 16px))!important;background-repeat:no-repeat!important;background-position:bottom left!important;background-size:100% 1px!important} tbody tr:last-child{background-image:none!important} thead tr{background-image:linear-gradient(to right,transparent 16px,rgba(60,60,67,0.16) 16px,rgba(60,60,67,0.16) calc(100% - 16px),transparent calc(100% - 16px))!important;background-repeat:no-repeat!important;background-position:bottom left!important;background-size:100% 1px!important} .table-header{border-bottom:none!important;background-image:linear-gradient(to right,transparent 16px,rgba(60,60,67,0.16) 16px,rgba(60,60,67,0.16) calc(100% - 16px),transparent calc(100% - 16px))!important;background-repeat:no-repeat!important;background-position:bottom left!important;background-size:100% 1px!important}
 
 /* ===== Кольорова гама (голубий + червоний) ===== */
@@ -341,8 +341,10 @@ let state = {
 
 // ====== AUTH ======
 function switchAuthTab(tab) {
-  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
+  const tabs = document.querySelectorAll('.auth-tab');
+  tabs.forEach(t => t.classList.remove('active'));
+  const idx = tab === 'login' ? 0 : 1;
+  if (tabs[idx]) tabs[idx].classList.add('active');
   document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
   document.getElementById('register-form').style.display = tab === 'register' ? 'block' : 'none';
 }
@@ -368,7 +370,7 @@ async function registerUser() {
 
 async function logoutUser() {
   await sb.auth.signOut();
-  state = { user: null, warehouse: null, products: [], operations: [], orders: [], recipes: [], production: [], members: [], currentPage: 'dashboard' };
+  state = { user: null, warehouse: null, products: [], operations: [], orders: [], recipes: [], production: [], members: [], currentPage: 'dashboard', clients: [], workshops: [], clientView: state.clientView, productView: state.productView, productionView: state.productionView };
   document.getElementById('auth-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
 }
@@ -404,7 +406,8 @@ async function loadWarehouse() {
       if (nameEl) nameEl.textContent = (wh && wh.name) || ('Склад ' + savedId.substring(0,8));
       return;
     }
-    const { data: member } = await sb.from('warehouse_members').select('*').eq('user_id', state.user.id).single();
+    const { data: memberRows } = await sb.from('warehouse_members').select('*').eq('user_id', state.user.id).order('created_at', { ascending: true }).limit(1);
+    const member = memberRows && memberRows[0];
     if (member) {
       const { data: wh } = await sb.from('warehouses').select('*').eq('id', member.warehouse_id).single();
       state.warehouse = wh;
@@ -494,15 +497,12 @@ function navigate(page) {
   if (navEl) navEl.classList.add('active');
   const titles = { dashboard: 'Дашборд', products: 'Товари', incoming: 'Прихід товарів', outgoing: 'Видаток товарів', inventory: 'Залишки', orders: 'Наряди', clients: 'Контрагенти', recipes: 'Рецепти', production: 'Виробництво', reports: 'Звіти та статистика', warehouse: 'Склади', team: 'Команда', profile: 'Профіль' };
   document.getElementById('page-title').textContent = titles[page] || page;
-  const renderers = { dashboard: renderDashboard, products: renderProducts, incoming: renderIncoming, outgoing: renderOutgoing, inventory: renderInventory, orders: renderOrders, clients: renderClients, recipes: renderRecipes, production: renderProduction, reports: renderReports, warehouse: renderWarehouse, team: renderTeam };
-  if (renderers[page]) renderers[page]();
+  rerenderCurrentPage();
 }
 // ====== PAGES ======
 function renderDashboard() {
   const low = state.products.filter(p => p.quantity <= p.min_qty).length;
-  const total_val = state.products.reduce((s,p) => s + p.quantity * p.price, 0);
   const active_orders = state.orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled').length;
-  const today_ops = state.operations.filter(o => o.date === new Date().toISOString().split('T')[0]).length;
   document.getElementById('page-content').innerHTML = `
 <div class="stats-grid">
 <div class="stat-card green"><div class="label">Товарів на складі</div><div class="value">${state.products.length}</div><div class="sub">позицій</div></div>
@@ -527,7 +527,7 @@ ${state.orders.filter(o=>o.status!=='completed').slice(0,5).map(o => `<tr><td>${
 ${state.operations.slice(-5).reverse().map(op => `
 <div class="timeline-item">
 <div class="timeline-dot ${op.type==='incoming'?'green':'blue'}"></div>
-<div class="timeline-info"><div class="timeline-title">${op.type==='incoming'?'⬇️ Прихід':'⬆️ Видаток'}: ${op.product_name}</div><div class="timeline-sub">${op.quantity} • ${op.notes||''}</div></div>
+<div class="timeline-info"><div class="timeline-title">${op.type==='incoming'?'⬇️ Прихід':'⬆️ Видаток'}: ${opItems(op).map(it=>it.product_name).filter(Boolean).join(', ') || op.counterparty || '—'}</div><div class="timeline-sub">${opItems(op).map(it=>it.quantity).filter(Boolean).join(' + ') || ''} ${op.notes ? '• ' + op.notes : ''}</div></div>
 <div class="timeline-time">${op.date}</div>
 </div>`).join('') || '<div style="padding:20px;color:var(--text2);text-align:center">Немає операцій</div>'}
 </div></div>`;
@@ -626,8 +626,8 @@ async function saveClient(id) {
     note: document.getElementById('c-note').value
   };
   if (!c.name) return showNotif('Введіть назву контрагента', 'error');
-  if (id) {
-    const idx = state.clients.findIndex(x => x.id === id);
+  const idx = id ? state.clients.findIndex(x => String(x.id) === String(id)) : -1;
+  if (idx >= 0) {
     state.clients[idx] = { ...state.clients[idx], ...c };
   } else {
     c.id = Date.now();
@@ -691,7 +691,7 @@ function renderProductRows(products) {
 <td>${status}</td>
 <td><button class="btn btn-secondary btn-sm" onclick="editProduct('${p.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteProduct('${p.id}')">🗑️</button></td>
 </tr>`;
-  }).join('') || '<tr><td colspan="7"><div class="empty-state"><div class="icon">📦</div><h3>Немає товарів</h3><p>Додайте першу позицію</p></div></td></tr>';
+  }).join('') || '<tr><td colspan="6"><div class="empty-state"><div class="icon">📦</div><h3>Немає товарів</h3><p>Додайте першу позицію</p></div></td></tr>';
 }
 
 function renderProductGrid(products) {
@@ -727,7 +727,7 @@ function openProductGallery(id) {
 
 function openProductModal(id) {
   window.__editingProductId = id || null;
-  const p = id ? state.products.find(x => x.id === id) : {};
+  const p = id ? (state.products.find(x => String(x.id) === String(id)) || {}) : {};
   document.getElementById('modal-title').textContent = id ? 'Редагувати товар' : 'Новий товар';
   document.getElementById('modal-body').innerHTML = `
 <div class="form-row">
@@ -831,8 +831,8 @@ async function saveProduct(id) {
     images: (function(){ var e=document.getElementById('p-images'); if(!e) return []; try{ var a=JSON.parse(e.value||'[]'); return Array.isArray(a)?a:[]; }catch(_){ return []; } })()
   };
   if (!p.name) return showNotif('Введіть назву товару', 'error');
-  if (id) {
-    const idx = state.products.findIndex(x => x.id === id);
+  const idx = id ? state.products.findIndex(x => String(x.id) === String(id)) : -1;
+  if (idx >= 0) {
     state.products[idx] = { ...state.products[idx], ...p };
   } else {
     p.id = 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
@@ -846,10 +846,20 @@ async function saveProduct(id) {
 
 async function deleteProduct(id) {
   if (!confirm('Видалити цей товар?')) return;
-  state.products = state.products.filter(p => p.id !== id);
+  state.products = state.products.filter(p => String(p.id) !== String(id));
   await saveSnapshot();
   renderProducts();
   showNotif('Товар видалено', 'success');
+}
+
+function opItems(o) {
+  if (o.items && o.items.length) return o.items;
+  if (o.product_name) return [{product_id: o.product_id, product_name: o.product_name, quantity: o.quantity, price: o.price}];
+  return [];
+}
+
+function opTotal(o) {
+  return opItems(o).reduce(function(s, it) { return s + (Number(it.quantity) || 0) * (Number(it.price) || 0); }, 0);
 }
 
 function renderIncoming() { renderOperation('incoming'); }
@@ -868,11 +878,7 @@ function renderOperation(type) {
     html += '<tr><td colspan="4"><div class="empty-state"><div class="icon">' + icon + '</div><h3>Немає операцій</h3><p>Додайте першу операцію</p></div></td></tr>';
   } else {
     ops.slice().reverse().forEach(function(o) {
-      var items = o.items;
-      if (!items && o.product_name) {
-        items = [{product_id: o.product_id, product_name: o.product_name, quantity: o.quantity, price: o.price}];
-      }
-      items = items || [];
+      var items = opItems(o);
       var totalAmt = 0;
       var itemsSummary = items.map(function(it) {
         totalAmt += (Number(it.quantity) || 0) * (Number(it.price) || 0);
@@ -880,6 +886,7 @@ function renderOperation(type) {
       }).join('; ');
       var totalStr = totalAmt > 0 ? totalAmt.toFixed(2) : '—';
       var counterparty = o.counterparty || '—';
+      if (o.status === 'reserved') counterparty += ' <span class="badge badge-yellow">Резерв</span>';
       html += '<tr>';
       html += '<td>' + (o.date || '—') + '</td>';
       html += '<td>' + counterparty + '</td>';
@@ -1018,10 +1025,16 @@ function openOperationModal(type, editOp) {
   }
   btnSave.addEventListener('click', function() { saveOperation(type, editOp ? editOp.id : null); });
 
-  var btnPrint = document.createElement('button'); btnPrint.type = 'button'; btnPrint.className = 'btn btn-secondary'; btnPrint.style.marginRight = 'auto'; btnPrint.textContent = '\uD83D\uDDA8 \u0414\u0440\u0443\u043A'; btnPrint.addEventListener('click', function() { printOperation(editOp); }); footer.appendChild(btnPrint); if (!isIncoming) { var btnReserve = document.createElement('button'); btnReserve.type = 'button'; btnReserve.className = 'btn btn-warning'; btnReserve.textContent = '\u0417\u0430\u0440\u0435\u0437\u0435\u0440\u0432\u0443\u0432\u0430\u0442\u0438'; btnReserve.addEventListener('click', function() { saveReservation(editOp ? editOp.id : null); }); footer.appendChild(btnReserve); } footer.appendChild(btnCancel);
+  if (editOp) { var btnPrint = document.createElement('button'); btnPrint.type = 'button'; btnPrint.className = 'btn btn-secondary'; btnPrint.style.marginRight = 'auto'; btnPrint.textContent = '\uD83D\uDDA8 \u0414\u0440\u0443\u043A'; btnPrint.addEventListener('click', function() { printOperation(editOp); }); footer.appendChild(btnPrint); } if (!isIncoming) { var btnReserve = document.createElement('button'); btnReserve.type = 'button'; btnReserve.className = 'btn btn-warning'; btnReserve.textContent = '\u0417\u0430\u0440\u0435\u0437\u0435\u0440\u0432\u0443\u0432\u0430\u0442\u0438'; btnReserve.addEventListener('click', function() { saveReservation(editOp ? editOp.id : null); }); footer.appendChild(btnReserve); } footer.appendChild(btnCancel);
   footer.appendChild(btnSave);
 }
 
+
+function editOperation(id, type) {
+  var op = state.operations.find(function(o) { return String(o.id) === String(id); });
+  if (!op) { showNotif('Операцію не знайдено', 'error'); return; }
+  openOperationModal(type || op.type, op);
+}
 
 async function saveOperation(type, editId) {
   var counterpartyEl = document.getElementById('op-counterparty');
@@ -1067,16 +1080,20 @@ async function saveOperation(type, editId) {
   });
 
   if (editId != null) {
-    var existing = state.operations.find(function(o) { return o.id === editId; });
+    var existing = state.operations.find(function(o) { return String(o.id) === String(editId); });
     if (existing) {
-      var oldItems = existing.items || [];
-      oldItems.forEach(function(it) {
-        var prod = state.products.find(function(p) { return String(p.id) === String(it.product_id); });
-        if (prod) {
-          if (existing.type === 'incoming') { prod.quantity = Math.max(0, (Number(prod.quantity) || 0) - Number(it.quantity)); }
-          else { prod.quantity = (Number(prod.quantity) || 0) + Number(it.quantity); }
-        }
-      });
+      if (existing.status !== 'reserved') {
+        var oldItems = existing.items || [];
+        oldItems.forEach(function(it) {
+          var prod = state.products.find(function(p) { return String(p.id) === String(it.product_id); });
+          if (prod) {
+            if (existing.type === 'incoming') { prod.quantity = Math.max(0, (Number(prod.quantity) || 0) - Number(it.quantity)); }
+            else { prod.quantity = (Number(prod.quantity) || 0) + Number(it.quantity); }
+          }
+        });
+      } else {
+        delete existing.status;
+      }
       existing.counterparty = counterparty;
       existing.date = date;
       existing.notes = notes;
@@ -1097,19 +1114,14 @@ async function saveOperation(type, editId) {
 }
 
 
-function printOperation(id, type) { var op = state.operations.find(function(o){ return o.id === id; }); if (!op) { showNotif('Документ не знайдено', 'error'); return; } var isIncoming = (type === 'incoming') || (op.type === 'incoming'); var docTitle = isIncoming ? 'Прихід товарів' : 'Видаток товарів'; var whName = (state.warehouse && state.warehouse.name) ? state.warehouse.name : ''; var items = op.items || []; if ((!items || !items.length) && op.product_name) { items = [{ product_name: op.product_name, quantity: op.quantity, price: op.price }]; } var totalAmt = 0; var rows = items.map(function(it){ var q = Number(it.quantity) || 0; var p = Number(it.price) || 0; var sum = q * p; totalAmt += sum; return '<tr><td>' + (it.product_name || '') + '</td><td style="text-align:right">' + q + '</td><td style="text-align:right">' + (p ? p.toFixed(2) : '—') + '</td><td style="text-align:right">' + (sum ? sum.toFixed(2) : '—') + '</td></tr>'; }).join(''); var totalStr = totalAmt > 0 ? totalAmt.toFixed(2) : '—'; var w = window.open('', '_blank'); if (!w) { showNotif('Дозвольте спливаючі вікна для друку', 'error'); return; } w.document.write('<!DOCTYPE html><html lang="uk"><head><meta charset="UTF-8"><title>' + docTitle + '</title><style>body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;padding:32px;color:#111}h1{font-size:22px;margin:0 0 4px}.meta{color:#555;margin-bottom:20px;font-size:14px}.meta div{margin:2px 0}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #ccc;padding:8px 10px;font-size:14px}th{background:#f3f4f6;text-align:left}tfoot td{font-weight:700}.brand{border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:16px}.brand-name{font-size:20px;font-weight:700}.brand-wh{color:#555;font-size:13px;margin-top:2px}.notes{margin-top:20px;padding:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;font-size:14px;white-space:pre-wrap}@media print{body{padding:0}}</style></head><body><div class="brand"><div class="brand-name">Paolla</div>' + (whName ? '<div class="brand-wh">Склад: ' + whName + '</div>' : '') + '</div><h1>' + docTitle + '</h1><div class="meta"><div><b>Дата:</b> ' + (op.date || '') + '</div><div><b>Контрагент:</b> ' + (op.counterparty || '—') + '</div></div><table><thead><tr><th>Товар</th><th style="text-align:right">Кількість</th><th style="text-align:right">Ціна</th><th style="text-align:right">Сума</th></tr></thead><tbody>' + rows + '</tbody><tfoot><tr><td colspan="3" style="text-align:right">Разом:</td><td style="text-align:right">' + totalStr + '</td></tr></tfoot></table>' + (op.notes ? '<div class="notes"><b>Примітки:</b><br>' + op.notes + '</div>' : '') + '</body></html>'); w.document.close(); w.focus(); setTimeout(function(){ w.print(); }, 300); }
+function printOperation(idOrOp, type) { var op = (idOrOp && typeof idOrOp === 'object') ? idOrOp : state.operations.find(function(o){ return String(o.id) === String(idOrOp); }); if (!op) { showNotif('Документ не знайдено', 'error'); return; } var isIncoming = (type === 'incoming') || (op.type === 'incoming'); var docTitle = isIncoming ? 'Прихід товарів' : 'Видаток товарів'; var whName = (state.warehouse && state.warehouse.name) ? state.warehouse.name : ''; var items = opItems(op); var totalAmt = 0; var rows = items.map(function(it){ var q = Number(it.quantity) || 0; var p = Number(it.price) || 0; var sum = q * p; totalAmt += sum; return '<tr><td>' + (it.product_name || '') + '</td><td style="text-align:right">' + q + '</td><td style="text-align:right">' + (p ? p.toFixed(2) : '—') + '</td><td style="text-align:right">' + (sum ? sum.toFixed(2) : '—') + '</td></tr>'; }).join(''); var totalStr = totalAmt > 0 ? totalAmt.toFixed(2) : '—'; var w = window.open('', '_blank'); if (!w) { showNotif('Дозвольте спливаючі вікна для друку', 'error'); return; } w.document.write('<!DOCTYPE html><html lang="uk"><head><meta charset="UTF-8"><title>' + docTitle + '</title><style>body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;padding:32px;color:#111}h1{font-size:22px;margin:0 0 4px}.meta{color:#555;margin-bottom:20px;font-size:14px}.meta div{margin:2px 0}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #ccc;padding:8px 10px;font-size:14px}th{background:#f3f4f6;text-align:left}tfoot td{font-weight:700}.brand{border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:16px}.brand-name{font-size:20px;font-weight:700}.brand-wh{color:#555;font-size:13px;margin-top:2px}.notes{margin-top:20px;padding:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;font-size:14px;white-space:pre-wrap}@media print{body{padding:0}}</style></head><body><div class="brand"><div class="brand-name">Paolla</div>' + (whName ? '<div class="brand-wh">Склад: ' + whName + '</div>' : '') + '</div><h1>' + docTitle + '</h1><div class="meta"><div><b>Дата:</b> ' + (op.date || '') + '</div><div><b>Контрагент:</b> ' + (op.counterparty || '—') + '</div></div><table><thead><tr><th>Товар</th><th style="text-align:right">Кількість</th><th style="text-align:right">Ціна</th><th style="text-align:right">Сума</th></tr></thead><tbody>' + rows + '</tbody><tfoot><tr><td colspan="3" style="text-align:right">Разом:</td><td style="text-align:right">' + totalStr + '</td></tr></tfoot></table>' + (op.notes ? '<div class="notes"><b>Примітки:</b><br>' + op.notes + '</div>' : '') + '</body></html>'); w.document.close(); w.focus(); setTimeout(function(){ w.print(); }, 300); }
 
 
-async function saveReservation(editId) { var counterpartyEl = document.getElementById('op-counterparty'); var counterparty = counterpartyEl ? counterpartyEl.value.trim() : ''; if (!counterparty) { showNotif('\u0412\u0432\u0435\u0434\u0456\u0442\u044c \u043d\u0430\u0437\u0432\u0443 \u043a\u043e\u043d\u0442\u0440\u0430\u0433\u0435\u043d\u0442\u0430', 'error'); return; } var dateEl = document.getElementById('op-date'); var notesEl = document.getElementById('op-notes'); var date = dateEl ? dateEl.value : ''; var notes = notesEl ? notesEl.value.trim() : ''; var tbody = document.getElementById('op-items-body'); var rows = tbody ? tbody.querySelectorAll('tr') : []; var items = []; var hasError = false; rows.forEach(function(tr) { if (hasError) return; var sel = tr.querySelector('select'); var qtyInp = tr.querySelector('input[type=number],input:not([type])'); if (!sel || !qtyInp) return; var productId = sel.value; var productName = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : ''; var qty = parseFloat(qtyInp.value); var priceInp = tr.querySelectorAll('input')[1]; var price = priceInp ? parseFloat(priceInp.value) || 0 : 0; if (!productId || isNaN(qty) || qty <= 0) { showNotif('\u0417\u0430\u043f\u043e\u0432\u043d\u0456\u0442\u044c \u0443\u0441\u0456 \u043f\u043e\u043b\u044f \u0442\u043e\u0432\u0430\u0440\u0456\u0432', 'error'); hasError = true; return; } items.push({product_id: productId, product_name: productName, quantity: qty, price: price}); }); if (hasError) return; var op = {id: Date.now(), type: 'outgoing', status: 'reserved', counterparty: counterparty, date: date, notes: notes, items: items}; state.operations.push(op); await saveSnapshot(); closeModal(); renderOperation('outgoing'); showNotif('\u0417\u0430\u0440\u0435\u0437\u0435\u0440\u0432\u043e\u0432\u0430\u043d\u043e', 'success'); }function deleteOperation(id, type) {
+async function saveReservation(editId) { var counterpartyEl = document.getElementById('op-counterparty'); var counterparty = counterpartyEl ? counterpartyEl.value.trim() : ''; if (!counterparty) { showNotif('\u0412\u0432\u0435\u0434\u0456\u0442\u044c \u043d\u0430\u0437\u0432\u0443 \u043a\u043e\u043d\u0442\u0440\u0430\u0433\u0435\u043d\u0442\u0430', 'error'); return; } var dateEl = document.getElementById('op-date'); var notesEl = document.getElementById('op-notes'); var date = dateEl ? dateEl.value : ''; var notes = notesEl ? notesEl.value.trim() : ''; var tbody = document.getElementById('op-items-body'); var rows = tbody ? tbody.querySelectorAll('tr') : []; var items = []; var hasError = false; rows.forEach(function(tr) { if (hasError) return; var sel = tr.querySelector('select'); var qtyInp = tr.querySelector('input[type=number],input:not([type])'); if (!sel || !qtyInp) return; var productId = sel.value; var productName = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : ''; var qty = parseFloat(qtyInp.value); var priceInp = tr.querySelectorAll('input')[1]; var price = priceInp ? parseFloat(priceInp.value) || 0 : 0; if (!productId || isNaN(qty) || qty <= 0) { showNotif('\u0417\u0430\u043f\u043e\u0432\u043d\u0456\u0442\u044c \u0443\u0441\u0456 \u043f\u043e\u043b\u044f \u0442\u043e\u0432\u0430\u0440\u0456\u0432', 'error'); hasError = true; return; } items.push({product_id: productId, product_name: productName, quantity: qty, price: price}); }); if (hasError) return; if (items.length === 0) { showNotif('\u0414\u043e\u0434\u0430\u0439\u0442\u0435 \u0445\u043e\u0447\u0430 \u0431 \u043e\u0434\u0438\u043d \u0442\u043e\u0432\u0430\u0440', 'error'); return; } if (editId != null) { var existing = state.operations.find(function(o) { return String(o.id) === String(editId); }); if (existing) { if (existing.status !== 'reserved') { (existing.items || []).forEach(function(it) { var prod = state.products.find(function(p) { return String(p.id) === String(it.product_id); }); if (prod) { if (existing.type === 'incoming') { prod.quantity = Math.max(0, (Number(prod.quantity) || 0) - Number(it.quantity)); } else { prod.quantity = (Number(prod.quantity) || 0) + Number(it.quantity); } } }); } existing.type = 'outgoing'; existing.status = 'reserved'; existing.counterparty = counterparty; existing.date = date; existing.notes = notes; existing.items = items; } } else { state.operations.push({id: Date.now(), type: 'outgoing', status: 'reserved', counterparty: counterparty, date: date, notes: notes, items: items}); } await saveSnapshot(); closeModal(); renderOperation('outgoing'); showNotif('\u0417\u0430\u0440\u0435\u0437\u0435\u0440\u0432\u043e\u0432\u0430\u043d\u043e', 'success'); }function deleteOperation(id, type) {
   if (!confirm('Видалити цю операцію?')) return;
-  var op = state.operations.find(function(o) { return o.id === id; });
-  if (op) {
-    var items = op.items;
-    if (!items && op.product_name) {
-      items = [{product_id: op.product_id, product_name: op.product_name, quantity: op.quantity, price: op.price}];
-    }
-    items = items || [];
-    items.forEach(function(it) {
+  var op = state.operations.find(function(o) { return String(o.id) === String(id); });
+  if (op && op.status !== 'reserved') {
+    opItems(op).forEach(function(it) {
       var prod = state.products.find(function(p) { return String(p.id) === String(it.product_id); });
       if (prod) {
         if (op.type === 'incoming') {
@@ -1120,7 +1132,7 @@ async function saveReservation(editId) { var counterpartyEl = document.getElemen
       }
     });
   }
-  state.operations = state.operations.filter(function(o) { return o.id !== id; });
+  state.operations = state.operations.filter(function(o) { return String(o.id) !== String(id); });
   saveSnapshot().then(function() {
     renderOperation(type);
     showNotif('Операцію видалено', 'success');
@@ -1176,7 +1188,7 @@ function renderOrders() {
   html += '</div>';
   html += '<table class="data-table"><thead><tr><th>Номер</th><th>Контрагент</th><th>Товар</th><th>Категорія</th><th>Цехи</th><th>К-сть</th><th>Дедлайн</th><th>Статус</th><th></th></tr></thead><tbody>';
   if (filtered.length === 0) {
-    html += '<tr><td colspan="8"><div class="empty-state"><div class="icon">📋</div><h3>Немає нарядів</h3></div></td></tr>';
+    html += '<tr><td colspan="9"><div class="empty-state"><div class="icon">📋</div><h3>Немає нарядів</h3></div></td></tr>';
   } else {
     filtered.forEach(function(o){
       var b = o.status==='ready' ? '<span class="badge badge-green">✅ Готово</span>' : o.status==='in_production' ? '<span class="badge badge-blue">⚙️ Виробництво</span>' : o.status==='shipped' ? '<span class="badge badge-gray">📦 Відправлено</span>' : o.status==='cancelled' ? '<span class="badge badge-red">❌ Скасовано</span>' : '<span class="badge badge-yellow">🆕 Нове</span>';
@@ -1272,14 +1284,20 @@ async function saveOrder() {
 }
 
 async function updateOrderStatus(id, status) {
-  var o = state.orders.find(function(x){return x.id===id;});
+  var o = state.orders.find(function(x){return String(x.id)===String(id);});
   if (o) o.status = status;
   await saveSnapshot();
   renderOrders();
 }
 
+function rerenderCurrentPage() {
+  var renderers = { dashboard: renderDashboard, products: renderProducts, incoming: renderIncoming, outgoing: renderOutgoing, inventory: renderInventory, orders: renderOrders, clients: renderClients, recipes: renderRecipes, production: renderProduction, reports: renderReports, warehouse: renderWarehouse, team: renderTeam };
+  var fn = renderers[state.currentPage];
+  if (fn) fn();
+}
+
 function openOrderView(id) {
-  var o = state.orders.find(function(x){ return x.id === id; });
+  var o = state.orders.find(function(x){ return String(x.id) === String(id); });
   if (!o) return;
   window._viewOrderId = id;
   document.getElementById('modal-title').textContent = o.number;
@@ -1331,7 +1349,7 @@ function openOrderView(id) {
 }
 
 async function toggleOrderOp(orderId, idx, done) {
-  var o = state.orders.find(function(x){ return x.id === orderId; });
+  var o = state.orders.find(function(x){ return String(x.id) === String(orderId); });
   if (!o || !o.operations || !o.operations[idx]) return;
   if (done) {
     o.operations[idx].done = true;
@@ -1342,12 +1360,12 @@ async function toggleOrderOp(orderId, idx, done) {
   var anyDone = o.operations.some(function(op){ return op.done; });
   o.status = o.received ? 'ready' : (allDone || anyDone ? 'in_production' : 'new');
   await saveSnapshot();
+  rerenderCurrentPage();
   openOrderView(orderId);
-  renderOrders();
 }
 
 async function receiveOrderStock(orderId, done) {
-  var o = state.orders.find(function(x){ return x.id === orderId; });
+  var o = state.orders.find(function(x){ return String(x.id) === String(orderId); });
   if (!o) return;
   var opsDone = !o.operations || o.operations.length === 0 || o.operations.every(function(op){ return op.done; });
   if (done && !opsDone) { showNotif('Спершу завершіть усі цехи', 'error'); return; }
@@ -1364,9 +1382,8 @@ async function receiveOrderStock(orderId, done) {
     o.status = opsDone ? 'in_production' : 'new';
   }
   await saveSnapshot();
+  rerenderCurrentPage();
   openOrderView(orderId);
-  renderOrders();
-  renderProducts && renderProducts();
 }
 
 
@@ -1629,8 +1646,8 @@ async function completeProduction(id) {
 function renderReports() {
   const incoming = state.operations.filter(o => o.type === 'incoming');
   const outgoing = state.operations.filter(o => o.type === 'outgoing');
-  const totalIn = incoming.reduce((s,o) => s + o.quantity * o.price, 0);
-  const totalOut = outgoing.reduce((s,o) => s + o.quantity * o.price, 0);
+  const totalIn = incoming.reduce((s,o) => s + opTotal(o), 0);
+  const totalOut = outgoing.reduce((s,o) => s + opTotal(o), 0);
   const byCategory = {};
   state.products.forEach(p => { byCategory[p.category] = (byCategory[p.category]||0) + p.quantity * p.price; });
   document.getElementById('page-content').innerHTML = `
@@ -1813,7 +1830,7 @@ async function createAccess() {
       <p style="color:var(--text2);font-size:11px;margin-top:8px">Сайт: https://alchune.github.io/Paolla</p>
     </div>`;
     document.getElementById('modal-footer').innerHTML = `<button class="btn btn-primary" onclick="closeModal()">Готово</button>`;
-    if (state.team) loadTeam();
+    if (state.currentPage === 'team') renderTeam();
   } catch(e) {
     showNotif(e.message||'Помилка','error');
     if (btn) { btn.disabled = false; btn.textContent = 'Створити доступ'; }
@@ -1840,7 +1857,7 @@ function showNotif(text, type = 'success') {
   setTimeout(() => n.style.display = 'none', 3500);
 }
 
-function printOperation(op) { var title = op ? (op.type === 'income' ? '\u041F\u0440\u0438\u0445\u0456\u0434 \u2116' + op.id : '\u0412\u0438\u0434\u0430\u0442\u043E\u043A \u2116' + op.id) : '\u041E\u043F\u0435\u0440\u0430\u0446\u0456\u044F'; var w = window.open('', '_blank', 'width=700,height=600'); var items = op && op.items ? op.items.map(function(it) { return '<tr><td style="padding:6px 10px;border-bottom:1px solid #eee">' + (it.product_name || it.product || '') + '</td><td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:center">' + (it.qty || it.quantity || '') + ' ' + (it.unit || '') + '</td><td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right">' + (it.price || '') + '</td></tr>'; }).join('') : ''; w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + title + '</title><style>body{font-family:Arial,sans-serif;padding:24px}table{width:100%;border-collapse:collapse}th{background:#f0f4f8;padding:8px 10px;text-align:left}@media print{button{display:none}}</style></head><body><h2>' + title + '</h2><p>\u041A\u043E\u043D\u0442\u0440\u0430\u0433\u0435\u043D\u0442: <b>' + (op && op.counterparty || '') + '</b></p><p>\u0414\u0430\u0442\u0430: <b>' + (op && op.date || '') + '</b></p>' + (op && op.notes ? '<p>\u041F\u0440\u0438\u043C\u0456\u0442\u043A\u0438: ' + op.notes + '</p>' : '') + '<table><thead><tr><th>\u0422\u043E\u0432\u0430\u0440</th><th>\u041A\u0456\u043B\u044C\u043A\u0456\u0441\u0442\u044C</th><th>\u0426\u0456\u043D\u0430</th></tr></thead><tbody>' + items + '</tbody></table><br><button onclick="window.print()">\uD83D\uDDA8 \u041D\u0430\u0434\u0440\u0443\u043A\u0443\u0432\u0430\u0442\u0438</button></body></html>'); w.document.close(); }function closeModal(e) {
+function closeModal(e) {
   if (!e || e.target === document.getElementById('modal-overlay')) document.getElementById('modal-overlay').style.display = 'none';
 }
 
@@ -2067,7 +2084,7 @@ function printOperation(op) { var title = op ? (op.type === 'income' ? '\u041F\u
             html += '<div style="font-weight:700;font-size:15px">'+o.number+' \u00b7 '+(o.product||'')+'</div>';
             html += '<div style="color:var(--text2);font-size:13px">'+(o.quantity||1)+' \u0448\u0442 \u00b7 '+doneCnt+'/'+total+' \u0446\u0435\u0445\u0456\u0432</div>';
             html += '</div>';
-            html += '<div style="height:6px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:8px"><div style="height:100%;width:'+pct+'%;background:var(--primary)"></div></div>';
+            html += '<div style="height:6px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:8px"><div style="height:100%;width:'+pct+'%;background:var(--accent2)"></div></div>';
             html += '<div style="display:flex;flex-wrap:wrap;gap:2px">'+opsHtml+'</div>';
             html += '</div>';
           });
@@ -2117,7 +2134,6 @@ function printOperation(op) { var title = op ? (op.type === 'income' ? '\u041F\u
             };
             if(typeof window.injectOrderActionButtons==='function'){ try { window.injectOrderActionButtons(); } catch(e){} }
       })();
-</script>
 </script>
 <script>
       /* UI: іконки для дій + клік по рядку (Наряди, Товари, Прихід/Видаток) */
@@ -2189,9 +2205,10 @@ function printOperation(op) { var title = op ? (op.type === 'income' ? '\u041F\u
                     var tables = document.querySelectorAll('#page-content table');
                     Array.prototype.slice.call(tables).forEach(function(t){
                               var p = t.parentElement;
-setInterval(sched,700);                              var wrap = document.createElement('div');
+                              if(p && p.classList.contains('js-table-scroll')) return;
+                              var wrap = document.createElement('div');
                               wrap.className='js-table-scroll';
-            setInterval(function(){try{av();}catch(e){}},700);                  wrap.style.cssText='overflow-x:auto;max-width:100%;';
+                              wrap.style.cssText='overflow-x:auto;max-width:100%;';
                               t.parentNode.insertBefore(wrap, t);
                               wrap.appendChild(t);
                     });
@@ -2208,6 +2225,6 @@ setInterval(sched,700);                              var wrap = document.createE
               if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', start); else start();
       })();
 </script>
+<style>.js-table-scroll table th:last-child,.js-table-scroll table td:last-child{position:sticky;right:0;background:transparent;z-index:2;}.js-table-scroll table tr:hover td:last-child{background:transparent;}.js-icon-btn{width:32px!important;min-width:32px!important;height:32px!important;padding:0!important;margin:0 3px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;border-radius:8px!important;font-size:14px!important;line-height:1!important;}</style>
+</body>
 </html>
-
-<style>.js-table-scroll table th:last-child,.js-table-scroll table td:last-child{position:sticky;right:0;background:transparent;z-index:2;}.js-table-scroll table tr:hover td:last-child{background:transparent;}.js-icon-btn{width:32px!important;min-width:32px!important;height:32px!important;padding:0!important;margin:0 3px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;border-radius:8px!important;font-size:14px!important;line-height:1!important;}</style></style>
