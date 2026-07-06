@@ -1206,13 +1206,15 @@ function renderOrders() {
   var models = [...new Set(state.orders.map(function(o){return o.product;}).filter(Boolean))];
   var filterCat = window._orderFilterCat || '';
   var filterModel = window._orderFilterModel || '';
+  var orderSearch = (window._orderSearch || '').toLowerCase();
   var filtered = state.orders.filter(function(o){
-    return (!filterCat || o.category===filterCat) && (!filterModel || o.product===filterModel);
+    return (!filterCat || o.category===filterCat) && (!filterModel || o.product===filterModel) && (!orderSearch || ((o.number||'')+' '+(o.client||'')+' '+(o.product||'')).toLowerCase().indexOf(orderSearch)>=0);
   });
   filtered = filtered.slice().sort(function(a,b){return String(a.number||'').localeCompare(String(b.number||''),undefined,{numeric:true,sensitivity:'base'});});
       var catOpts = cats.map(function(c){return '<option value="'+c+'" '+(filterCat===c?'selected':'')+'>'+c+'</option>';}).join('');
   var modelOpts = models.map(function(m){return '<option value="'+m+'" '+(filterModel===m?'selected':'')+'>'+m+'</option>';}).join('');
   var html = '<div class="page-header"><h2>📋 Наряди</h2><button class="btn" onclick="openOrderModal()">+ Наряд</button></div>';
+  html += '<div class="table-search" style="margin-bottom:12px"><input class="search-input" placeholder="\uD83D\uDD0D \u041F\u043E\u0448\u0443\u043A \u043D\u0430\u0440\u044F\u0434\u0443 (\u043D\u043E\u043C\u0435\u0440, \u043A\u043E\u043D\u0442\u0440\u0430\u0433\u0435\u043D\u0442, \u0442\u043E\u0432\u0430\u0440)..." value="'+(window._orderSearch||'')+'" oninput="window._orderSearch=this.value;renderOrders()"></div>';
   html += '<div class="form-row" style="margin-bottom:12px;gap:8px">';
   html += '<select class="form-select" style="flex:1" onchange="window._orderFilterModel=this.value;renderOrders()"><option value="">— Всі моделі —</option>'+modelOpts+'</select>';
   html += '</div>';
@@ -1229,6 +1231,7 @@ function renderOrders() {
   }
   html += '</tbody></table>';
   document.getElementById('page-content').innerHTML = html;
+  var _os = document.querySelector('.search-input'); if(_os && window._orderSearch){ _os.focus(); var _v=_os.value.length; _os.setSelectionRange(_v,_v); }
 }
 
 function openOrderModal() {
