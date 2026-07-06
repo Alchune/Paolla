@@ -1209,7 +1209,8 @@ function renderOrders() {
   var filtered = state.orders.filter(function(o){
     return (!filterCat || o.category===filterCat) && (!filterModel || o.product===filterModel);
   });
-  var catOpts = cats.map(function(c){return '<option value="'+c+'" '+(filterCat===c?'selected':'')+'>'+c+'</option>';}).join('');
+  filtered = filtered.slice().sort(function(a,b){return String(a.number||'').localeCompare(String(b.number||''),undefined,{numeric:true,sensitivity:'base'});});
+      var catOpts = cats.map(function(c){return '<option value="'+c+'" '+(filterCat===c?'selected':'')+'>'+c+'</option>';}).join('');
   var modelOpts = models.map(function(m){return '<option value="'+m+'" '+(filterModel===m?'selected':'')+'>'+m+'</option>';}).join('');
   var html = '<div class="page-header"><h2>📋 Наряди</h2><button class="btn" onclick="openOrderModal()">+ Наряд</button></div>';
   html += '<div class="form-row" style="margin-bottom:12px;gap:8px">';
