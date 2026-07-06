@@ -654,64 +654,86 @@ function setProductView(mode) {
 }
 
 function renderProducts() {
-  var isGrid = state.productView === 'grid';
-  var toggle = '<div class="view-toggle">'
-    + '<button class="' + (!isGrid?'active':'') + '" onclick="setProductView(\'list\')" title="Списком">&#9776;</button>'
-    + '<button class="' + (isGrid?'active':'') + '" onclick="setProductView(\'grid\')" title="Сіткою">&#9638;</button>'
-    + '</div>';
-  document.getElementById('page-content').innerHTML = `
+var isGrid = state.productView === 'grid';
+var toggle = '<div class="view-toggle">'
++ '<button class="' + (!isGrid?'active':'') + '" onclick="setProductView(\'list\')" title="Списком">&#9776;</button>'
++ '<button class="' + (isGrid?'active':'') + '" onclick="setProductView(\'grid\')" title="Сіткою">&#9638;</button>'
++ '</div>';
+var active = sortProductsByName(state.products.filter(function(p){ return !p.archived; }));
+var archived = sortProductsByName(state.products.filter(function(p){ return p.archived; }));
+document.getElementById('page-content').innerHTML = `
 <div class="table-container">
 <div class="table-header">
-<h3>Всі товари (${state.products.length})</h3>
+<h3>Всі товари (${active.length})</h3>
 <div class="table-search">
 <input class="search-input" placeholder="🔍 Пошук..." oninput="filterProducts(this.value)">
 ${toggle}
 <button class="btn btn-primary" onclick="openProductModal()">+ Додати</button>
 </div>
 </div>
-<div id="products-body">${isGrid ? renderProductGrid(state.products) : renderProductTable(state.products)}</div>
+<div id="products-body">${isGrid ? renderProductGrid(active) : renderProductTable(active)}</div>
+</div>
+<div class="table-container" id="archive-container" style="margin-top:24px">
+<div class="table-header">
+<h3>📥 Архів (${archived.length})</h3>
+</div>
+<div id="archive-body">${archived.length ? (isGrid ? renderProductGrid(archived, true) : renderProductTable(archived, true)) : '<div class="empty-state"><div class="icon">📥</div><h3>Архів порожній</h3><p>Товари, надіслані в архів, з’являться тут</p></div>'}</div>
 </div>`;
 }
 
-function renderProductTable(products) {
-  return `<table><thead><tr><th>Назва</th><th>Категорія</th><th>Залишок</th><th>Ціна</th><th>Статус</th><th>Дії</th></tr></thead>
+function sortProductsByName(list) {
+return list.slice().sort(function(a, b) {
+return String(a.name || '').localeCompare(String(b.name || ''), 'uk', { numeric: true, sensitivity: 'base' });
+});
+}
+
+function renderProductTable(products, isArchive) {
+return `<table><thead><tr><th>Назва</th><th>Категорія</th><th>Залишок</th><th>Ціна</th><th>Статус</th><th>Дії</th></tr></thead>
 <tbody id="products-table">
-${renderProductRows(products)}
+${renderProductRows(products, isArchive)}
 </tbody></table>`;
 }
 
-function renderProductRows(products) {
-  return products.map(p => {
-    const status = p.quantity === 0 ? '<span class="badge badge-red">Немає</span>' : p.quantity <= p.min_qty ? '<span class="badge badge-yellow">Мало</span>' : '<span class="badge badge-green">В наявності</span>';
-    return `<tr>
+function renderProductRows(products, isArchive) {
+return products.map(p => {
+const status = p.quantity === 0 ? '<span class="badge badge-red">Немає</span>' : p.quantity <= p.min_qty ? '<span class="badge badge-yellow">Мало</span>' : '<span class="badge badge-green">В наявності</span>';
+const actions = isArchive
+? `<button class="btn btn-secondary btn-sm" onclick="unarchiveProduct('${p.id}')" title="Повернути з архіву">↩️</button> <button class="btn btn-secondary btn-sm" onclick="deleteProduct('${p.id}')">🗑️</button>`
+: `<button class="btn btn-secondary btn-sm" onclick="editProduct('${p.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="archiveProduct('${p.id}')" title="Відправити в архів">📥</button> <button class="btn btn-secondary btn-sm" onclick="deleteProduct('${p.id}')">🗑️</button>`;
+return `<tr>
 <td>${p.image?`<img src="${p.image}" loading="lazy" style="width:32px;height:32px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:8px;cursor:pointer" onclick="openProductGallery('${p.id}')">`:''}<strong>${p.name}</strong></td>
 <td><span class="badge badge-gray">${p.category}</span></td>
 <td>${p.quantity} ${p.unit} <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${Math.min(100,(p.quantity/Math.max(p.min_qty*3,1))*100)}%;background:${p.quantity<=p.min_qty?'var(--danger)':'var(--accent)'}"></div></div></td>
 <td>${formatMoney(p.price)}</td>
 <td>${status}</td>
-<td><button class="btn btn-secondary btn-sm" onclick="editProduct('${p.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="deleteProduct('${p.id}')">🗑️</button></td>
+<td>${actions}</td>
 </tr>`;
-  }).join('') || '<tr><td colspan="7"><div class="empty-state"><div class="icon">📦</div><h3>Немає товарів</h3><p>Додайте першу позицію</p></div></td></tr>';
+}).join('') || '<tr><td colspan="7"><div class="empty-state"><div class="icon">📦</div><h3>Немає товарів</h3><p>Додайте першу позицію</p></div></td></tr>';
 }
 
-function renderProductGrid(products) {
-  if (!products.length) return '<div class="empty-state"><div class="icon">📦</div><h3>Немає товарів</h3><p>Додайте першу позицію</p></div>';
-  var cards = products.map(function(p) {
-    var status = p.quantity === 0 ? '<span class="badge badge-red">Немає</span>' : p.quantity <= p.min_qty ? '<span class="badge badge-yellow">Мало</span>' : '<span class="badge badge-green">В наявності</span>';
-    return '<div class="item-card">'
-      + '<div class="ic-thumb"' + (p.image ? ' style="cursor:pointer" onclick="openProductGallery(\'' + p.id + '\')"' : '') + '>' + (p.image ? '<img src="' + p.image + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">' : '📦') + '</div>'
-      + '<div class="ic-name">' + p.name + '</div>'
-      + '<div class="ic-meta"><span class="badge badge-gray">' + p.category + '</span>' + status + '</div>'
-      + '<div class="ic-meta">' + p.quantity + ' ' + p.unit + ' • ' + formatMoney(p.price) + '</div>'
-      + '<div class="ic-actions"><button class="btn btn-secondary btn-sm" onclick="editProduct(\'' + p.id + '\')">✏️</button><button class="btn btn-secondary btn-sm" onclick="deleteProduct(\'' + p.id + '\')">🗑️</button></div>'
-      + '</div>';
-  }).join('');
-  return '<div class="card-grid">' + cards + '</div>';
+function renderProductGrid(products, isArchive) {
+if (!products.length) return '<div class="empty-state"><div class="icon">📦</div><h3>Немає товарів</h3><p>Додайте першу позицію</p></div>';
+var cards = products.map(function(p) {
+var status = p.quantity === 0 ? '<span class="badge badge-red">Немає</span>' : p.quantity <= p.min_qty ? '<span class="badge badge-yellow">Мало</span>' : '<span class="badge badge-green">В наявності</span>';
+var actions = isArchive
+? '<div class="ic-actions"><button class="btn btn-secondary btn-sm" onclick="unarchiveProduct(\'' + p.id + '\')" title="Повернути з архіву">↩️</button><button class="btn btn-secondary btn-sm" onclick="deleteProduct(\'' + p.id + '\')">🗑️</button></div>'
+: '<div class="ic-actions"><button class="btn btn-secondary btn-sm" onclick="editProduct(\'' + p.id + '\')">✏️</button><button class="btn btn-secondary btn-sm" onclick="archiveProduct(\'' + p.id + '\')" title="Відправити в архів">📥</button><button class="btn btn-secondary btn-sm" onclick="deleteProduct(\'' + p.id + '\')">🗑️</button></div>';
+return '<div class="item-card">'
++ '<div class="ic-thumb"' + (p.image ? ' style="cursor:pointer" onclick="openProductGallery(\'' + p.id + '\')"' : '') + '>' + (p.image ? '<img src="' + p.image + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">' : '📦') + '</div>'
++ '<div class="ic-name">' + p.name + '</div>'
++ '<div class="ic-meta"><span class="badge badge-gray">' + p.category + '</span>' + status + '</div>'
++ '<div class="ic-meta">' + p.quantity + ' ' + p.unit + ' • ' + formatMoney(p.price) + '</div>'
++ actions
++ '</div>';
+}).join('');
+return '<div class="card-grid">' + cards + '</div>';
 }
 
 function filterProducts(q) {
-  const filtered = state.products.filter(p => p.name.toLowerCase().includes(q.toLowerCase()) || p.category.toLowerCase().includes(q.toLowerCase()));
-  document.getElementById('products-body').innerHTML = state.productView === 'grid' ? renderProductGrid(filtered) : renderProductTable(filtered);
+q = q || '';
+const filtered = state.products.filter(p => !p.archived && (p.name.toLowerCase().includes(q.toLowerCase()) || p.category.toLowerCase().includes(q.toLowerCase())));
+const sorted = sortProductsByName(filtered);
+document.getElementById('products-body').innerHTML = state.productView === 'grid' ? renderProductGrid(sorted) : renderProductTable(sorted);
 }
 
 function openProductGallery(id) {
@@ -850,6 +872,26 @@ async function deleteProduct(id) {
   await saveSnapshot();
   renderProducts();
   showNotif('Товар видалено', 'success');
+}
+
+
+async function archiveProduct(id) {
+const p = state.products.find(x => String(x.id) === String(id));
+if (!p) return;
+if (!confirm('Відправити товар "' + p.name + '" в архів?')) return;
+p.archived = true;
+await saveSnapshot();
+renderProducts();
+showNotif('Товар відправлено в архів', 'success');
+}
+
+async function unarchiveProduct(id) {
+const p = state.products.find(x => String(x.id) === String(id));
+if (!p) return;
+p.archived = false;
+await saveSnapshot();
+renderProducts();
+showNotif('Товар повернуто з архіву', 'success');
 }
 
 function renderIncoming() { renderOperation('incoming'); }
