@@ -958,7 +958,7 @@ function openOperationModal(type, editOp) {
 
   body.innerHTML =
     '<div class="form-group"><label class="form-label">' + counterpartyLabel + ' *</label>' +
-    '<input class="form-input" id="op-counterparty" placeholder="' + counterpartyLabel + '"></div>' +
+    '<select class="form-input" id="op-counterparty"><option value="">— Оберіть ' + counterpartyLabel.toLowerCase() + ' —</option>' + (state.clients||[]).map(function(c){ return '<option value="' + c.name + '">' + c.name + '</option>'; }).join('') + '</select></div>' +
     '<div class="form-row">' +
     '<div class="form-group"><label class="form-label">Дата</label><input type="date" class="form-input" id="op-date" value="' + today + '"></div>' +
     '<div class="form-group"><label class="form-label">Примітки</label><input class="form-input" id="op-notes" placeholder="Необов&#39;язково"></div>' +
@@ -999,6 +999,10 @@ function openOperationModal(type, editOp) {
     priceInput.step = '0.01';
     priceInput.style.width = '100px';
     td3.appendChild(priceInput);
+    sel.addEventListener('change', function() {
+      var prod = state.products.find(function(pp){ return String(pp.id) === String(sel.value); });
+      if (prod) { priceInput.value = (prod.price != null ? prod.price : ''); } else { priceInput.value = ''; }
+    });
 
     var td4 = document.createElement('td');
     var removeBtn = document.createElement('button');
