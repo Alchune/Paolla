@@ -1069,6 +1069,14 @@ function openOperationModal(type, editOp) {
 }
 
 
+function editOperation(id, type) {
+  var op = state.operations.find(function (o) {
+    return o.id === id || String(o.id) === String(id);
+  });
+  if (!op) { showNotif('Операцію не знайдено', 'error'); return; }
+  openOperationModal(type, op);
+}
+
 async function saveOperation(type, editId) {
   var counterpartyEl = document.getElementById('op-counterparty');
   var counterparty = counterpartyEl ? counterpartyEl.value.trim() : '';
