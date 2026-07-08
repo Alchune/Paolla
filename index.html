@@ -1336,7 +1336,7 @@ async function updateOrderStatus(id, status) {
 }
 
 function openOrderView(id) {
-  var o = state.orders.find(function(x){ return x.id === id; });
+  var o = state.orders.find(function(x){ return x.id == id; });
   if (!o) return;
   window._viewOrderId = id;
   document.getElementById('modal-title').textContent = o.number;
