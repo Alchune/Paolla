@@ -1827,7 +1827,7 @@ async function renderTeam() {
       const rn = roleNames[m.access_mode] || m.access_mode || '?';
       const rb = roleBadge[m.access_mode] || 'badge-gray';
       const dt = new Date(m.created_at || Date.now()).toLocaleDateString('uk-UA');
-      rows += `<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:32px;height:32px;font-size:13px">${initial}</div><div>${name}${isMe ? ' <span style=\'color:var(--text2);font-size:11px\'>(Ви)</span>' : ''}</div></div></td><td><span class="badge ${rb}">${rn}</span></td><td>${dt}</td><td>${m.access_mode!=='owner' ? ('<button class="btn btn-secondary btn-sm" onclick="openEditRoleModal(a&apos;'+m.user_id+'&apos;)">✏️</button>') : '—'}</td></tr>`;
+      rows += `<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:32px;height:32px;font-size:13px">${initial}</div><div>${name}${isMe ? ' <span style=\'color:var(--text2);font-size:11px\'>(Ви)</span>' : ''}</div></div></td><td><span class="badge ${rb}">${rn}</span></td><td>${dt}</td><td>${m.access_mode!=='owner' ? ('<button class="btn btn-secondary btn-sm" onclick="openEditRoleModal(&apos;'+m.user_id+'&apos;)">✏️</button>') : '—'}</td></tr>`;
     });
     if (!rows) rows = `<tr><td colspan="4" style="color:var(--text2)">—</td></tr>`;
   } catch(e) {
