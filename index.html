@@ -497,6 +497,10 @@ function navigate(page) {
   const renderers = { dashboard: renderDashboard, products: renderProducts, incoming: renderIncoming, outgoing: renderOutgoing, inventory: renderInventory, orders: renderOrders, clients: renderClients, recipes: renderRecipes, production: renderProduction, reports: renderReports, warehouse: renderWarehouse, team: renderTeam };
   if (renderers[page]) renderers[page]();
 }
+      function refreshCurrentPage() {
+            var renderers = { dashboard: renderDashboard, products: renderProducts, incoming: renderIncoming, outgoing: renderOutgoing, inventory: renderInventory, orders: renderOrders, clients: renderClients, recipes: renderRecipes, production: renderProduction, reports: renderReports, warehouse: renderWarehouse, team: renderTeam };
+            if (renderers[state.currentPage]) renderers[state.currentPage]();
+      }
 // ====== PAGES ======
 function renderDashboard() {
   const low = state.products.filter(p => p.quantity <= p.min_qty).length;
@@ -1400,7 +1404,7 @@ async function toggleOrderOp(orderId, idx, done) {
   o.status = o.received ? 'ready' : (allDone || anyDone ? 'in_production' : 'new');
   await saveSnapshot();
   openOrderView(orderId);
-  renderOrders();
+  refreshCurrentPage();
 }
 
 async function receiveOrderStock(orderId, done) {
@@ -1422,8 +1426,7 @@ async function receiveOrderStock(orderId, done) {
   }
   await saveSnapshot();
   openOrderView(orderId);
-  renderOrders();
-  renderProducts && renderProducts();
+  refreshCurrentPage();
 }
 
 
