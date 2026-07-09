@@ -332,6 +332,7 @@ let state = {
   recipes: [],
   production: [],
   members: [],
+  accessMode: 'viewer',
   currentPage: 'dashboard',
   clients: [],
   clientView: (typeof localStorage!=='undefined' && localStorage.getItem('paolla_clientView')) || 'list',
@@ -369,7 +370,7 @@ async function registerUser() {
 
 async function logoutUser() {
   await sb.auth.signOut();
-  state = { user: null, warehouse: null, products: [], operations: [], orders: [], recipes: [], production: [], members: [], currentPage: 'dashboard' };
+  state = { user: null, warehouse: null, products: [], operations: [], orders: [], recipes: [], production: [], members: [], accessMode: 'viewer', currentPage: 'dashboard' };
   document.getElementById('auth-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
 }
@@ -383,8 +384,9 @@ document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('user-name').textContent = name;
   document.getElementById('user-avatar').textContent = name[0].toUpperCase();
   await loadWarehouse();
+  applyRoleAccess();
   await loadData();
-  navigate('dashboard');
+  navigate(defaultPageForRole());
 }
 
 async function loadWarehouse() {
@@ -399,7 +401,7 @@ async function loadWarehouse() {
       const { data: wh } = await sb.from('warehouses').select('*').eq('id', savedId).single();
       state.warehouse = wh || { id: savedId, name: '' };
       const roleEl = document.getElementById('user-role');
-      if (roleEl) { try { const { data: meRow } = await sb.from('warehouse_members').select('access_mode').eq('warehouse_id', savedId).eq('user_id', state.user.id).single(); roleEl.textContent = (meRow && meRow.access_mode) || 'editor'; } catch(e) { roleEl.textContent = 'editor'; } }
+      if (roleEl) { try { const { data: meRow } = await sb.from('warehouse_members').select('access_mode').eq('warehouse_id', savedId).eq('user_id', state.user.id).single(); state.accessMode = (meRow && meRow.access_mode) || 'editor'; roleEl.textContent = state.accessMode; } catch(e) { state.accessMode = 'editor'; roleEl.textContent = state.accessMode; } }
       await loadSnapshotForCurrent();
       const nameEl = document.getElementById('warehouse-name');
       if (nameEl) nameEl.textContent = (wh && wh.name) || ('Склад ' + savedId.substring(0,8));
@@ -410,7 +412,8 @@ async function loadWarehouse() {
       const { data: wh } = await sb.from('warehouses').select('*').eq('id', member.warehouse_id).single();
       state.warehouse = wh;
       const roleEl = document.getElementById('user-role');
-      if (roleEl) roleEl.textContent = member.access_mode || 'owner';
+      state.accessMode = member.access_mode || 'owner';
+      if (roleEl) roleEl.textContent = state.accessMode;
       await loadSnapshotForCurrent();
       const nameEl = document.getElementById('warehouse-name');
       if (nameEl) nameEl.textContent = (wh && wh.name) || ('Склад ' + member.warehouse_id.substring(0,8));
@@ -420,7 +423,8 @@ async function loadWarehouse() {
         await sb.from('warehouse_members').insert({ warehouse_id: newWh.id, user_id: state.user.id, access_mode: 'owner' });
         state.warehouse = newWh;
         const roleEl = document.getElementById('user-role');
-        if (roleEl) roleEl.textContent = 'owner';
+        state.accessMode = 'owner';
+        if (roleEl) roleEl.textContent = state.accessMode;
         const nameEl = document.getElementById('warehouse-name');
         if (nameEl) nameEl.textContent = newWh.name || ('Склад ' + String(newWh.id).substring(0,8));
         await initDefaultData();
@@ -488,7 +492,41 @@ async function saveSnapshot() {
 }
 
 // ====== NAVIGATION ======
+function allowedPagesForRole(role) {
+  return role === 'worker' ? ['orders', 'production'] : null;
+}
+
+function defaultPageForRole() {
+  return state.accessMode === 'worker' ? 'orders' : 'dashboard';
+}
+
+function canAccessPage(page) {
+  const allowed = allowedPagesForRole(state.accessMode);
+  return !allowed || allowed.includes(page);
+}
+
+function applyRoleAccess() {
+  const allowed = allowedPagesForRole(state.accessMode);
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    const page = item.id ? item.id.replace('nav-', '') : '';
+    item.style.display = allowed && !allowed.includes(page) ? 'none' : '';
+  });
+  document.querySelectorAll('nav .nav-section').forEach(function(section) {
+    let hasVisibleItem = false;
+    let next = section.nextElementSibling;
+    while (next && !next.classList.contains('nav-section')) {
+      if (next.classList.contains('nav-item') && next.style.display !== 'none') {
+        hasVisibleItem = true;
+        break;
+      }
+      next = next.nextElementSibling;
+    }
+    section.style.display = hasVisibleItem ? '' : 'none';
+  });
+}
+
 function navigate(page) {
+  if (!canAccessPage(page)) page = defaultPageForRole();
   state.currentPage = page;
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
   const navEl = document.getElementById('nav-' + page);
@@ -499,6 +537,7 @@ function navigate(page) {
   if (renderers[page]) renderers[page]();
 }
       function refreshCurrentPage() {
+            if (!canAccessPage(state.currentPage)) return navigate(defaultPageForRole());
             var renderers = { dashboard: renderDashboard, products: renderProducts, incoming: renderIncoming, outgoing: renderOutgoing, inventory: renderInventory, orders: renderOrders, clients: renderClients, recipes: renderRecipes, production: renderProduction, reports: renderReports, warehouse: renderWarehouse, team: renderTeam };
             if (renderers[state.currentPage]) renderers[state.currentPage]();
       }
