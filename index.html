@@ -518,12 +518,12 @@ function renderDashboard() {
 <div class="table-container">
 <div class="table-header"><h3>⚠️ Мало залишків</h3><button class="btn btn-secondary btn-sm" onclick="navigate('inventory')">Всі →</button></div>
 <table><thead><tr><th>Товар</th><th>Залишок</th><th>Мін</th></tr></thead><tbody>
-${state.products.filter(p => p.quantity <= p.min_qty).map(p => `<tr><td>${p.name}</td><td style="color:var(--danger)">${p.quantity} ${p.unit}</td><td>${p.min_qty} ${p.unit}</td></tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:20px">✅ Все гаразд!</td></tr>'}
+${state.products.filter(p => p.quantity <= p.min_qty).map(p => `<tr><td>${p.name}</td><td style="color:var(--danger)">${p.quantity} ${p.unit}</td><td>${p.min_qty} ${p.unit}</td></tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text2);padding:20px">✅ Все гаразд!</td></tr>'}
 </tbody></table></div>
 <div class="table-container">
 <div class="table-header"><h3>📋 Активні замовлення</h3><button class="btn btn-secondary btn-sm" onclick="navigate('orders')">Всі →</button></div>
 <table><thead><tr><th>Номер</th><th>Контрагент</th><th>Статус</th></tr></thead><tbody>
-${state.orders.filter(o=>o.status!=='completed').slice(0,5).map(o => `<tr><td>${o.number}</td><td>${o.client}</td><td>${orderBadge(o.status)}</td></tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:20px">Немає замовлень</td></tr>'}
+${state.orders.filter(o=>o.status!=='completed').slice(0,5).map(o => `<tr><td>${o.number}</td><td>${o.client}</td><td>${orderBadge(o.status)}</td></tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text2);padding:20px">Немає замовлень</td></tr>'}
 </tbody></table></div>
 </div>
 <div class="table-container">
@@ -1156,7 +1156,7 @@ async function saveOperation(type, editId) {
 }
 
 
-function printOperation(id, type) { var op = state.operations.find(function(o){ return o.id === id; }); if (!op) { showNotif('Документ не знайдено', 'error'); return; } var isIncoming = (type === 'incoming') || (op.type === 'incoming'); var docTitle = isIncoming ? 'Прихід товарів' : 'Видаток товарів'; var whName = (state.warehouse && state.warehouse.name) ? state.warehouse.name : ''; var items = op.items || []; if ((!items || !items.length) && op.product_name) { items = [{ product_name: op.product_name, quantity: op.quantity, price: op.price }]; } var totalAmt = 0; var rows = items.map(function(it){ var q = Number(it.quantity) || 0; var p = Number(it.price) || 0; var sum = q * p; totalAmt += sum; return '<tr><td>' + (it.product_name || '') + '</td><td style="text-align:right">' + q + '</td><td style="text-align:right">' + (p ? p.toFixed(2) : '—') + '</td><td style="text-align:right">' + (sum ? sum.toFixed(2) : '—') + '</td></tr>'; }).join(''); var totalStr = totalAmt > 0 ? totalAmt.toFixed(2) : '—'; var w = window.open('', '_blank'); if (!w) { showNotif('Дозвольте спливаючі вікна для друку', 'error'); return; } w.document.write('<!DOCTYPE html><html lang="uk"><head><meta charset="UTF-8"><title>' + docTitle + '</title><style>body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;padding:32px;color:#111}h1{font-size:22px;margin:0 0 4px}.meta{color:#555;margin-bottom:20px;font-size:14px}.meta div{margin:2px 0}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #ccc;padding:8px 10px;font-size:14px}th{background:#f3f4f6;text-align:left}tfoot td{font-weight:700}.brand{border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:16px}.brand-name{font-size:20px;font-weight:700}.brand-wh{color:#555;font-size:13px;margin-top:2px}.notes{margin-top:20px;padding:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;font-size:14px;white-space:pre-wrap}@media print{body{padding:0}}</style></head><body><div class="brand"><div class="brand-name">Paolla</div>' + (whName ? '<div class="brand-wh">Склад: ' + whName + '</div>' : '') + '</div><h1>' + docTitle + '</h1><div class="meta"><div><b>Дата:</b> ' + (op.date || '') + '</div><div><b>Контрагент:</b> ' + (op.counterparty || '—') + '</div></div><table><thead><tr><th>Товар</th><th style="text-align:right">Кількість</th><th style="text-align:right">Ціна</th><th style="text-align:right">Сума</th></tr></thead><tbody>' + rows + '</tbody><tfoot><tr><td colspan="3" style="text-align:right">Разом:</td><td style="text-align:right">' + totalStr + '</td></tr></tfoot></table>' + (op.notes ? '<div class="notes"><b>Примітки:</b><br>' + op.notes + '</div>' : '') + '</body></html>'); w.document.close(); w.focus(); setTimeout(function(){ w.print(); }, 300); }
+function printOperation(id, type) { var op = state.operations.find(function(o){ return o.id === id; }); if (!op) { showNotif('Документ не знайдено', 'error'); return; } var isIncoming = (type === 'incoming') || (op.type === 'incoming'); var docTitle = isIncoming ? 'Прихід товарів' : 'Видаток товарів'; var whName = (state.warehouse && state.warehouse.name) ? state.warehouse.name : ''; var items = op.items || []; if ((!items || !items.length) && op.product_name) { items = [{ product_name: op.product_name, quantity: op.quantity, price: op.price }]; } var totalAmt = 0; var rows = items.map(function(it){ var q = Number(it.quantity) || 0; var p = Number(it.price) || 0; var sum = q * p; totalAmt += sum; return '<tr><td>' + (it.product_name || '') + '</td><td style="text-align:right">' + q + '</td><td style="text-align:right">' + (p ? p.toFixed(2) : '—') + '</td><td style="text-align:right">' + (sum ? sum.toFixed(2) : '—') + '</td></tr>'; }).join(''); var totalStr = totalAmt > 0 ? totalAmt.toFixed(2) : '—'; var w = window.open('', '_blank'); if (!w) { showNotif('Дозвольте спливаючі вікна для друку', 'error'); return; } w.document.write('<!DOCTYPE html><html lang="uk"><head><meta charset="UTF-8"><title>' + docTitle + '</title><style>body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;padding:32px;color:#111}h1{font-size:22px;margin:0 0 4px}.meta{color:#555;margin-bottom:20px;font-size:14px}.meta div{margin:2px 0}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #ccc;padding:8px 10px;font-size:14px}th{background:#f3f4f6;text-align:left}tfoot td{font-weight:700}.brand{border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:16px}.brand-name{font-size:20px;font-weight:700}.brand-wh{color:#555;font-size:13px;margin-top:2px}.notes{margin-top:20px;padding:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;font-size:14px;white-space:pre-wrap}@media print{body{padding:0}}</style></head><body><div class="brand"><div class="brand-name">Paolla</div>' + (whName ? '<div class="brand-wh">Склад: ' + whName + '</div>' : '') + '</div><h1>' + docTitle + '</h1><div class="meta"><div><b>Дата:</b> ' + (op.date || '') + '</div><div><b>Контрагент:</b> ' + (op.counterparty || '—') + '</div></div><table><thead><tr><th>Товар</th><th style="text-align:right">Кількість</th><th style="text-align:right">Ціна</th><th style="text-align:right">Сума</th></tr></thead><tbody>' + rows + '</tbody><tfoot><tr><td colspan="4" style="text-align:right">Разом:</td><td style="text-align:right">' + totalStr + '</td></tr></tfoot></table>' + (op.notes ? '<div class="notes"><b>Примітки:</b><br>' + op.notes + '</div>' : '') + '</body></html>'); w.document.close(); w.focus(); setTimeout(function(){ w.print(); }, 300); }
 
 
 async function saveReservation(editId) { var counterpartyEl = document.getElementById('op-counterparty'); var counterparty = counterpartyEl ? counterpartyEl.value.trim() : ''; if (!counterparty) { showNotif('\u0412\u0432\u0435\u0434\u0456\u0442\u044c \u043d\u0430\u0437\u0432\u0443 \u043a\u043e\u043d\u0442\u0440\u0430\u0433\u0435\u043d\u0442\u0430', 'error'); return; } var dateEl = document.getElementById('op-date'); var notesEl = document.getElementById('op-notes'); var date = dateEl ? dateEl.value : ''; var notes = notesEl ? notesEl.value.trim() : ''; var tbody = document.getElementById('op-items-body'); var rows = tbody ? tbody.querySelectorAll('tr') : []; var items = []; var hasError = false; rows.forEach(function(tr) { if (hasError) return; var sel = tr.querySelector('select'); var qtyInp = tr.querySelector('input[type=number],input:not([type])'); if (!sel || !qtyInp) return; var productId = sel.value; var productName = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : ''; var qty = parseFloat(qtyInp.value); var priceInp = tr.querySelectorAll('input')[1]; var price = priceInp ? parseFloat(priceInp.value) || 0 : 0; if (!productId || isNaN(qty) || qty <= 0) { showNotif('\u0417\u0430\u043f\u043e\u0432\u043d\u0456\u0442\u044c \u0443\u0441\u0456 \u043f\u043e\u043b\u044f \u0442\u043e\u0432\u0430\u0440\u0456\u0432', 'error'); hasError = true; return; } items.push({product_id: productId, product_name: productName, quantity: qty, price: price}); }); if (hasError) return; var op = {id: Date.now(), type: 'outgoing', status: 'reserved', counterparty: counterparty, date: date, notes: notes, items: items}; state.operations.push(op); await saveSnapshot(); closeModal(); renderOperation('outgoing'); showNotif('\u0417\u0430\u0440\u0435\u0437\u0435\u0440\u0432\u043e\u0432\u0430\u043d\u043e', 'success'); }function deleteOperation(id, type) {
@@ -1811,8 +1811,8 @@ async function renderTeam() {
   pc.innerHTML = `
 <div class="table-container">
 <div class="table-header"><h3>👥 Команда</h3><button class="btn btn-primary" onclick="openInviteModal()">+ Запросити</button></div>
-<table><thead><tr><th>Учасник</th><th>Роль</th><th>Дата додавання</th></tr></thead><tbody>
-<tr><td colspan="3" style="color:var(--text2)">Завантаження...</td></tr>
+<table><thead><tr><th>Учасник</th><th>Роль</th><th>Дата додавання</th><th>Дії</th></tr></thead><tbody>
+<tr><td colspan="4" style="color:var(--text2)">Завантаження...</td></tr>
 </tbody></table></div>`;
   const roleNames = { owner:'Власник', editor:'Редактор', manager:'Менеджер', worker:'Працівник', viewer:'Спостерігач' };
   const roleBadge = { owner:'badge-green', editor:'badge-green', manager:'badge-blue', worker:'badge-blue', viewer:'badge-gray' };
@@ -1827,17 +1827,41 @@ async function renderTeam() {
       const rn = roleNames[m.access_mode] || m.access_mode || '?';
       const rb = roleBadge[m.access_mode] || 'badge-gray';
       const dt = new Date(m.created_at || Date.now()).toLocaleDateString('uk-UA');
-      rows += `<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:32px;height:32px;font-size:13px">${initial}</div><div>${name}${isMe ? ' <span style=\'color:var(--text2);font-size:11px\'>(Ви)</span>' : ''}</div></div></td><td><span class="badge ${rb}">${rn}</span></td><td>${dt}</td></tr>`;
+      rows += `<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:32px;height:32px;font-size:13px">${initial}</div><div>${name}${isMe ? ' <span style=\'color:var(--text2);font-size:11px\'>(Ви)</span>' : ''}</div></div></td><td><span class="badge ${rb}">${rn}</span></td><td>${dt}</td><td>${m.access_mode!=='owner' ? ('<button class="btn btn-secondary btn-sm" onclick="openEditRoleModal(&apos;'+m.id+'&apos;)">✏️</button>') : '—'}</td></tr>`;
     });
-    if (!rows) rows = `<tr><td colspan="3" style="color:var(--text2)">—</td></tr>`;
+    if (!rows) rows = `<tr><td colspan="4" style="color:var(--text2)">—</td></tr>`;
   } catch(e) {
-    rows = `<tr><td colspan="3" style="color:var(--danger)">Не вдалося завантажити список: ${e.message||e}</td></tr>`;
+    rows = `<tr><td colspan="4" style="color:var(--danger)">Не вдалося завантажити список: ${e.message||e}</td></tr>`;
   }
   const tbody = pc.querySelector('tbody');
   if (tbody) tbody.innerHTML = rows;
 }
 
-async function createAccess() {
+async function openEditRoleModal(memberId) {
+      const { data: m, error } = await sb.from('warehouse_members').select('*').eq('id', memberId).single();
+      if (error || !m) { showNotif('Учасника не знайдено', 'error'); return; }
+      document.getElementById('modal-title').textContent = 'Змінити роль';
+      document.getElementById('modal-body').innerHTML = `<div class="form-group"><label class="form-label">Роль</label><select class="form-select" id="edit-role-select"><option value="manager" ${m.access_mode==='manager'?'selected':''}>Менеджер</option><option value="worker" ${m.access_mode==='worker'?'selected':''}>Працівник</option><option value="viewer" ${m.access_mode==='viewer'?'selected':''}>Спостерігач</option></select></div>`;
+      document.getElementById('modal-footer').innerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="saveMemberRole('${memberId}')">Зберегти</button>`;
+      document.getElementById('modal-overlay').style.display = 'flex';
+}
+      
+      async function saveMemberRole(memberId) {
+            const sel = document.getElementById('edit-role-select');
+            const newRole = sel ? sel.value : null;
+            if (!newRole) return;
+            try {
+                  const { error } = await sb.from('warehouse_members').update({ access_mode: newRole }).eq('id', memberId);
+                  if (error) throw error;
+                  closeModal();
+                  await renderTeam();
+                  showNotif('Роль оновлено', 'success');
+            } catch(e) {
+                  showNotif('Помилка оновлення ролі: ' + (e.message||e), 'error');
+            }
+      }
+      
+      async function createAccess() {
   const email = (document.getElementById('invite-email')||{}).value||'';
   const password = (document.getElementById('invite-password')||{}).value||'';
   const role = (document.getElementById('invite-role')||{}).value||'viewer';
