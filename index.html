@@ -929,6 +929,21 @@ renderProducts();
 showNotif('Товар відправлено в архів', 'success');
 }
 
+function archiveOperation(id, type){
+  var op = state.operations.find(function(x){ return String(x.id) === String(id); });
+  if(!op) return;
+  op.archived = true;
+  saveSnapshot();
+  renderOperation(type);
+}
+function unarchiveOperation(id, type){
+  var op = state.operations.find(function(x){ return String(x.id) === String(id); });
+  if(!op) return;
+  op.archived = false;
+  saveSnapshot();
+  renderOperation(type);
+}
+
 async function unarchiveProduct(id) {
 const p = state.products.find(x => String(x.id) === String(id));
 if (!p) return;
@@ -953,7 +968,7 @@ function renderOperation(type) {
   if (ops.length === 0) {
     html += '<tr><td colspan="4"><div class="empty-state"><div class="icon">' + icon + '</div><h3>Немає операцій</h3><p>Додайте першу операцію</p></div></td></tr>';
   } else {
-    ops.slice().reverse().forEach(function(o) {
+    ops.slice().reverse().sort(function(a,b){return (a.archived?1:0)-(b.archived?1:0);}).forEach(function(o) {
       var items = o.items;
       if (!items && o.product_name) {
         items = [{product_id: o.product_id, product_name: o.product_name, quantity: o.quantity, price: o.price}];
@@ -970,7 +985,7 @@ function renderOperation(type) {
       html += '<td>' + (o.date || '—') + '</td>';
       html += '<td>' + counterparty + '</td>';
       html += '<td>' + totalStr + '</td>';
-      html += '<td><button class="btn btn-sm" title="Редагувати" onclick="editOperation(' + o.id + ',&apos;' + type + '&apos;)">✏️</button> <button class="btn btn-sm" title="Друк" onclick="printOperation(' + o.id + ',&apos;' + type + '&apos;)">🖨️</button> <button class="btn btn-sm btn-danger" onclick="deleteOperation(' + o.id + ',&apos;' + type + '&apos;)">✕</button></td>';
+      html += '<td><button class="btn btn-sm" title="Редагувати" onclick="editOperation(' + o.id + ',&apos;' + type + '&apos;)">✏️</button> <button class="btn btn-sm" title="Друк" onclick="printOperation(' + o.id + ',&apos;' + type + '&apos;)">🖨️</button> <button title="' + (o.archived ? 'Повернути з архіву' : 'Архівувати') + '" onclick="' + (o.archived ? 'unarchiveOperation' : 'archiveOperation') + '(' + o.id + ',&apos;' + type + '&apos;)">' + (o.archived ? '↩️' : '📥') + '</button><button class="btn btn-sm btn-danger" onclick="deleteOperation(' + o.id + ',&apos;' + type + '&apos;)">✕</button></td>';
       html += '</tr>';
     });
   }
