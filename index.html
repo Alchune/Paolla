@@ -977,23 +977,21 @@ function renderOperation(type) {
   var title = isIncoming ? 'Прихід товарів' : 'Видаток товарів';
   var btnLabel = isIncoming ? '+ Новий прихід' : '+ Новий видаток';
   var ops = state.operations.filter(function(o) { return o.type === type; });
-  var html = '<div class="table-container">';
-  html += '<div class="table-header"><h3>' + icon + ' ' + title + '</h3><div class="table-search"><button class="btn btn-primary" id="add-op-btn">' + btnLabel + '</button></div></div>';
-  html += '<table class="data-table"><thead><tr><th>Дата</th><th>Контрагент</th><th>Сума</th><th>Дії</th></tr></thead><tbody>';
-  if (ops.length === 0) {
-    html += '<tr><td colspan="4"><div class="empty-state"><div class="icon">' + icon + '</div><h3>Немає операцій</h3><p>Додайте першу операцію</p></div></td></tr>';
-  } else {
-    ops.slice().reverse().sort(function(a,b){return (a.archived?1:0)-(b.archived?1:0);}).forEach(function(o) {
+  var activeOps = isIncoming ? ops : ops.filter(function(o) { return o.status !== 'conducted' && !o.archived; });
+  var conductedOps = isIncoming ? [] : ops.filter(function(o) { return o.status === 'conducted' || o.archived; });
+
+  function renderRows(list, emptyText) {
+    if (list.length === 0) {
+      return '<tr><td colspan="4"><div class="empty-state"><div class="icon">' + icon + '</div><h3>' + emptyText + '</h3></div></td></tr>';
+    }
+    return list.slice().reverse().forEach(function(o) {
       var items = o.items;
       if (!items && o.product_name) {
         items = [{product_id: o.product_id, product_name: o.product_name, quantity: o.quantity, price: o.price}];
       }
       items = items || [];
       var totalAmt = 0;
-      var itemsSummary = items.map(function(it) {
-        totalAmt += (Number(it.quantity) || 0) * (Number(it.price) || 0);
-        return it.product_name + ' ×' + it.quantity;
-      }).join('; ');
+      items.forEach(function(it) { totalAmt += (Number(it.quantity) || 0) * (Number(it.price) || 0); });
       var totalStr = totalAmt > 0 ? totalAmt.toFixed(2) : '—';
       var counterparty = o.counterparty || '—';
       html += '<tr>';
@@ -1002,14 +1000,26 @@ function renderOperation(type) {
       html += '<td>' + totalStr + '</td>';
       html += '<td><button class="btn btn-sm" title="Редагувати" onclick="editOperation(' + o.id + ',&apos;' + type + '&apos;)">✏️</button> <button class="btn btn-sm" title="Друк" onclick="printOperation(' + o.id + ',&apos;' + type + '&apos;)">🖨️</button> <button title="' + (o.archived ? 'Повернути з архіву' : 'Архівувати') + '" onclick="' + (o.archived ? 'unarchiveOperation' : 'archiveOperation') + '(' + o.id + ',&apos;' + type + '&apos;)">' + (o.archived ? '↩️' : '📥') + '</button><button class="btn btn-sm btn-danger" onclick="deleteOperation(' + o.id + ',&apos;' + type + '&apos;)">✕</button></td>';
       html += '</tr>';
-    });
+    }) || '';
   }
+
+  var html = '<div class="table-container">';
+  html += '<div class="table-header"><h3>' + icon + ' ' + title + '</h3><div class="table-search"><button class="btn btn-primary" id="add-op-btn">' + btnLabel + '</button></div></div>';
+  html += '<table class="data-table"><thead><tr><th>Дата</th><th>Контрагент</th><th>Сума</th><th>Дії</th></tr></thead><tbody>';
+  html += renderRows(activeOps, isIncoming ? 'Немає операцій' : 'Немає непроведених видатків');
   html += '</tbody></table></div>';
+
+  if (!isIncoming) {
+    html += '<h3 style="margin:24px 0 12px">Проведено</h3>';
+    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Дата</th><th>Контрагент</th><th>Сума</th><th>Дії</th></tr></thead><tbody>';
+    html += renderRows(conductedOps, 'Немає проведених видатків');
+    html += '</tbody></table></div>';
+  }
+
   document.getElementById('page-content').innerHTML = html;
   var btn = document.getElementById('add-op-btn');
   if (btn) btn.addEventListener('click', function() { openOperationModal(type); });
 }
-
 
 function openOperationModal(type, editOp) {
   var isIncoming = (type === 'incoming');
@@ -1216,7 +1226,7 @@ async function saveOperation(type, editId) {
     showNotif('Операцію оновлено', 'success');
     return;
   }
-  var op = { id: Date.now(), type: type, counterparty: counterparty, date: date, notes: notes, items: items };
+  var op = { id: Date.now(), type: type, status: type === 'outgoing' ? 'conducted' : 'saved', counterparty: counterparty, date: date, notes: notes, items: items };
   state.operations.push(op);
   await saveSnapshot();
   closeModal();
