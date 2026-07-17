@@ -984,7 +984,7 @@ function renderOperation(type) {
     if (list.length === 0) {
       return '<tr><td colspan="4"><div class="empty-state"><div class="icon">' + icon + '</div><h3>' + emptyText + '</h3></div></td></tr>';
     }
-    return list.slice().reverse().forEach(function(o) {
+    return list.slice().reverse().map(function(o) {
       var items = o.items;
       if (!items && o.product_name) {
         items = [{product_id: o.product_id, product_name: o.product_name, quantity: o.quantity, price: o.price}];
@@ -994,13 +994,13 @@ function renderOperation(type) {
       items.forEach(function(it) { totalAmt += (Number(it.quantity) || 0) * (Number(it.price) || 0); });
       var totalStr = totalAmt > 0 ? totalAmt.toFixed(2) : '—';
       var counterparty = o.counterparty || '—';
-      html += '<tr>';
-      html += '<td>' + (o.date || '—') + '</td>';
-      html += '<td>' + counterparty + '</td>';
-      html += '<td>' + totalStr + '</td>';
-      html += '<td><button class="btn btn-sm" title="Редагувати" onclick="editOperation(' + o.id + ',&apos;' + type + '&apos;)">✏️</button> <button class="btn btn-sm" title="Друк" onclick="printOperation(' + o.id + ',&apos;' + type + '&apos;)">🖨️</button> <button title="' + (o.archived ? 'Повернути з архіву' : 'Архівувати') + '" onclick="' + (o.archived ? 'unarchiveOperation' : 'archiveOperation') + '(' + o.id + ',&apos;' + type + '&apos;)">' + (o.archived ? '↩️' : '📥') + '</button><button class="btn btn-sm btn-danger" onclick="deleteOperation(' + o.id + ',&apos;' + type + '&apos;)">✕</button></td>';
-      html += '</tr>';
-    }) || '';
+      return '<tr>' +
+        '<td>' + (o.date || '—') + '</td>' +
+        '<td>' + counterparty + '</td>' +
+        '<td>' + totalStr + '</td>' +
+        '<td><button class="btn btn-sm" title="Редагувати" onclick="editOperation(' + o.id + ',&apos;' + type + '&apos;)">✏️</button> <button class="btn btn-sm" title="Друк" onclick="printOperation(' + o.id + ',&apos;' + type + '&apos;)">🖨️</button> <button title="' + (o.archived ? 'Повернути з архіву' : 'Архівувати') + '" onclick="' + (o.archived ? 'unarchiveOperation' : 'archiveOperation') + '(' + o.id + ',&apos;' + type + '&apos;)">' + (o.archived ? '↩️' : '📥') + '</button><button class="btn btn-sm btn-danger" onclick="deleteOperation(' + o.id + ',&apos;' + type + '&apos;)">✕</button></td>' +
+        '</tr>';
+    }).join('');
   }
 
   var html = '<div class="table-container">';
