@@ -386,7 +386,7 @@ document.getElementById('auth-screen').style.display = 'none';
   await loadWarehouse();
   applyRoleAccess();
   await loadData();
-  navigate(defaultPageForRole());
+  navigate(restoredPageForRole());
 }
 
 async function loadWarehouse() {
@@ -500,6 +500,20 @@ function defaultPageForRole() {
   return state.accessMode === 'worker' ? 'orders' : 'dashboard';
 }
 
+function activePageStorageKey() {
+  const userId = state.user && state.user.id ? state.user.id : 'anonymous';
+  const warehouseId = state.warehouse && state.warehouse.id ? state.warehouse.id : 'default';
+  return `paolla_active_page:${userId}:${warehouseId}`;
+}
+
+function restoredPageForRole() {
+  try {
+    const savedPage = localStorage.getItem(activePageStorageKey());
+    if (savedPage && canAccessPage(savedPage)) return savedPage;
+  } catch (e) {}
+  return defaultPageForRole();
+}
+
 function canAccessPage(page) {
   const allowed = allowedPagesForRole(state.accessMode);
   return !allowed || allowed.includes(page);
@@ -528,6 +542,7 @@ function applyRoleAccess() {
 function navigate(page) {
   if (!canAccessPage(page)) page = defaultPageForRole();
   state.currentPage = page;
+  try { localStorage.setItem(activePageStorageKey(), page); } catch (e) {}
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
   const navEl = document.getElementById('nav-' + page);
   if (navEl) navEl.classList.add('active');
