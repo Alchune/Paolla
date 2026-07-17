@@ -1126,7 +1126,7 @@ function openOperationModal(type, editOp) {
   var btnSave = document.createElement('button');
   btnSave.type = 'button';
   btnSave.className = 'btn';
-  btnSave.textContent = 'Зберегти';
+  btnSave.textContent = isIncoming ? 'Зберегти' : 'Провести';
   if (editOp) {
     document.getElementById('modal-title').textContent = isIncoming ? 'Редагувати прихід' : 'Редагувати видаток';
     var cpEl = document.getElementById('op-counterparty');
