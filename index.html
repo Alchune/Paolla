@@ -1024,7 +1024,7 @@ function openOperationModal(type, editOp) {
 
   function buildProductOptions() {
     var html = '<option value="">— Оберіть товар —</option>';
-    state.products.forEach(function(p) {
+    sortProductsByName(state.products).forEach(function(p) {
       html += '<option value="' + p.id + '" data-name="' + (p.name || '') + '" data-unit="' + (p.unit || '') + '">' + p.name + (p.unit ? ' (' + p.unit + ')' : '') + '</option>';
     });
     return html;
