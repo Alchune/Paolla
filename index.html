@@ -2016,14 +2016,17 @@ function printOperation(op) { var title = op ? (op.type === 'income' ? '\u041F\u
   
     // ===== Edit/Duplicate buttons for orders (added) =====
     window.duplicateOrder = function(id){
-      var srcBtn = Array.prototype.slice.call(document.querySelectorAll('button')).find(function(b){ return b.textContent.trim()==='Відкрити' && (b.getAttribute('onclick')||'').indexOf('openOrderView('+id+')')>=0; });
+      var srcBtn = Array.prototype.slice.call(document.querySelectorAll('button')).find(function(b){
+        var oc = b.getAttribute('onclick') || '';
+        return oc.indexOf('duplicateOrder(' + id + ')') >= 0;
+      });
       var row = srcBtn ? srcBtn.closest('tr') : null;
       var cells = row ? Array.prototype.slice.call(row.children) : [];
       var txt = function(i){ return (cells[i] && cells[i].textContent || '').trim(); };
-      var cehiCell = cells[4];
+      var cehiCell = cells[3];
       var cehiList = cehiCell ? Array.prototype.slice.call(cehiCell.querySelectorAll('*')).map(function(e){return e.textContent.trim();}).filter(function(v,i,a){return v && a.indexOf(v)===i;}) : [];
-      if(!cehiList.length){ cehiList = txt(4).split('\n').map(function(s){return s.trim();}).filter(Boolean); }
-      var src = { client: txt(1), product: txt(2), qty: txt(5).replace(/[^0-9.]/g,'') || '1' };
+      if(!cehiList.length){ cehiList = txt(3).split('\n').map(function(s){return s.trim();}).filter(Boolean); }
+      var src = { client: txt(1), product: txt(2), qty: txt(4).replace(/[^0-9.]/g,'') || '1' };
       openOrderModal();
       var setSel = function(sel,val){ if(!sel||!val) return false; var o=Array.prototype.slice.call(sel.options).find(function(o){return o.value===val||o.textContent.trim()===val;}); if(o){ sel.value=o.value; sel.dispatchEvent(new Event('change',{bubbles:true})); return true; } return false; };
       setTimeout(function(){
