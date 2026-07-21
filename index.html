@@ -1035,7 +1035,7 @@ function openOperationModal(type, editOp) {
   function buildProductOptions() {
     var html = '<option value="">— Оберіть товар —</option>';
     sortProductsByName(state.products).forEach(function(p) {
-      html += '<option value="' + p.id + '" data-name="' + (p.name || '') + '" data-unit="' + (p.unit || '') + '">' + p.name + (p.unit ? ' (' + p.unit + ')' : '') + '</option>';
+      html += '<option value="' + p.id + '" data-name="' + (p.name || '') + '" data-unit="' + (p.unit || '') + '">' + p.name + (p.unit ? ' (' + p.unit + ')' : '') + ' — ' + (p.quantity || 0) + '</option>';
     });
     return html;
   }
