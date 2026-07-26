@@ -1142,7 +1142,16 @@ function openOperationModal(type, editOp) {
     var cpEl = document.getElementById('op-counterparty');
     var dtEl = document.getElementById('op-date');
     var ntEl = document.getElementById('op-notes');
-    if (cpEl) cpEl.value = editOp.counterparty || '';
+    if (cpEl) {
+      var cpVal = editOp.counterparty || '';
+      if (cpVal && !Array.prototype.some.call(cpEl.options, function(o) { return o.value === cpVal; })) {
+        var extraOpt = document.createElement('option');
+        extraOpt.value = cpVal;
+        extraOpt.textContent = cpVal;
+        cpEl.appendChild(extraOpt);
+      }
+      cpEl.value = cpVal;
+    }
     if (dtEl) dtEl.value = editOp.date || '';
     if (ntEl) ntEl.value = editOp.notes || '';
   }
@@ -1193,32 +1202,27 @@ async function saveOperation(type, editId) {
   if (hasError) return;
   if (items.length === 0) { showNotif('Додайте хоча б один товар', 'error'); return; }
 
-  items.forEach(function(it) {
-    var prod = state.products.find(function(p) { return String(p.id) === String(it.product_id); });
-    if (prod) {
-      if (type === 'incoming') {
-        prod.quantity = (Number(prod.quantity) || 0) + it.quantity;
-      } else {
-        prod.quantity = Math.max(0, (Number(prod.quantity) || 0) - it.quantity);
-      }
-    }
-  });
+  function applyStockChange(list, sign, opType) {
+    (list || []).forEach(function(it) {
+      var prod = state.products.find(function(p) { return String(p.id) === String(it.product_id); });
+      if (!prod) return;
+      var dir = (opType === 'incoming') ? 1 : -1;
+      prod.quantity = Math.max(0, (Number(prod.quantity) || 0) + dir * sign * Number(it.quantity || 0));
+    });
+  }
 
-  if (editId != null) {
-    var existing = state.operations.find(function(o) { return o.id === editId; });
+  if (editId !== null && editId !== undefined) {
+    var existing = state.operations.find(function(o) { return String(o.id) === String(editId); });
     if (existing) {
-      var oldItems = existing.items || [];
-      oldItems.forEach(function(it) {
-        var prod = state.products.find(function(p) { return String(p.id) === String(it.product_id); });
-        if (prod) {
-          if (existing.type === 'incoming') { prod.quantity = Math.max(0, (Number(prod.quantity) || 0) - Number(it.quantity)); }
-          else { prod.quantity = (Number(prod.quantity) || 0) + Number(it.quantity); }
-        }
-      });
+      if (existing.type === 'incoming' || existing.status === 'conducted') {
+        applyStockChange(existing.items, -1, existing.type);
+      }
       existing.counterparty = counterparty;
       existing.date = date;
       existing.notes = notes;
       existing.items = items;
+      if (type === 'outgoing') { existing.status = 'conducted'; existing.archived = true; }
+      applyStockChange(items, 1, type);
     }
     await saveSnapshot();
     closeModal();
@@ -1226,6 +1230,7 @@ async function saveOperation(type, editId) {
     showNotif('Операцію оновлено', 'success');
     return;
   }
+  applyStockChange(items, 1, type);
   var op = { id: Date.now(), type: type, status: type === 'outgoing' ? 'conducted' : 'saved', archived: type === 'outgoing', counterparty: counterparty, date: date, notes: notes, items: items };
   state.operations.push(op);
   await saveSnapshot();
@@ -1238,7 +1243,7 @@ async function saveOperation(type, editId) {
 function printOperation(id, type) { var op = state.operations.find(function(o){ return o.id === id; }); if (!op) { showNotif('Документ не знайдено', 'error'); return; } var isIncoming = (type === 'incoming') || (op.type === 'incoming'); var docTitle = isIncoming ? 'Прихід товарів' : 'Видаток товарів'; var whName = (state.warehouse && state.warehouse.name) ? state.warehouse.name : ''; var items = op.items || []; if ((!items || !items.length) && op.product_name) { items = [{ product_name: op.product_name, quantity: op.quantity, price: op.price }]; } var totalAmt = 0; var rows = items.map(function(it){ var q = Number(it.quantity) || 0; var p = Number(it.price) || 0; var sum = q * p; totalAmt += sum; return '<tr><td>' + (it.product_name || '') + '</td><td style="text-align:right">' + q + '</td><td style="text-align:right">' + (p ? p.toFixed(2) : '—') + '</td><td style="text-align:right">' + (sum ? sum.toFixed(2) : '—') + '</td></tr>'; }).join(''); var totalStr = totalAmt > 0 ? totalAmt.toFixed(2) : '—'; var w = window.open('', '_blank'); if (!w) { showNotif('Дозвольте спливаючі вікна для друку', 'error'); return; } w.document.write('<!DOCTYPE html><html lang="uk"><head><meta charset="UTF-8"><title>' + docTitle + '</title><style>body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;padding:32px;color:#111}h1{font-size:22px;margin:0 0 4px}.meta{color:#555;margin-bottom:20px;font-size:14px}.meta div{margin:2px 0}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #ccc;padding:8px 10px;font-size:14px}th{background:#f3f4f6;text-align:left}tfoot td{font-weight:700}.brand{border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:16px}.brand-name{font-size:20px;font-weight:700}.brand-wh{color:#555;font-size:13px;margin-top:2px}.notes{margin-top:20px;padding:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;font-size:14px;white-space:pre-wrap}@media print{body{padding:0}}</style></head><body><div class="brand"><div class="brand-name">Paolla</div>' + (whName ? '<div class="brand-wh">Склад: ' + whName + '</div>' : '') + '</div><h1>' + docTitle + '</h1><div class="meta"><div><b>Дата:</b> ' + (op.date || '') + '</div><div><b>Контрагент:</b> ' + (op.counterparty || '—') + '</div></div><table><thead><tr><th>Товар</th><th style="text-align:right">Кількість</th><th style="text-align:right">Ціна</th><th style="text-align:right">Сума</th></tr></thead><tbody>' + rows + '</tbody><tfoot><tr><td colspan="4" style="text-align:right">Разом:</td><td style="text-align:right">' + totalStr + '</td></tr></tfoot></table>' + (op.notes ? '<div class="notes"><b>Примітки:</b><br>' + op.notes + '</div>' : '') + '</body></html>'); w.document.close(); w.focus(); setTimeout(function(){ w.print(); }, 300); }
 
 
-async function saveReservation(editId) { var counterpartyEl = document.getElementById('op-counterparty'); var counterparty = counterpartyEl ? counterpartyEl.value.trim() : ''; if (!counterparty) { showNotif('\u0412\u0432\u0435\u0434\u0456\u0442\u044c \u043d\u0430\u0437\u0432\u0443 \u043a\u043e\u043d\u0442\u0440\u0430\u0433\u0435\u043d\u0442\u0430', 'error'); return; } var dateEl = document.getElementById('op-date'); var notesEl = document.getElementById('op-notes'); var date = dateEl ? dateEl.value : ''; var notes = notesEl ? notesEl.value.trim() : ''; var tbody = document.getElementById('op-items-body'); var rows = tbody ? tbody.querySelectorAll('tr') : []; var items = []; var hasError = false; rows.forEach(function(tr) { if (hasError) return; var sel = tr.querySelector('select'); var qtyInp = tr.querySelector('input[type=number],input:not([type])'); if (!sel || !qtyInp) return; var productId = sel.value; var productName = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : ''; var qty = parseFloat(qtyInp.value); var priceInp = tr.querySelectorAll('input')[1]; var price = priceInp ? parseFloat(priceInp.value) || 0 : 0; if (!productId || isNaN(qty) || qty <= 0) { showNotif('\u0417\u0430\u043f\u043e\u0432\u043d\u0456\u0442\u044c \u0443\u0441\u0456 \u043f\u043e\u043b\u044f \u0442\u043e\u0432\u0430\u0440\u0456\u0432', 'error'); hasError = true; return; } items.push({product_id: productId, product_name: productName, quantity: qty, price: price}); }); if (hasError) return; var op = {id: Date.now(), type: 'outgoing', status: 'reserved', counterparty: counterparty, date: date, notes: notes, items: items}; state.operations.push(op); await saveSnapshot(); closeModal(); renderOperation('outgoing'); showNotif('\u0417\u0430\u0440\u0435\u0437\u0435\u0440\u0432\u043e\u0432\u0430\u043d\u043e', 'success'); }function deleteOperation(id, type) {
+async function saveReservation(editId) { var counterpartyEl = document.getElementById('op-counterparty'); var counterparty = counterpartyEl ? counterpartyEl.value.trim() : ''; if (!counterparty) { showNotif('\u0412\u0432\u0435\u0434\u0456\u0442\u044c \u043d\u0430\u0437\u0432\u0443 \u043a\u043e\u043d\u0442\u0440\u0430\u0433\u0435\u043d\u0442\u0430', 'error'); return; } var dateEl = document.getElementById('op-date'); var notesEl = document.getElementById('op-notes'); var date = dateEl ? dateEl.value : ''; var notes = notesEl ? notesEl.value.trim() : ''; var tbody = document.getElementById('op-items-body'); var rows = tbody ? tbody.querySelectorAll('tr') : []; var items = []; var hasError = false; rows.forEach(function(tr) { if (hasError) return; var sel = tr.querySelector('select'); var qtyInp = tr.querySelector('input[type=number],input:not([type])'); if (!sel || !qtyInp) return; var productId = sel.value; var productName = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : ''; var qty = parseFloat(qtyInp.value); var priceInp = tr.querySelectorAll('input')[1]; var price = priceInp ? parseFloat(priceInp.value) || 0 : 0; if (!productId || isNaN(qty) || qty <= 0) { showNotif('\u0417\u0430\u043f\u043e\u0432\u043d\u0456\u0442\u044c \u0443\u0441\u0456 \u043f\u043e\u043b\u044f \u0442\u043e\u0432\u0430\u0440\u0456\u0432', 'error'); hasError = true; return; } items.push({product_id: productId, product_name: productName, quantity: qty, price: price}); }); if (hasError) return; var existingRes = (editId !== null && editId !== undefined) ? state.operations.find(function(o) { return String(o.id) === String(editId); }) : null; if (existingRes) { existingRes.type = 'outgoing'; existingRes.status = 'reserved'; existingRes.archived = false; existingRes.counterparty = counterparty; existingRes.date = date; existingRes.notes = notes; existingRes.items = items; } else { var op = {id: Date.now(), type: 'outgoing', status: 'reserved', counterparty: counterparty, date: date, notes: notes, items: items}; state.operations.push(op); } await saveSnapshot(); closeModal(); renderOperation('outgoing'); showNotif('\u0417\u0430\u0440\u0435\u0437\u0435\u0440\u0432\u043e\u0432\u0430\u043d\u043e', 'success'); }function deleteOperation(id, type) {
   if (!confirm('Видалити цю операцію?')) return;
   var op = state.operations.find(function(o) { return o.id === id; });
   if (op) {
