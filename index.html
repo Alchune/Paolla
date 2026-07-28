@@ -1338,7 +1338,7 @@ function renderOrders() {
 function openOrderModal() {
   document.getElementById('modal-title').textContent = 'Новий наряд';
   document.getElementById('modal-overlay').style.display = 'flex';
-  var nextNum = String(state.orders.length + 1).padStart(4, '0');
+  var nextNum = String(state.orders.reduce(function(m, o) { var s = String(o.number || ''); var n = parseInt(s, 10); return (/^[0-9]+$/.test(s) && n > m) ? n : m; }, 0) + 1).padStart(4, '0');
   window._orderOps = [];
   document.getElementById('modal-body').innerHTML =
     '<div class="form-row"><div class="form-group"><label class="form-label">Назва наряду</label><input class="form-input" id="o-num" value="'+nextNum+'"></div>' +
