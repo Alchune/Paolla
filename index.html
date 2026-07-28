@@ -2383,3 +2383,97 @@ setInterval(sched,700);                              var wrap = document.createE
 </html>
 
 <style>.js-table-scroll table th:last-child,.js-table-scroll table td:last-child{position:sticky;right:0;background:transparent;z-index:2;}.js-table-scroll table tr:hover td:last-child{background:transparent;}.js-icon-btn{width:32px!important;min-width:32px!important;height:32px!important;padding:0!important;margin:0 3px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;border-radius:8px!important;font-size:14px!important;line-height:1!important;}</style></style>
+
+
+<script>
+/* === Операції по конкретному товару: блок внизу карточки товару === */
+(function(){
+  function ST(){ return (typeof state!=='undefined'&&state)?state:(window.state||{}); }
+  function esc(v){ return String(v==null?'':v).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function fmtDate(d){ if(!d) return '-'; var p=String(d).split('-'); return p.length===3?(p[2]+'.'+p[1]+'.'+p[0]):String(d); }
+  function nfmt(n){ n=Number(n)||0; return (Math.round(n*100)/100).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' '); }
+  function collect(productId){
+    var st=ST();
+    var prod=(st.products||[]).filter(function(p){return p.id===productId;})[0];
+    if(!prod) return {rows:[],prod:null};
+    var rows=[];
+    (st.operations||[]).forEach(function(o){
+      var items=o.items;
+      if(!items&&(o.product_id||o.product_name)) items=[{product_id:o.product_id,product_name:o.product_name,quantity:o.quantity,price:o.price}];
+      (items||[]).forEach(function(it){
+        var hit=it.product_id?(it.product_id===productId):(it.product_name&&it.product_name===prod.name);
+        if(!hit) return;
+        rows.push({date:o.date,kind:(o.type==='incoming'?'in':'out'),qty:Number(it.quantity)||0,party:o.counterparty||'',status:o.status||'',archived:!!o.archived,id:o.id});
+      });
+    });
+    (st.orders||[]).forEach(function(o){
+      if(!o.product||o.product!==prod.name) return;
+      rows.push({date:o.date,kind:'order',qty:Number(o.quantity)||0,party:o.client||'',status:o.status||'',number:o.number||'',received:!!o.received,id:o.id});
+    });
+    rows.sort(function(a,b){ var c=String(b.date||'').localeCompare(String(a.date||'')); return c||((b.id||0)-(a.id||0)); });
+    return {rows:rows,prod:prod};
+  }
+  window.getProductOperations=function(id){ return collect(id).rows; };
+  function typeCell(r){
+    if(r.kind==='in') return '<span class="badge badge-green">Прихід</span>';
+    if(r.kind==='out') return '<span class="badge badge-red">Видаток</span>';
+    return '<span class="badge badge-blue">Наряд'+(r.number?(' '+esc(r.number)):'')+'</span>';
+  }
+  function statusCell(r){
+    if(r.kind==='order'){
+      var b=(typeof orderBadge==='function')?orderBadge(r.status):esc(r.status);
+      return b+(r.received?' <span class="badge badge-gray">Оприход.</span>':'');
+    }
+    var s='';
+    if(r.status==='reserved') s='<span class="badge badge-yellow">Резерв</span>';
+    else if(r.status==='conducted') s='<span class="badge badge-green">Проведено</span>';
+    if(r.archived) s+=' <span class="badge badge-gray">Архів</span>';
+    return s||'-';
+  }
+  function ensureStyle(){
+    if(document.getElementById('p-ops-style')) return;
+    var s=document.createElement('style'); s.id='p-ops-style';
+    s.textContent='#p-ops-block table.data-table th,#p-ops-block table.data-table td{padding:6px 8px!important;font-size:12px!important;line-height:1.3!important;white-space:nowrap!important}#p-ops-block .badge{white-space:nowrap!important;font-size:11px!important;padding:2px 6px!important;margin:0}#p-ops-block .p-ops-scroll{max-height:240px;overflow:auto;border-radius:10px}';
+    document.head.appendChild(s);
+  }
+  window.renderProductOperationsHTML=function(productId){
+    var d=collect(productId), rows=d.rows, prod=d.prod;
+    var unit=(prod&&prod.unit)||'';
+    var tin=0,tout=0,tord=0;
+    rows.forEach(function(r){ if(r.kind==='in') tin+=r.qty; else if(r.kind==='out') tout+=r.qty; else tord+=r.qty; });
+    var h='<div style="margin-top:18px;border-top:1px solid rgba(140,140,160,0.25);padding-top:14px">';
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px">';
+    h+='<label class="form-label" style="margin:0">Операції по товару ('+rows.length+')</label>';
+    h+='<div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge badge-green">Прихід: '+nfmt(tin)+' '+esc(unit)+'</span><span class="badge badge-red">Видаток: '+nfmt(tout)+' '+esc(unit)+'</span><span class="badge badge-blue">Наряди: '+nfmt(tord)+' '+esc(unit)+'</span></div>';
+    h+='</div>';
+    if(!rows.length){ h+='<div style="padding:14px;text-align:center;opacity:0.6;font-size:13px">Операцій з цим товаром ще немає</div></div>'; return h; }
+    h+='<div class="p-ops-scroll"><table class="data-table" style="width:100%"><thead><tr><th>Дата</th><th>Тип</th><th>Кількість</th><th>Контрагент</th><th>Статус</th></tr></thead><tbody>';
+    rows.forEach(function(r){
+      var sign=r.kind==='in'?'+':(r.kind==='out'?'-':'');
+      var color=r.kind==='in'?'#2f9e44':(r.kind==='out'?'#e03131':'#1971c2');
+      h+='<tr><td>'+fmtDate(r.date)+'</td><td>'+typeCell(r)+'</td><td style="font-weight:600;color:'+color+'">'+sign+nfmt(r.qty)+' '+esc(unit)+'</td><td>'+esc(r.party||'-')+'</td><td>'+statusCell(r)+'</td></tr>';
+    });
+    h+='</tbody></table></div></div>';
+    return h;
+  };
+  var origOpen=window.openProductModal;
+  if(typeof origOpen==='function'){
+    window.openProductModal=function(id){
+      var res=origOpen.apply(this,arguments);
+      try{
+        if(id){
+          var body=document.getElementById('modal-body');
+          if(body&&!body.querySelector('#p-ops-block')){
+            ensureStyle();
+            var wrap=document.createElement('div');
+            wrap.id='p-ops-block';
+            wrap.innerHTML=window.renderProductOperationsHTML(id);
+            body.appendChild(wrap);
+          }
+        }
+      }catch(e){}
+      return res;
+    };
+  }
+})();
+</script>
