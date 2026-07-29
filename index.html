@@ -180,12 +180,51 @@ tbody tr:last-child td{border-bottom:none}
 .form-row:has(.btn-danger) > span{flex:0 0 auto;}
 .form-row:has(.btn-danger) .form-select{flex:1 1 auto;}
 .form-row:has(.btn-danger) .btn-danger{flex:0 0 auto;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;line-height:1!important;padding:0!important;}
+/* ===== Public Landing (публічна головна) ===== */
+#landing{position:fixed;inset:0;overflow-y:auto;background:var(--bg);z-index:998}
+.lp-header{position:sticky;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 22px;background:var(--card);border-bottom:1px solid var(--border);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.lp-brand{display:flex;align-items:center;gap:12px;min-width:0}
+.lp-brand img{border-radius:12px;object-fit:contain}
+.lp-brand h1{font-size:19px;font-weight:700;color:var(--text)}
+.lp-brand p{font-size:12px;color:var(--text2)}
+.lp-body{max-width:1240px;margin:0 auto;padding:22px}
+.lp-tools{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.lp-tools .search-input{max-width:300px}
+.lp-count{font-size:13px;color:var(--text2)}
+.lp-price{font-size:15px;font-weight:700;color:#0a6cff}
+.lp-msg{grid-column:1/-1;text-align:center;color:var(--text2);padding:40px 10px;font-size:14px}
+.lp-footer{text-align:center;color:var(--text2);font-size:12px;padding:22px}
+.lp-back{display:inline-block;font-size:13px;color:var(--text2);cursor:pointer;margin-bottom:14px}
+.lp-back:hover{color:var(--text)}
+@media(max-width:640px){.lp-body{padding:14px}.lp-brand p{display:none}}
 </style>
 </head>
 <body>
+<!-- Public Landing (показується до входу) -->
+<div id="landing">
+  <div class="lp-header">
+    <div class="lp-brand">
+      <img src="https://huzqgxfklegghzkgryoh.supabase.co/storage/v1/object/public/product-photos/55C59A7C-71B0-459A-8713-2318EC4D1CE8/logo.png" width="40" height="40" alt="Paolla">
+      <div>
+        <h1>Paolla</h1>
+        <p>Модельний ряд у наявності</p>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="showAuth()">Вхід</button>
+  </div>
+  <div class="lp-body">
+    <div class="lp-tools">
+      <div class="lp-count" id="lp-count">Завантаження…</div>
+      <input class="search-input" id="lp-search" placeholder="🔍 Пошук моделі..." oninput="renderPublicCatalog(this.value)">
+    </div>
+    <div class="card-grid" id="lp-grid"><div class="lp-msg">Завантаження каталогу…</div></div>
+  </div>
+  <div class="lp-footer">Paolla — взуття власного виробництва</div>
+</div>
 <!-- Auth Screen -->
-<div id="auth-screen">
+<div id="auth-screen" style="display:none">
 <div class="auth-card">
+      <div class="lp-back" onclick="hideAuth()">← До каталогу</div>
 <div class="auth-logo">
 <div class="icon" style="display:flex;align-items:center;justify-content:center;"><img src="https://huzqgxfklegghzkgryoh.supabase.co/storage/v1/object/public/product-photos/55C59A7C-71B0-459A-8713-2318EC4D1CE8/logo.png" width="64" height="64" alt="logo" style="object-fit:contain;"></div>
 <h1>Paolla</h1>
@@ -371,14 +410,16 @@ async function registerUser() {
 async function logoutUser() {
   await sb.auth.signOut();
   state = { user: null, warehouse: null, products: [], operations: [], orders: [], recipes: [], production: [], members: [], accessMode: 'viewer', currentPage: 'dashboard' };
-  document.getElementById('auth-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
+  showLanding();
 }
 
 // ====== INIT ======
 async function initApp(user) {
   state.user = user;
 document.getElementById('auth-screen').style.display = 'none';
+  var __lp = document.getElementById('landing');
+  if (__lp) __lp.style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   const name = user.user_metadata?.full_name || user.email.split('@')[0];
   document.getElementById('user-name').textContent = name;
@@ -489,6 +530,7 @@ async function saveSnapshot() {
   const data = { products: state.products, operations: state.operations, orders: state.orders, recipes: state.recipes, production: state.production, clients: state.clients, workshops: state.workshops };
   const payload = btoa(JSON.stringify({ alg: 'none' })) + '.' + btoa(unescape(encodeURIComponent(JSON.stringify(data)))) + '.';
   await sb.from('warehouse_snapshots').upsert({ warehouse_id: state.warehouse.id, payload, modified_at: new Date().toISOString(), created_at: new Date().toISOString() });
+  publishCatalog();
 }
 
 // ====== NAVIGATION ======
@@ -2013,10 +2055,91 @@ function printOperation(op) { var title = op ? (op.type === 'income' ? '\u041F\u
   if (!e || e.target === document.getElementById('modal-overlay')) document.getElementById('modal-overlay').style.display = 'none';
 }
 
+// ====== PUBLIC LANDING (публічний каталог до входу) ======
+var PUBLIC_WAREHOUSE_ID = '55c59a7c-71b0-459a-8713-2318ec4d1ce8';
+var PUBLIC_CATALOG_PATH = PUBLIC_WAREHOUSE_ID + '/catalog.json';
+var publicCatalog = [];
+
+function publicCatalogUrl() {
+  return SUPABASE_URL + '/storage/v1/object/public/product-photos/' + PUBLIC_CATALOG_PATH + '?v=' + Date.now();
+}
+
+// Публікує у публічний storage лише те, що має бути видно гостям:
+// назва, ціна, фото моделей, яких є в наявності.
+async function publishCatalog() {
+  try {
+    if (!state.warehouse || state.warehouse.id !== PUBLIC_WAREHOUSE_ID) return;
+    var items = state.products
+      .filter(function(p) { return !p.archived && Number(p.quantity) > 0; })
+      .map(function(p) { return { name: p.name, price: p.price, image: p.image || '', category: p.category || '', unit: p.unit || '' }; })
+      .sort(function(a, b) { return String(a.name).localeCompare(String(b.name), 'uk', { numeric: true }); });
+    var body = new Blob([JSON.stringify({ updated_at: new Date().toISOString(), items: items })], { type: 'application/json' });
+    await sb.storage.from('product-photos').upload(PUBLIC_CATALOG_PATH, body, { upsert: true, contentType: 'application/json', cacheControl: '60' });
+  } catch (e) { console.log('publishCatalog error:', e); }
+}
+
+function renderPublicCatalog(q) {
+  q = (q || '').toLowerCase();
+  var grid = document.getElementById('lp-grid');
+  if (!grid) return;
+  var list = publicCatalog.filter(function(p) {
+    return !q || String(p.name || '').toLowerCase().indexOf(q) >= 0 || String(p.category || '').toLowerCase().indexOf(q) >= 0;
+  });
+  if (!list.length) {
+    grid.innerHTML = '<div class="lp-msg">Нічого не знайдено</div>';
+    return;
+  }
+  grid.innerHTML = list.map(function(p) {
+    return '<div class="item-card">'
+      + '<div class="ic-thumb">' + (p.image ? '<img src="' + p.image + '" loading="lazy" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">' : '📦') + '</div>'
+      + '<div class="ic-name">' + (p.name || '') + '</div>'
+      + '<div class="lp-price">' + formatMoney(p.price) + ' ₴</div>'
+      + '<div class="ic-meta"><span class="badge badge-green">В наявності</span></div>'
+      + '</div>';
+  }).join('');
+}
+
+async function loadPublicCatalog() {
+  var grid = document.getElementById('lp-grid');
+  var cnt = document.getElementById('lp-count');
+  try {
+    var r = await fetch(publicCatalogUrl(), { cache: 'no-store' });
+    if (!r.ok) throw new Error('http ' + r.status);
+    var j = await r.json();
+    publicCatalog = (j && j.items) || [];
+    if (cnt) cnt.textContent = 'Моделей у наявності: ' + publicCatalog.length;
+    var s = document.getElementById('lp-search');
+    renderPublicCatalog(s ? s.value : '');
+  } catch (e) {
+    if (cnt) cnt.textContent = '';
+    if (grid) grid.innerHTML = '<div class="lp-msg">Каталог тимчасово недоступний</div>';
+  }
+}
+
+function showLanding() {
+  var l = document.getElementById('landing');
+  if (l) l.style.display = 'block';
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'none';
+  loadPublicCatalog();
+}
+
+function showAuth() {
+  var l = document.getElementById('landing');
+  if (l) l.style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+function hideAuth() {
+  document.getElementById('auth-screen').style.display = 'none';
+  var l = document.getElementById('landing');
+  if (l) l.style.display = 'block';
+}
+
 // ====== STARTUP ======
 (async () => {
   const { data: { session } } = await sb.auth.getSession();
-  if (session?.user) { await initApp(session.user); }
+  if (session?.user) { await initApp(session.user); } else { showLanding(); }
 })();
   
     // ===== Edit/Duplicate buttons for orders (added) =====
