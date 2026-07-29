@@ -2072,12 +2072,16 @@ async function publishCatalog() {
   try {
     if (!state.warehouse || state.warehouse.id !== PUBLIC_WAREHOUSE_ID) return;
     var items = state.products
-      .filter(function(p) { return !p.archived && Number(p.quantity) > 0; })
+      .filter(function(p) { return !p.archived && Number(p.quantity) > 0 && String(p.category || '').trim().toLowerCase() === 'взуття'; })
       .map(function(p) { return { name: p.name, price: p.price, image: p.image || '', category: p.category || '', unit: p.unit || '' }; })
       .sort(function(a, b) { return String(a.name).localeCompare(String(b.name), 'uk', { numeric: true }); });
     var body = new Blob([JSON.stringify({ updated_at: new Date().toISOString(), items: items })], { type: 'application/json' });
     await sb.storage.from('product-photos').upload(PUBLIC_CATALOG_PATH, body, { upsert: true, contentType: 'application/json', cacheControl: '60' });
   } catch (e) { console.log('publishCatalog error:', e); }
+}
+
+function formatUsd(v) {
+  return '$' + new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(v) || 0);
 }
 
 function renderPublicCatalog(q) {
@@ -2095,7 +2099,7 @@ function renderPublicCatalog(q) {
     return '<div class="item-card">'
       + '<div class="ic-thumb">' + (p.image ? '<img src="' + p.image + '" loading="lazy" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">' : '📦') + '</div>'
       + '<div class="ic-name">' + (p.name || '') + '</div>'
-      + '<div class="lp-price">' + formatMoney(p.price) + ' ₴</div>'
+      + '<div class="lp-price">' + formatUsd(p.price) + '</div>'
       + '<div class="ic-meta"><span class="badge badge-green">В наявності</span></div>'
       + '</div>';
   }).join('');
@@ -2108,7 +2112,7 @@ async function loadPublicCatalog() {
     var r = await fetch(publicCatalogUrl(), { cache: 'no-store' });
     if (!r.ok) throw new Error('http ' + r.status);
     var j = await r.json();
-    publicCatalog = (j && j.items) || [];
+    publicCatalog = (((j && j.items) || [])).filter(function(p) { return String(p.category || '').trim().toLowerCase() === 'взуття'; });
     if (cnt) cnt.textContent = 'Моделей у наявності: ' + publicCatalog.length;
     var s = document.getElementById('lp-search');
     renderPublicCatalog(s ? s.value : '');
