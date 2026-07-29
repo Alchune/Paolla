@@ -198,6 +198,8 @@ tbody tr:last-child td{border-bottom:none}
 .lp-back:hover{color:#1c2330}
 #lp-search{background:rgba(255,255,255,0.75);border:1px solid rgba(255,255,255,0.9);color:#1c2330;border-radius:12px;padding:9px 14px;font-size:13px}
 #lp-search::placeholder{color:#8b93a5}
+#lp-subcat{background:rgba(255,255,255,0.75);border:1px solid rgba(255,255,255,0.9);color:#1c2330;border-radius:12px;padding:9px 14px;font-size:13px;cursor:pointer}
+.lp-filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 @media(max-width:640px){.lp-body{padding:14px}.lp-brand p{display:none}}
 </style>
 </head>
@@ -217,7 +219,10 @@ tbody tr:last-child td{border-bottom:none}
   <div class="lp-body">
     <div class="lp-tools">
       <div class="lp-count" id="lp-count">Завантаження…</div>
-      <input class="search-input" id="lp-search" placeholder="🔍 Пошук моделі..." oninput="renderPublicCatalog(this.value)">
+      <div class="lp-filters">
+        <select id="lp-subcat" onchange="renderPublicCatalog()"><option value="">Всі підкатегорії</option></select>
+        <input class="search-input" id="lp-search" placeholder="🔍 Пошук моделі..." oninput="renderPublicCatalog(this.value)">
+      </div>
     </div>
     <div class="card-grid" id="lp-grid"><div class="lp-msg">Завантаження каталогу…</div></div>
   </div>
@@ -805,7 +810,7 @@ const actions = isArchive
 : `<button class="btn btn-secondary btn-sm" onclick="editProduct('${p.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="archiveProduct('${p.id}')" title="Відправити в архів">📥</button> <button class="btn btn-secondary btn-sm" onclick="deleteProduct('${p.id}')">🗑️</button>`;
 return `<tr>
 <td>${p.image?`<img src="${p.image}" loading="lazy" style="width:32px;height:32px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:8px;cursor:pointer" onclick="openProductGallery('${p.id}')">`:''}<strong>${p.name}</strong></td>
-<td><span class="badge badge-gray">${p.category}</span></td>
+<td><span class="badge badge-gray">${p.category}</span>${p.subcategory ? ` <span class="badge badge-blue">${p.subcategory}</span>` : ''}</td>
 <td>${p.quantity} ${p.unit} <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${Math.min(100,(p.quantity/Math.max(p.min_qty*3,1))*100)}%;background:${p.quantity<=p.min_qty?'var(--danger)':'var(--accent)'}"></div></div></td>
 <td>${formatMoney(p.price)}</td>
 <td>${status}</td>
@@ -824,7 +829,7 @@ var actions = isArchive
 return '<div class="item-card">'
 + '<div class="ic-thumb"' + (p.image ? ' style="cursor:pointer" onclick="openProductGallery(\'' + p.id + '\')"' : '') + '>' + (p.image ? '<img src="' + p.image + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">' : '📦') + '</div>'
 + '<div class="ic-name">' + p.name + '</div>'
-+ '<div class="ic-meta"><span class="badge badge-gray">' + p.category + '</span>' + status + '</div>'
++ '<div class="ic-meta"><span class="badge badge-gray">' + p.category + '</span>' + (String(p.subcategory || '').trim() ? '<span class="badge badge-blue">' + p.subcategory + '</span>' : '') + status + '</div>'
 + '<div class="ic-meta">' + p.quantity + ' ' + p.unit + ' • ' + formatMoney(p.price) + '</div>'
 + actions
 + '</div>';
@@ -834,7 +839,7 @@ return '<div class="card-grid">' + cards + '</div>';
 
 function filterProducts(q) {
 q = q || '';
-const filtered = state.products.filter(p => !p.archived && (p.name.toLowerCase().includes(q.toLowerCase()) || p.category.toLowerCase().includes(q.toLowerCase())));
+const filtered = state.products.filter(p => !p.archived && (p.name.toLowerCase().includes(q.toLowerCase()) || p.category.toLowerCase().includes(q.toLowerCase()) || String(p.subcategory || '').toLowerCase().includes(q.toLowerCase())));
 const sorted = sortProductsByName(filtered);
 document.getElementById('products-body').innerHTML = state.productView === 'grid' ? renderProductGrid(sorted) : renderProductTable(sorted);
 }
@@ -861,6 +866,7 @@ function openProductModal(id) {
 </div>
 <div class="form-row">
 <div class="form-group"><label class="form-label">Категорія</label><input class="form-input" id="p-category" value="${p.category||''}"></div>
+<div class="form-group"><label class="form-label">Підкатегорія</label><input class="form-input" id="p-subcategory" list="p-subcat-list" placeholder="напр. Кросівки" value="${p.subcategory||''}"><datalist id="p-subcat-list">${[...new Set(state.products.map(x => String(x.subcategory||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'uk',{numeric:true})).map(s => `<option value="${s}"></option>`).join('')}</datalist></div>
 <div class="form-group"><label class="form-label">Одиниця</label>
 <select class="form-select" id="p-unit">
 <option value="шт" ${p.unit==='шт'?'selected':''}>шт</option>
@@ -948,6 +954,7 @@ async function saveProduct(id) {
   const p = {
     name: document.getElementById('p-name').value,
     category: document.getElementById('p-category').value || 'Інше',
+    subcategory: (function(){ var e = document.getElementById('p-subcategory'); return e ? e.value.trim() : ''; })(),
     unit: document.getElementById('p-unit').value,
     quantity: parseFloat(document.getElementById('p-qty').value) || 0,
     min_qty: parseFloat(document.getElementById('p-min').value) || 0,
@@ -2073,8 +2080,8 @@ async function publishCatalog() {
     if (!state.warehouse || state.warehouse.id !== PUBLIC_WAREHOUSE_ID) return;
     var items = state.products
       .filter(function(p) { return !p.archived && Number(p.quantity) > 0 && String(p.category || '').trim().toLowerCase() === 'взуття'; })
-      .map(function(p) { return { name: p.name, price: p.price, image: p.image || '', category: p.category || '', unit: p.unit || '' }; })
-      .sort(function(a, b) { return String(a.name).localeCompare(String(b.name), 'uk', { numeric: true }); });
+      .map(function(p) { return { name: p.name, price: p.price, image: p.image || '', category: p.category || '', subcategory: String(p.subcategory || '').trim(), unit: p.unit || '' }; })
+      .sort(function(a, b) { var sa = String(a.subcategory || ''), sb = String(b.subcategory || ''); if (sa && !sb) return -1; if (!sa && sb) return 1; var c = sa.localeCompare(sb, 'uk', { numeric: true }); if (c !== 0) return c; return String(a.name).localeCompare(String(b.name), 'uk', { numeric: true }); });
     var body = new Blob([JSON.stringify({ updated_at: new Date().toISOString(), items: items })], { type: 'application/json' });
     await sb.storage.from('product-photos').upload(PUBLIC_CATALOG_PATH, body, { upsert: true, contentType: 'application/json', cacheControl: '60' });
   } catch (e) { console.log('publishCatalog error:', e); }
@@ -2084,21 +2091,62 @@ function formatUsd(v) {
   return '$' + new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(v) || 0);
 }
 
+function subcatOf(p) { return String((p && p.subcategory) || '').trim(); }
+
+function publicSubcategories() {
+  var seen = {}, out = [];
+  publicCatalog.forEach(function(p) {
+    var s = subcatOf(p);
+    if (s && !seen[s.toLowerCase()]) { seen[s.toLowerCase()] = 1; out.push(s); }
+  });
+  return out.sort(function(a, b) { return a.localeCompare(b, 'uk', { numeric: true }); });
+}
+
+function populateSubcatFilter() {
+  var sel = document.getElementById('lp-subcat');
+  if (!sel) return;
+  var prev = sel.value;
+  var opts = publicSubcategories();
+  sel.innerHTML = '<option value="">Всі підкатегорії</option>'
+    + opts.map(function(s) { return '<option value="' + s + '">' + s + '</option>'; }).join('');
+  if (prev && opts.indexOf(prev) !== -1) sel.value = prev;
+  sel.style.display = opts.length ? '' : 'none';
+}
+
 function renderPublicCatalog(q) {
-  q = (q || '').toLowerCase();
+  var si = document.getElementById('lp-search');
+  if (q === undefined || q === null) q = si ? si.value : '';
+  q = String(q).toLowerCase();
+  var sel = document.getElementById('lp-subcat');
+  var sub = sel ? String(sel.value || '').toLowerCase() : '';
   var grid = document.getElementById('lp-grid');
   if (!grid) return;
   var list = publicCatalog.filter(function(p) {
-    return !q || String(p.name || '').toLowerCase().indexOf(q) >= 0 || String(p.category || '').toLowerCase().indexOf(q) >= 0;
+    var okQ = !q || String(p.name || '').toLowerCase().indexOf(q) >= 0
+      || String(p.category || '').toLowerCase().indexOf(q) >= 0
+      || subcatOf(p).toLowerCase().indexOf(q) >= 0;
+    var okS = !sub || subcatOf(p).toLowerCase() === sub;
+    return okQ && okS;
+  }).sort(function(a, b) {
+    var sa = subcatOf(a), sb = subcatOf(b);
+    if (sa && !sb) return -1;
+    if (!sa && sb) return 1;
+    var c = sa.localeCompare(sb, 'uk', { numeric: true });
+    if (c !== 0) return c;
+    return String(a.name || '').localeCompare(String(b.name || ''), 'uk', { numeric: true });
   });
+  var cnt = document.getElementById('lp-count');
+  if (cnt) cnt.textContent = 'Моделей у наявності: ' + list.length + (list.length !== publicCatalog.length ? ' з ' + publicCatalog.length : '');
   if (!list.length) {
     grid.innerHTML = '<div class="lp-msg">Нічого не знайдено</div>';
     return;
   }
   grid.innerHTML = list.map(function(p) {
+    var sc = subcatOf(p);
     return '<div class="item-card">'
       + '<div class="ic-thumb">' + (p.image ? '<img src="' + p.image + '" loading="lazy" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">' : '📦') + '</div>'
       + '<div class="ic-name">' + (p.name || '') + '</div>'
+      + (sc ? '<div class="ic-meta"><span class="badge badge-blue">' + sc + '</span></div>' : '')
       + '<div class="lp-price">' + formatUsd(p.price) + '</div>'
       + '<div class="ic-meta"><span class="badge badge-green">В наявності</span></div>'
       + '</div>';
@@ -2113,6 +2161,7 @@ async function loadPublicCatalog() {
     if (!r.ok) throw new Error('http ' + r.status);
     var j = await r.json();
     publicCatalog = (((j && j.items) || [])).filter(function(p) { return String(p.category || '').trim().toLowerCase() === 'взуття'; });
+    populateSubcatFilter();
     if (cnt) cnt.textContent = 'Моделей у наявності: ' + publicCatalog.length;
     var s = document.getElementById('lp-search');
     renderPublicCatalog(s ? s.value : '');
