@@ -201,6 +201,15 @@ tbody tr:last-child td{border-bottom:none}
 #lp-subcat{background:rgba(255,255,255,0.75);border:1px solid rgba(255,255,255,0.9);color:#1c2330;border-radius:12px;padding:9px 14px;font-size:13px;cursor:pointer}
 .lp-filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 @media(max-width:640px){.lp-body{padding:14px}.lp-brand p{display:none}}
+
+/* Lightbox — велике фото товару */
+#lp-lightbox{position:fixed;inset:0;z-index:2000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);padding:24px;cursor:zoom-out}
+#lp-lightbox.open{display:flex}
+#lp-lightbox img{max-width:min(1100px,92vw);max-height:86vh;width:auto;height:auto;object-fit:contain;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.6);background:#fff;cursor:default}
+#lp-lb-cap{position:absolute;left:0;right:0;bottom:16px;text-align:center;color:#fff;font-size:15px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.7);padding:0 24px}
+#lp-lb-close{position:absolute;top:14px;right:18px;width:42px;height:42px;border:0;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;font-size:26px;line-height:1;cursor:pointer}
+#lp-lb-close:hover{background:rgba(255,255,255,.3)}
+.item-card .ic-thumb img{cursor:zoom-in}
 </style>
 </head>
 <body>
@@ -221,12 +230,18 @@ tbody tr:last-child td{border-bottom:none}
       <div class="lp-count" id="lp-count">Завантаження…</div>
       <div class="lp-filters">
         <select id="lp-subcat" onchange="renderPublicCatalog()"><option value="">Всі підкатегорії</option></select>
-        <input class="search-input" id="lp-search" placeholder="🔍 Пошук моделі..." oninput="renderPublicCatalog(this.value)">
+        <input class="search-input" id="lp-search" autocomplete="off" placeholder="🔍 Пошук моделі..." oninput="renderPublicCatalog(this.value)">
       </div>
     </div>
     <div class="card-grid" id="lp-grid"><div class="lp-msg">Завантаження каталогу…</div></div>
   </div>
   <div class="lp-footer">Paolla — взуття власного виробництва</div>
+</div>
+<!-- Lightbox: велике фото -->
+<div id="lp-lightbox" onclick="closeLightbox()">
+  <button id="lp-lb-close" type="button" onclick="closeLightbox()" aria-label="Закрити">&times;</button>
+  <img id="lp-lb-img" src="" alt="" onclick="event.stopPropagation()">
+  <div id="lp-lb-cap"></div>
 </div>
 <!-- Auth Screen -->
 <div id="auth-screen" style="display:none">
@@ -2113,6 +2128,35 @@ function populateSubcatFilter() {
   sel.style.display = opts.length ? '' : 'none';
 }
 
+function lbAttr(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+}
+
+function openLightbox(src, title) {
+  var b = document.getElementById('lp-lightbox');
+  var i = document.getElementById('lp-lb-img');
+  var c = document.getElementById('lp-lb-cap');
+  if (!b || !i || !src) return;
+  i.src = src;
+  i.alt = title || '';
+  if (c) c.textContent = title || '';
+  b.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+  var b = document.getElementById('lp-lightbox');
+  if (!b) return;
+  b.classList.remove('open');
+  var i = document.getElementById('lp-lb-img');
+  if (i) i.src = '';
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeLightbox();
+});
+
 function renderPublicCatalog(q) {
   var si = document.getElementById('lp-search');
   if (q === undefined || q === null) q = si ? si.value : '';
@@ -2144,7 +2188,7 @@ function renderPublicCatalog(q) {
   grid.innerHTML = list.map(function(p) {
     var sc = subcatOf(p);
     return '<div class="item-card">'
-      + '<div class="ic-thumb">' + (p.image ? '<img src="' + p.image + '" loading="lazy" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">' : '📦') + '</div>'
+      + '<div class="ic-thumb">' + (p.image ? '<img src="' + p.image + '" loading="lazy" alt="' + lbAttr(p.name) + '" title="Натисніть, щоб збільшити" onclick="openLightbox(this.src, this.alt)" style="width:100%;height:100%;object-fit:cover;border-radius:12px;cursor:zoom-in;">' : '📦') + '</div>'
       + '<div class="ic-name">' + (p.name || '') + '</div>'
       + (sc ? '<div class="ic-meta"><span class="badge badge-blue">' + sc + '</span></div>' : '')
       + '<div class="lp-price">' + formatUsd(p.price) + '</div>'
