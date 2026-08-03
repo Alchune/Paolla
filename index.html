@@ -230,7 +230,7 @@ tbody tr:last-child td{border-bottom:none}
       <div class="lp-count" id="lp-count">Завантаження…</div>
       <div class="lp-filters">
         <select id="lp-subcat" onchange="renderPublicCatalog()"><option value="">Всі підкатегорії</option></select>
-        <input class="search-input" id="lp-search" autocomplete="off" placeholder="🔍 Пошук моделі..." oninput="renderPublicCatalog(this.value)">
+        <input class="search-input" type="search" name="lp-model-search" id="lp-search" autocomplete="off" placeholder="🔍 Пошук моделі..." oninput="renderPublicCatalog(this.value)">
       </div>
     </div>
     <div class="card-grid" id="lp-grid"><div class="lp-msg">Завантаження каталогу…</div></div>
