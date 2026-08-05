@@ -636,7 +636,7 @@ function renderDashboard() {
 <div class="table-container">
 <div class="table-header"><h3>⚠️ Мало залишків</h3><button class="btn btn-secondary btn-sm" onclick="navigate('inventory')">Всі →</button></div>
 <table><thead><tr><th>Товар</th><th>Залишок</th><th>Мін</th></tr></thead><tbody>
-${state.products.filter(p => p.quantity <= p.min_qty).map(p => `<tr><td>${p.name}</td><td style="color:var(--danger)">${p.quantity} ${p.unit}</td><td>${p.min_qty} ${p.unit}</td></tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text2);padding:20px">✅ Все гаразд!</td></tr>'}
+${state.products.filter(p => p.quantity <= p.min_qty).map(p => `<tr><td>${p.name}</td><td style="color:var(--danger)">${p.quantity} ${p.unit}${boxesSuffix(p)}</td><td>${p.min_qty} ${p.unit}</td></tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text2);padding:20px">✅ Все гаразд!</td></tr>'}
 </tbody></table></div>
 <div class="table-container">
 <div class="table-header"><h3>📋 Активні замовлення</h3><button class="btn btn-secondary btn-sm" onclick="navigate('orders')">Всі →</button></div>
@@ -827,7 +827,7 @@ const actions = isArchive
 return `<tr>
 <td>${p.image?`<img src="${p.image}" loading="lazy" style="width:32px;height:32px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:8px;cursor:pointer" onclick="openProductGallery('${p.id}')">`:''}<strong>${p.name}</strong></td>
 <td><span class="badge badge-gray">${p.category}</span>${p.subcategory ? ` <span class="badge badge-blue">${p.subcategory}</span>` : ''}</td>
-<td>${p.quantity} ${p.unit} <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${Math.min(100,(p.quantity/Math.max(p.min_qty*3,1))*100)}%;background:${p.quantity<=p.min_qty?'var(--danger)':'var(--accent)'}"></div></div></td>
+<td>${p.quantity} ${p.unit}${boxesSuffix(p)} <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${Math.min(100,(p.quantity/Math.max(p.min_qty*3,1))*100)}%;background:${p.quantity<=p.min_qty?'var(--danger)':'var(--accent)'}"></div></div></td>
 <td>${formatMoney(p.price)}</td>
 <td>${status}</td>
 <td>${actions}</td>
@@ -846,7 +846,7 @@ return '<div class="item-card">'
 + '<div class="ic-thumb"' + (p.image ? ' style="cursor:pointer" onclick="openProductGallery(\'' + p.id + '\')"' : '') + '>' + (p.image ? '<img src="' + p.image + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">' : '📦') + '</div>'
 + '<div class="ic-name">' + p.name + '</div>'
 + '<div class="ic-meta"><span class="badge badge-gray">' + p.category + '</span>' + (String(p.subcategory || '').trim() ? '<span class="badge badge-blue">' + p.subcategory + '</span>' : '') + status + '</div>'
-+ '<div class="ic-meta">' + p.quantity + ' ' + p.unit + ' • ' + formatMoney(p.price) + '</div>'
++ '<div class="ic-meta">' + p.quantity + ' ' + p.unit + boxesSuffix(p) + ' • ' + formatMoney(p.price) + '</div>'
 + actions
 + '</div>';
 }).join('');
@@ -1307,6 +1307,22 @@ async function saveOperation(type, editId) {
 }
 
 
+function boxesCount(p) {
+  var u = String((p && p.unit) || "").toLowerCase();
+  if (u.indexOf("пар") !== 0) return null;
+  return Math.round(((Number(p && p.quantity) || 0) / 8) * 100) / 100;
+}
+
+function boxesLabel(p) {
+  var b = boxesCount(p);
+  return b === null ? "" : formatMoney(b) + " кор.";
+}
+
+function boxesSuffix(p) {
+  var s = boxesLabel(p);
+  return s ? ' <span style="color:var(--text2)">• ' + s + '</span>' : "";
+}
+
 function printProducts() {
   var q = "";
   var inp = document.querySelector("#page-content .search-input");
@@ -1318,11 +1334,13 @@ function printProducts() {
   });
   list = sortProductsByName(list);
   if (!list.length) { showNotif("Немає моделей для друку", "error"); return; }
-  var cntIn = 0, cntLow = 0, cntNone = 0, totalQty = 0;
+  var cntIn = 0, cntLow = 0, cntNone = 0, totalQty = 0, totalBoxes = 0;
   var rows = list.map(function(p, i) {
     var qty = Number(p.quantity) || 0;
     var min = Number(p.min_qty) || 0;
     totalQty += qty;
+    var bc = boxesCount(p);
+    if (bc !== null) totalBoxes += bc;
     var st, cls;
     if (qty <= 0) { st = "Немає"; cls = "s-no"; cntNone++; }
     else if (qty <= min) { st = "Мало"; cls = "s-low"; cntLow++; }
@@ -1334,6 +1352,7 @@ function printProducts() {
       "<td><b>" + escapeHtml(p.name || "") + "</b></td>" +
       "<td>" + escapeHtml(cat) + "</td>" +
       "<td class=\"r\">" + qty + " " + escapeHtml(p.unit || "") + "</td>" +
+      "<td class=\"r\">" + (bc === null ? "&mdash;" : formatMoney(bc)) + "</td>" +
       "<td class=\"c " + cls + "\">" + st + "</td>" +
       "</tr>";
   }).join("");
@@ -1356,8 +1375,8 @@ function printProducts() {
     "</style></head><body>" +
     "<h2>Список моделей та наявність</h2>" +
     "<div class=\"sub\">" + (whName ? "Склад: " + escapeHtml(whName) + " &bull; " : "") + "Дата: " + now + (q ? " &bull; Фільтр: " + escapeHtml(q) : "") + " &bull; Позицій: " + list.length + "</div>" +
-    "<table><thead><tr><th class=\"c\">№</th><th>Модель</th><th>Категорія</th><th class=\"r\">Залишок</th><th class=\"c\">Наявність</th></tr></thead><tbody>" + rows + "</tbody></table>" +
-    "<div class=\"sum\">В наявності: <b>" + cntIn + "</b> &bull; Мало: <b>" + cntLow + "</b> &bull; Немає: <b>" + cntNone + "</b> &bull; Загальний залишок: <b>" + formatMoney(totalQty) + "</b></div>" +
+    "<table><thead><tr><th class=\"c\">№</th><th>Модель</th><th>Категорія</th><th class=\"r\">Залишок</th><th class=\"r\">Коробок</th><th class=\"c\">Наявність</th></tr></thead><tbody>" + rows + "</tbody></table>" +
+    "<div class=\"sum\">В наявності: <b>" + cntIn + "</b> &bull; Мало: <b>" + cntLow + "</b> &bull; Немає: <b>" + cntNone + "</b> &bull; Загальний залишок: <b>" + formatMoney(totalQty) + "</b> &bull; Коробок: <b>" + formatMoney(Math.round(totalBoxes * 100) / 100) + "</b></div>" +
     "<br><button onclick=\"window.print()\">🖨 Надрукувати</button>" +
     "</body></html>";
   w.document.write(html);
