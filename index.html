@@ -791,6 +791,7 @@ document.getElementById('page-content').innerHTML = `
 <div class="table-search">
 <input class="search-input" placeholder="🔍 Пошук..." oninput="filterProducts(this.value)">
 ${toggle}
+<button class="btn btn-secondary" onclick="printProducts()" title="Друк списку моделей">🖨 Друк</button>
 <button class="btn btn-primary" onclick="openProductModal()">+ Додати</button>
 </div>
 </div>
@@ -1306,6 +1307,67 @@ async function saveOperation(type, editId) {
 }
 
 
+function printProducts() {
+  var q = "";
+  var inp = document.querySelector("#page-content .search-input");
+  if (inp) q = String(inp.value || "").trim().toLowerCase();
+  var list = state.products.filter(function(p) {
+    if (p.archived) return false;
+    if (!q) return true;
+    return String(p.name || "").toLowerCase().indexOf(q) >= 0 || String(p.category || "").toLowerCase().indexOf(q) >= 0 || String(p.subcategory || "").toLowerCase().indexOf(q) >= 0;
+  });
+  list = sortProductsByName(list);
+  if (!list.length) { showNotif("Немає моделей для друку", "error"); return; }
+  var cntIn = 0, cntLow = 0, cntNone = 0, totalQty = 0;
+  var rows = list.map(function(p, i) {
+    var qty = Number(p.quantity) || 0;
+    var min = Number(p.min_qty) || 0;
+    totalQty += qty;
+    var st, cls;
+    if (qty <= 0) { st = "Немає"; cls = "s-no"; cntNone++; }
+    else if (qty <= min) { st = "Мало"; cls = "s-low"; cntLow++; }
+    else { st = "В наявності"; cls = "s-ok"; cntIn++; }
+    var cat = String(p.category || "");
+    if (String(p.subcategory || "").trim()) cat += " / " + p.subcategory;
+    return "<tr>" +
+      "<td class=\"c\">" + (i + 1) + "</td>" +
+      "<td><b>" + escapeHtml(p.name || "") + "</b></td>" +
+      "<td>" + escapeHtml(cat) + "</td>" +
+      "<td class=\"r\">" + qty + " " + escapeHtml(p.unit || "") + "</td>" +
+      "<td class=\"c " + cls + "\">" + st + "</td>" +
+      "</tr>";
+  }).join("");
+  var whName = (state.warehouse && state.warehouse.name) ? state.warehouse.name : "";
+  var now = new Date().toLocaleString("uk-UA");
+  var w = window.open("", "_blank", "width=900,height=700");
+  if (!w) { showNotif("Дозвольте відкриття нових вікон для друку", "error"); return; }
+  var html = "<!DOCTYPE html><html lang=\"uk\"><head><meta charset=\"UTF-8\"><title>Список моделей</title><style>" +
+    "body{font-family:Arial,Helvetica,sans-serif;padding:24px;color:#1c1c1c}" +
+    "h2{margin:0 0 4px;font-size:20px}" +
+    ".sub{color:#666;font-size:12px;margin-bottom:14px}" +
+    "table{width:100%;border-collapse:collapse;font-size:13px}" +
+    "th{background:#eef3f8;padding:7px 8px;text-align:left;border-bottom:2px solid #cfdae5}" +
+    "td{padding:6px 8px;border-bottom:1px solid #eaeaea}" +
+    "tr:nth-child(even) td{background:#fafcfe}" +
+    ".c{text-align:center}.r{text-align:right;white-space:nowrap}" +
+    ".s-ok{color:#1e8449;font-weight:700}.s-low{color:#b9770e;font-weight:700}.s-no{color:#c0392b;font-weight:700}" +
+    ".sum{margin-top:14px;font-size:13px}" +
+    "@media print{button{display:none}body{padding:0}thead{display:table-header-group}tr{page-break-inside:avoid}}" +
+    "</style></head><body>" +
+    "<h2>Список моделей та наявність</h2>" +
+    "<div class=\"sub\">" + (whName ? "Склад: " + escapeHtml(whName) + " &bull; " : "") + "Дата: " + now + (q ? " &bull; Фільтр: " + escapeHtml(q) : "") + " &bull; Позицій: " + list.length + "</div>" +
+    "<table><thead><tr><th class=\"c\">№</th><th>Модель</th><th>Категорія</th><th class=\"r\">Залишок</th><th class=\"c\">Наявність</th></tr></thead><tbody>" + rows + "</tbody></table>" +
+    "<div class=\"sum\">В наявності: <b>" + cntIn + "</b> &bull; Мало: <b>" + cntLow + "</b> &bull; Немає: <b>" + cntNone + "</b> &bull; Загальний залишок: <b>" + formatMoney(totalQty) + "</b></div>" +
+    "<br><button onclick=\"window.print()\">🖨 Надрукувати</button>" +
+    "</body></html>";
+  w.document.write(html);
+  w.document.close();
+  setTimeout(function(){ try { w.focus(); w.print(); } catch(e) {} }, 400);
+}
+
+function escapeHtml(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
 function printOperation(id, type) { var op = state.operations.find(function(o){ return o.id === id; }); if (!op) { showNotif('Документ не знайдено', 'error'); return; } var isIncoming = (type === 'incoming') || (op.type === 'incoming'); var docTitle = isIncoming ? 'Прихід товарів' : 'Видаток товарів'; var whName = (state.warehouse && state.warehouse.name) ? state.warehouse.name : ''; var items = op.items || []; if ((!items || !items.length) && op.product_name) { items = [{ product_name: op.product_name, quantity: op.quantity, price: op.price }]; } var totalAmt = 0; var rows = items.map(function(it){ var q = Number(it.quantity) || 0; var p = Number(it.price) || 0; var sum = q * p; totalAmt += sum; return '<tr><td>' + (it.product_name || '') + '</td><td style="text-align:right">' + q + '</td><td style="text-align:right">' + (p ? p.toFixed(2) : '—') + '</td><td style="text-align:right">' + (sum ? sum.toFixed(2) : '—') + '</td></tr>'; }).join(''); var totalStr = totalAmt > 0 ? totalAmt.toFixed(2) : '—'; var w = window.open('', '_blank'); if (!w) { showNotif('Дозвольте спливаючі вікна для друку', 'error'); return; } w.document.write('<!DOCTYPE html><html lang="uk"><head><meta charset="UTF-8"><title>' + docTitle + '</title><style>body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;padding:32px;color:#111}h1{font-size:22px;margin:0 0 4px}.meta{color:#555;margin-bottom:20px;font-size:14px}.meta div{margin:2px 0}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #ccc;padding:8px 10px;font-size:14px}th{background:#f3f4f6;text-align:left}tfoot td{font-weight:700}.brand{border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:16px}.brand-name{font-size:20px;font-weight:700}.brand-wh{color:#555;font-size:13px;margin-top:2px}.notes{margin-top:20px;padding:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;font-size:14px;white-space:pre-wrap}@media print{body{padding:0}}</style></head><body><div class="brand"><div class="brand-name">Paolla</div>' + (whName ? '<div class="brand-wh">Склад: ' + whName + '</div>' : '') + '</div><h1>' + docTitle + '</h1><div class="meta"><div><b>Дата:</b> ' + (op.date || '') + '</div><div><b>Контрагент:</b> ' + (op.counterparty || '—') + '</div></div><table><thead><tr><th>Товар</th><th style="text-align:right">Кількість</th><th style="text-align:right">Ціна</th><th style="text-align:right">Сума</th></tr></thead><tbody>' + rows + '</tbody><tfoot><tr><td colspan="4" style="text-align:right">Разом:</td><td style="text-align:right">' + totalStr + '</td></tr></tfoot></table>' + (op.notes ? '<div class="notes"><b>Примітки:</b><br>' + op.notes + '</div>' : '') + '</body></html>'); w.document.close(); w.focus(); setTimeout(function(){ w.print(); }, 300); }
 
 
