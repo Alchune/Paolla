@@ -792,6 +792,7 @@ document.getElementById('page-content').innerHTML = `
 <input class="search-input" placeholder="🔍 Пошук..." oninput="filterProducts(this.value)">
 ${toggle}
 <button class="btn btn-secondary" onclick="printProducts()" title="Друк списку моделей">🖨 Друк</button>
+<button class="btn btn-secondary" onclick="exportProductsExcel()" title="Експорт залишків товарів в Excel">📊 Excel</button>
 <button class="btn btn-primary" onclick="openProductModal()">+ Додати</button>
 </div>
 </div>
@@ -1323,6 +1324,57 @@ function boxesSuffix(p) {
   return s ? ' <span style="color:var(--text2)">• ' + s + '</span>' : "";
 }
 
+function exportProductsExcel() {
+  var q = "";
+  var inp = document.querySelector("#page-content .search-input");
+  if (inp) q = String(inp.value || "").trim().toLowerCase();
+  var list = state.products.filter(function(p) {
+    if (p.archived) return false;
+    if (!q) return true;
+    return String(p.name || "").toLowerCase().indexOf(q) >= 0 || String(p.category || "").toLowerCase().indexOf(q) >= 0 || String(p.subcategory || "").toLowerCase().indexOf(q) >= 0;
+  });
+  list = sortProductsByName(list);
+  if (!list.length) { showNotif("Немає моделей для експорту", "error"); return; }
+  var header = ["№", "Назва", "Категорія", "Кількість", "Одиниця", "Коробки", "Статус"];
+  var rows = [header];
+  list.forEach(function(p, i) {
+    var qty = Number(p.quantity) || 0;
+    var min = Number(p.min_qty) || 0;
+    var bc = boxesCount(p);
+    var cat = String(p.category || "");
+    if (String(p.subcategory || "").trim()) cat += " / " + p.subcategory;
+    var st;
+    if (qty <= 0) st = "Немає";
+    else if (qty < min) st = "Мало";
+    else st = "В наявності";
+    rows.push([
+      i + 1,
+      p.name || "",
+      cat,
+      qty,
+      p.unit || "",
+      (bc === null ? "" : formatMoney(bc)),
+      st
+    ]);
+  });
+  function csvCell(v) {
+    var s = String(v === null || v === undefined ? "" : v);
+    if (/[";\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+  var csv = rows.map(function(r) { return r.map(csvCell).join(";"); }).join("\r\n");
+  var blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  var stamp = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = "Залишки_товарів_" + stamp + ".csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+  showNotif("Експортовано " + list.length + " товар(ів) у файл Excel", "success");
+}
 function printProducts() {
   var q = "";
   var inp = document.querySelector("#page-content .search-input");
