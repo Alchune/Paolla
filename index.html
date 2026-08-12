@@ -1481,7 +1481,7 @@ function renderInventory() {
 <div class="table-container">
 <div class="table-header"><h3>Інвентаризація залишків</h3><span style="color:var(--text2);font-size:13px">1 ящик = 8 пар · Загальна вартість: <strong style="color:var(--text)">${formatMoney(total)}</strong></span></div>
 <table><thead><tr><th>Товар</th><th>Категорія</th><th>Залишок</th><th>Мін. залишок</th><th>Рівень</th><th>Вартість</th><th>Інвентаризація (пари/ящики)</th></tr></thead><tbody>
-${state.products.map(p => {
+${sortProductsByName(state.products).map(p => {
 const pct = Math.min(100, (p.quantity / Math.max(p.min_qty * 3, 1)) * 100);
 const color = p.quantity === 0 ? 'var(--danger)' : p.quantity <= p.min_qty ? 'var(--warning)' : 'var(--accent)';
 return `<tr>
