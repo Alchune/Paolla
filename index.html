@@ -313,7 +313,7 @@ tbody tr:last-child td{border-bottom:none}
 <button class="nav-item" onclick="navigate('clients')" id="nav-clients">
 👤 Контрагенти
 </button>
-<div class="nav-section">Виробництво</div>
+<button class="nav-item" onclick="navigate('inventory')" id="nav-inventory">🧮 Інвентаризація</button><div class="nav-section">Виробництво</div>
 <button class="nav-item" onclick="navigate('orders')" id="nav-orders">
 📋 Наряди
 </button>
@@ -1324,7 +1324,7 @@ function boxesSuffix(p) {
   return s ? ' <span style="color:var(--text2)">• ' + s + '</span>' : "";
 }
 
-function exportProductsExcel() {
+function syncInventoryInput(id, source) {var pairsInp = document.querySelector('.inv-pairs[data-id="' + id + '"]');var boxesInp = document.querySelector('.inv-boxes[data-id="' + id + '"]');if (!pairsInp || !boxesInp) return;if (source === 'boxes') {var boxes = parseFloat(boxesInp.value) || 0;pairsInp.value = Math.round(boxes * 8 * 100) / 100;} else {var pairs = parseFloat(pairsInp.value) || 0;boxesInp.value = Math.round((pairs / 8) * 100) / 100;}}function saveInventoryCorrection(id) {var prod = state.products.find(function(p) { return String(p.id) === String(id); });if (!prod) return;var unit = String(prod.unit || '').toLowerCase();var newQty;if (unit.indexOf('пар') === 0) {var pairsInp = document.querySelector('.inv-pairs[data-id="' + id + '"]');newQty = pairsInp ? (parseFloat(pairsInp.value) || 0) : prod.quantity;} else {var qtyInp = document.querySelector('.inv-qty[data-id="' + id + '"]');newQty = qtyInp ? (parseFloat(qtyInp.value) || 0) : prod.quantity;}if (newQty < 0) { showNotif('Кількість не може бути від’ємною', 'error'); return; }var diff = Math.round((newQty - (Number(prod.quantity) || 0)) * 100) / 100;prod.quantity = newQty;saveSnapshot().then(function() {renderInventory();showNotif(diff === 0 ? 'Залишок збережено' : ('Залишок оновлено (' + (diff > 0 ? '+' : '') + diff + ' ' + prod.unit + ')'), 'success');});}function exportProductsExcel() {
   var q = "";
   var inp = document.querySelector("#page-content .search-input");
   if (inp) q = String(inp.value || "").trim().toLowerCase();
@@ -1479,8 +1479,8 @@ function renderInventory() {
 <div class="stat-card red"><div class="label">Немає</div><div class="value">${state.products.filter(p=>p.quantity===0).length}</div><div class="sub">позицій</div></div>
 </div>
 <div class="table-container">
-<div class="table-header"><h3>Залишки товарів</h3><span style="color:var(--text2);font-size:13px">Загальна вартість: <strong style="color:var(--text)">${formatMoney(total)}</strong></span></div>
-<table><thead><tr><th>Товар</th><th>Категорія</th><th>Залишок</th><th>Мін. залишок</th><th>Рівень</th><th>Вартість</th></tr></thead><tbody>
+<div class="table-header"><h3>Інвентаризація залишків</h3><span style="color:var(--text2);font-size:13px">1 ящик = 8 пар · Загальна вартість: <strong style="color:var(--text)">${formatMoney(total)}</strong></span></div>
+<table><thead><tr><th>Товар</th><th>Категорія</th><th>Залишок</th><th>Мін. залишок</th><th>Рівень</th><th>Вартість</th><th>Інвентаризація (пари/ящики)</th></tr></thead><tbody>
 ${state.products.map(p => {
 const pct = Math.min(100, (p.quantity / Math.max(p.min_qty * 3, 1)) * 100);
 const color = p.quantity === 0 ? 'var(--danger)' : p.quantity <= p.min_qty ? 'var(--warning)' : 'var(--accent)';
@@ -1490,7 +1490,7 @@ return `<tr>
 <td><strong>${p.quantity}</strong> ${p.unit}</td>
 <td>${p.min_qty} ${p.unit}</td>
 <td style="width:150px"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div><span style="font-size:11px;color:var(--text2)">${Math.round(pct)}%</span></td>
-<td>${formatMoney(p.quantity * p.price)}</td>
+<td>${formatMoney(p.quantity * p.price)}</td><td>${(function(){var u=String(p.unit||"").toLowerCase();if(u.indexOf("пар")===0){var bx=boxesCount(p);return "<div style=\"display:flex;gap:4px;align-items:center;flex-wrap:wrap\"><input type=\"number\" step=\"0.01\" class=\"form-input inv-pairs\" data-id=\"" + p.id + "\" style=\"width:70px;padding:6px\" value=\"" + p.quantity + "\" oninput=\"syncInventoryInput('" + p.id + "','pairs')\"><span style=\"font-size:11px;color:var(--text2)\">пар</span><input type=\"number\" step=\"0.01\" class=\"form-input inv-boxes\" data-id=\"" + p.id + "\" style=\"width:60px;padding:6px\" value=\"" + bx + "\" oninput=\"syncInventoryInput('" + p.id + "','boxes')\"><span style=\"font-size:11px;color:var(--text2)\">ящ.</span><button class=\"btn btn-primary btn-sm\" onclick=\"saveInventoryCorrection('" + p.id + "')\">Зберегти</button></div>";}return "<div style=\"display:flex;gap:4px;align-items:center\"><input type=\"number\" step=\"0.01\" class=\"form-input inv-qty\" data-id=\"" + p.id + "\" style=\"width:90px;padding:6px\" value=\"" + p.quantity + "\"><span style=\"font-size:11px;color:var(--text2)\">" + p.unit + "</span><button class=\"btn btn-primary btn-sm\" onclick=\"saveInventoryCorrection('" + p.id + "')\">Зберегти</button></div>";})()}</td>
 </tr>`;
 }).join('')}
 </tbody></table></div>`;
