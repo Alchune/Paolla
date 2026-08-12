@@ -824,7 +824,7 @@ return products.map(p => {
 const status = p.quantity === 0 ? '<span class="badge badge-red">Немає</span>' : p.quantity <= p.min_qty ? '<span class="badge badge-yellow">Мало</span>' : '<span class="badge badge-green">В наявності</span>';
 const actions = isArchive
 ? `<button class="btn btn-secondary btn-sm" onclick="unarchiveProduct('${p.id}')" title="Повернути з архіву">↩️</button> <button class="btn btn-secondary btn-sm" onclick="deleteProduct('${p.id}')">🗑️</button>`
-: `<button class="btn btn-secondary btn-sm" onclick="editProduct('${p.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="archiveProduct('${p.id}')" title="Відправити в архів">📥</button> <button class="btn btn-secondary btn-sm" onclick="deleteProduct('${p.id}')">🗑️</button>`;
+: `<button class="btn btn-secondary btn-sm" onclick="editProduct('${p.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="duplicateProduct('${p.id}')" title="Дублювати">📄</button> <button class="btn btn-secondary btn-sm" onclick="archiveProduct('${p.id}')" title="Відправити в архів">📥</button> <button class="btn btn-secondary btn-sm" onclick="deleteProduct('${p.id}')">🗑️</button>`;
 return `<tr>
 <td>${p.image?`<img src="${p.image}" loading="lazy" style="width:32px;height:32px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:8px;cursor:pointer" onclick="openProductGallery('${p.id}')">`:''}<strong>${p.name}</strong></td>
 <td><span class="badge badge-gray">${p.category}</span>${p.subcategory ? ` <span class="badge badge-blue">${p.subcategory}</span>` : ''}</td>
@@ -842,7 +842,7 @@ var cards = products.map(function(p) {
 var status = p.quantity === 0 ? '<span class="badge badge-red">Немає</span>' : p.quantity <= p.min_qty ? '<span class="badge badge-yellow">Мало</span>' : '<span class="badge badge-green">В наявності</span>';
 var actions = isArchive
 ? '<div class="ic-actions"><button class="btn btn-secondary btn-sm" onclick="unarchiveProduct(\'' + p.id + '\')" title="Повернути з архіву">↩️</button><button class="btn btn-secondary btn-sm" onclick="deleteProduct(\'' + p.id + '\')">🗑️</button></div>'
-: '<div class="ic-actions"><button class="btn btn-secondary btn-sm" onclick="editProduct(\'' + p.id + '\')">✏️</button><button class="btn btn-secondary btn-sm" onclick="archiveProduct(\'' + p.id + '\')" title="Відправити в архів">📥</button><button class="btn btn-secondary btn-sm" onclick="deleteProduct(\'' + p.id + '\')">🗑️</button></div>';
+: '<div class="ic-actions"><button class="btn btn-secondary btn-sm" onclick="editProduct(\'' + p.id + '\')">✏️</button><button class="btn btn-secondary btn-sm" onclick="duplicateProduct(\'' + p.id + '\')" title="Дублювати">📄</button><button class="btn btn-secondary btn-sm" onclick="archiveProduct(\'' + p.id + '\')" title="Відправити в архів">📥</button><button class="btn btn-secondary btn-sm" onclick="deleteProduct(\'' + p.id + '\')">🗑️</button></div>';
 return '<div class="item-card">'
 + '<div class="ic-thumb"' + (p.image ? ' style="cursor:pointer" onclick="openProductGallery(\'' + p.id + '\')"' : '') + '>' + (p.image ? '<img src="' + p.image + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">' : '📦') + '</div>'
 + '<div class="ic-name">' + p.name + '</div>'
@@ -999,6 +999,18 @@ async function deleteProduct(id) {
   await saveSnapshot();
   renderProducts();
   showNotif('Товар видалено', 'success');
+}
+
+async function duplicateProduct(id) {
+  const p = state.products.find(x => x.id === id);
+  if (!p) return;
+  const copy = JSON.parse(JSON.stringify(p));
+  copy.id = 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+  copy.name = p.name + ' (копія)';
+  state.products.push(copy);
+  await saveSnapshot();
+  renderProducts();
+  showNotif('Товар дубльовано', 'success');
 }
 
 
