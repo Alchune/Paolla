@@ -1335,7 +1335,7 @@ function exportProductsExcel() {
   });
   list = sortProductsByName(list);
   if (!list.length) { showNotif("Немає моделей для експорту", "error"); return; }
-  var header = ["№", "Назва", "Категорія", "Кількість", "Одиниця", "Коробки", "Статус"];
+  var header = ["№", "Назва", "Категорія", "Кількість", "Одиниця", "Ціна за пару", "Коробки", "Статус"];
   var rows = [header];
   list.forEach(function(p, i) {
     var qty = Number(p.quantity) || 0;
@@ -1353,7 +1353,7 @@ function exportProductsExcel() {
       cat,
       qty,
       p.unit || "",
-      (bc === null ? "" : formatMoney(bc)),
+      formatMoney(p.price || 0), (bc === null ? "" : formatMoney(bc)),
       st
     ]);
   });
@@ -1404,7 +1404,7 @@ function printProducts() {
       "<td><b>" + escapeHtml(p.name || "") + "</b></td>" +
       "<td>" + escapeHtml(cat) + "</td>" +
       "<td class=\"r\">" + qty + " " + escapeHtml(p.unit || "") + "</td>" +
-      "<td class=\"r\">" + (bc === null ? "&mdash;" : formatMoney(bc)) + "</td>" +
+      "<td class=\"r\">" + formatMoney(p.price || 0) + "</td>" + "<td class=\"r\">" + (bc === null ? "&mdash;" : formatMoney(bc)) + "</td>" +
       "<td class=\"c " + cls + "\">" + st + "</td>" +
       "</tr>";
   }).join("");
@@ -1427,7 +1427,7 @@ function printProducts() {
     "</style></head><body>" +
     "<h2>Список моделей та наявність</h2>" +
     "<div class=\"sub\">" + (whName ? "Склад: " + escapeHtml(whName) + " &bull; " : "") + "Дата: " + now + (q ? " &bull; Фільтр: " + escapeHtml(q) : "") + " &bull; Позицій: " + list.length + "</div>" +
-    "<table><thead><tr><th class=\"c\">№</th><th>Модель</th><th>Категорія</th><th class=\"r\">Залишок</th><th class=\"r\">Коробок</th><th class=\"c\">Наявність</th></tr></thead><tbody>" + rows + "</tbody></table>" +
+    "<table><thead><tr><th class=\"c\">№</th><th>Модель</th><th>Категорія</th><th class=\"r\">Залишок</th><th class=\"r\">Ціна за пару</th><th class=\"r\">Коробок</th><th class=\"c\">Наявність</th></tr></thead><tbody>" + rows + "</tbody></table>" +
     "<div class=\"sum\">В наявності: <b>" + cntIn + "</b> &bull; Мало: <b>" + cntLow + "</b> &bull; Немає: <b>" + cntNone + "</b> &bull; Загальний залишок: <b>" + formatMoney(totalQty) + "</b> &bull; Коробок: <b>" + formatMoney(Math.round(totalBoxes * 100) / 100) + "</b></div>" +
     "<br><button onclick=\"window.print()\">🖨 Надрукувати</button>" +
     "</body></html>";
