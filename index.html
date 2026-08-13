@@ -1554,7 +1554,7 @@ function openOrderModal() {
   document.getElementById('modal-body').innerHTML =
     '<div class="form-row"><div class="form-group"><label class="form-label">Назва наряду</label><input class="form-input" id="o-num" value="'+nextNum+'"></div>' +
     '<div class="form-group"><label class="form-label">Контрагент *</label><select class="form-input" id="o-client"><option value="">— Оберіть контрагента —</option>' + (state.clients||[]).map(function(c){ return '<option value="'+c.name+'">'+c.name+'</option>'; }).join('') + '</select></div></div>' +
-    '<div class="form-row"><div class="form-group"><label class="form-label">Товар *</label><select class="form-input" id="o-product"><option value="">— Оберіть товар —</option>' + (state.products||[]).map(function(p){ return '<option value="'+p.name+'">'+p.name+'</option>'; }).join('') + '</select></div>' +
+    '<div class="form-row"><div class="form-group"><label class="form-label">Товар *</label><select class="form-input" id="o-product"><option value="">— Оберіть товар —</option>' + (state.products||[]).slice().sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||''), 'uk', { numeric: true, sensitivity: 'base' }); }).map(function(p){ return '<option value="'+p.name+'">'+p.name+'</option>'; }).join('') + '</select></div>' +
     '</div>' +
     '<div class="form-row"><div class="form-group"><label class="form-label">Кількість</label><input type="number" class="form-input" id="o-qty" value="1"></div>' +
     '<div class="form-group"><label class="form-label">Дедлайн</label><input type="date" class="form-input" id="o-deadline"></div></div>' +
