@@ -2989,10 +2989,14 @@ window.printOperation = function(idOrOperation, type) {
     var price = Number(it.price) || 0;
     var sum = quantity * price;
     var unit = String(it.product_unit || it.unit || '').toLowerCase();
-    if (!isIncoming && (unit.indexOf('пар') === 0 || !unit)) totalPairs += quantity;
+    var isPairs = unit.indexOf('пар') === 0 || !unit;
+    var pairsText = isPairs ? formatOperationQuantity(quantity) : '—';
+    var boxesText = isPairs ? formatOperationQuantity(quantity / PAIRS_PER_BOX) : '—';
+    if (!isIncoming && isPairs) totalPairs += quantity;
     totalSum += sum;
     return '<tr><td>' + escapeHtml(it.product_name || it.product || '') + '</td>' +
-      '<td style="text-align:center">' + escapeHtml(operationItemQuantityLabel(it)) + '</td>' +
+      '<td style="text-align:center">' + pairsText + '</td>' +
+      '<td style="text-align:center">' + boxesText + '</td>' +
       '<td style="text-align:right">' + (price ? price.toFixed(2) : '—') + '</td>' +
       '<td style="text-align:right">' + (sum ? sum.toFixed(2) : '—') + '</td></tr>';
   }).join('');
@@ -3011,8 +3015,8 @@ window.printOperation = function(idOrOperation, type) {
     '</head><body><h2>' + escapeHtml(title) + '</h2><p>Контрагент: <b>' + escapeHtml(op.counterparty || '') +
     '</b></p><p>Дата: <b>' + escapeHtml(op.date || '') + '</b></p>' +
     (op.notes ? '<p>Примітки: ' + escapeHtml(op.notes) + '</p>' : '') +
-    '<table><thead><tr><th>Товар</th><th>Кількість</th><th>Ціна</th><th>Сума</th></tr></thead><tbody>' + rows +
-    '<tr><td colspan="4" style="padding:10px;border-top:2px solid #333;text-align:right;font-weight:bold">' + summary +
+    '<table><thead><tr><th>Товар</th><th>Кількість пар</th><th>Кількість ящиків</th><th>Ціна</th><th>Сума</th></tr></thead><tbody>' + rows +
+    '<tr><td colspan="5" style="padding:10px;border-top:2px solid #333;text-align:right;font-weight:bold">' + summary +
     '</td></tr></tbody></table><br><button onclick="window.print()">🖨 Надрукувати</button></body></html>');
   w.document.close();
 };
