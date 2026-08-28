@@ -1051,6 +1051,40 @@ showNotif('Товар повернуто з архіву', 'success');
 function renderIncoming() { renderOperation('incoming'); }
 function renderOutgoing() { renderOperation('outgoing'); }
 
+var PAIRS_PER_BOX = 8;
+
+function isPairProduct(product) {
+  return String((product && product.unit) || '').toLowerCase().indexOf('пар') === 0;
+}
+
+function roundOperationQuantity(value) {
+  return Math.round((Number(value) || 0) * 1000) / 1000;
+}
+
+function operationItemEnteredQuantity(item) {
+  if (item && item.quantity_unit === 'boxes') {
+    if (item.entered_quantity != null && item.entered_quantity !== '') {
+      return Number(item.entered_quantity) || 0;
+    }
+    return roundOperationQuantity((Number(item.quantity) || 0) / PAIRS_PER_BOX);
+  }
+  return Number(item && item.quantity) || 0;
+}
+
+function formatOperationQuantity(value) {
+  var rounded = roundOperationQuantity(value);
+  return Number.isInteger(rounded) ? String(rounded) : String(rounded).replace(/\.?0+$/, '');
+}
+
+function operationItemQuantityLabel(item) {
+  var quantity = Number(item && item.quantity) || 0;
+  if (item && item.quantity_unit === 'boxes') {
+    return formatOperationQuantity(operationItemEnteredQuantity(item)) + ' ящ. (' + formatOperationQuantity(quantity) + ' пар)';
+  }
+  var unit = (item && item.product_unit) || '';
+  return formatOperationQuantity(quantity) + (unit ? ' ' + unit : '');
+}
+
 function renderOperation(type) {
   var isIncoming = (type === 'incoming');
   var icon = isIncoming ? '⬇️' : '⬆️';
@@ -1153,7 +1187,21 @@ function openOperationModal(type, editOp) {
     qtyInput.min = '0.001';
     qtyInput.step = '0.001';
     qtyInput.style.width = '90px';
-    td2.appendChild(qtyInput);
+    qtyInput.setAttribute('aria-label', 'Кількість');
+    var qtyWrap = document.createElement('div');
+    qtyWrap.style.display = 'flex';
+    qtyWrap.style.gap = '6px';
+    qtyWrap.style.alignItems = 'center';
+    qtyWrap.style.flexWrap = 'wrap';
+    var qtyUnit = document.createElement('select');
+    qtyUnit.className = 'form-select item-quantity-unit';
+    qtyUnit.style.width = '92px';
+    qtyUnit.innerHTML = '<option value="pairs">пари</option><option value="boxes">ящики</option>';
+    qtyUnit.style.display = 'none';
+    qtyUnit.dataset.previousUnit = 'pairs';
+    qtyWrap.appendChild(qtyInput);
+    qtyWrap.appendChild(qtyUnit);
+    td2.appendChild(qtyWrap);
 
     var td3 = document.createElement('td');
     var priceInput = document.createElement('input');
@@ -1166,6 +1214,24 @@ function openOperationModal(type, editOp) {
     sel.addEventListener('change', function() {
       var prod = state.products.find(function(pp){ return String(pp.id) === String(sel.value); });
       if (prod) { priceInput.value = (prod.price != null ? prod.price : ''); } else { priceInput.value = ''; }
+      var canUseBoxes = !isIncoming && isPairProduct(prod);
+      qtyUnit.style.display = canUseBoxes ? '' : 'none';
+      if (!canUseBoxes) {
+        qtyUnit.value = 'pairs';
+        qtyUnit.dataset.previousUnit = 'pairs';
+      }
+      qtyInput.setAttribute('aria-label', canUseBoxes && qtyUnit.value === 'boxes' ? 'Кількість ящиків' : 'Кількість');
+    });
+    qtyUnit.addEventListener('change', function() {
+      var previousUnit = qtyUnit.dataset.previousUnit || 'pairs';
+      var currentValue = parseFloat(qtyInput.value);
+      if (!isNaN(currentValue) && currentValue > 0 && previousUnit !== qtyUnit.value) {
+        qtyInput.value = qtyUnit.value === 'boxes'
+          ? roundOperationQuantity(currentValue / PAIRS_PER_BOX)
+          : roundOperationQuantity(currentValue * PAIRS_PER_BOX);
+      }
+      qtyUnit.dataset.previousUnit = qtyUnit.value;
+      qtyInput.setAttribute('aria-label', qtyUnit.value === 'boxes' ? 'Кількість ящиків' : 'Кількість пар');
     });
 
     var td4 = document.createElement('td');
@@ -1196,8 +1262,12 @@ function openOperationModal(type, editOp) {
       var s = lastRow.querySelector('.item-product');
       var q = lastRow.querySelector('.item-qty');
       var p = lastRow.querySelector('.item-price');
+      var u = lastRow.querySelector('.item-quantity-unit');
       if (s) s.value = it.product_id;
-      if (q) q.value = it.quantity;
+      if (s) s.dispatchEvent(new Event('change'));
+      if (u) u.value = it.quantity_unit === 'boxes' ? 'boxes' : 'pairs';
+      if (u) u.dispatchEvent(new Event('change'));
+      if (q) q.value = operationItemEnteredQuantity(it);
       if (p) p.value = it.price;
     });
   } else {
@@ -1237,7 +1307,7 @@ function openOperationModal(type, editOp) {
   }
   btnSave.addEventListener('click', function() { saveOperation(type, editOp ? editOp.id : null); });
 
-  var btnPrint = document.createElement('button'); btnPrint.type = 'button'; btnPrint.className = 'btn btn-secondary'; btnPrint.style.marginRight = 'auto'; btnPrint.textContent = '\uD83D\uDDA8 \u0414\u0440\u0443\u043A'; btnPrint.addEventListener('click', function() { printOperation(editOp); }); footer.appendChild(btnPrint); if (!isIncoming) { var btnReserve = document.createElement('button'); btnReserve.type = 'button'; btnReserve.className = 'btn btn-warning'; btnReserve.textContent = '\u0417\u0430\u0440\u0435\u0437\u0435\u0440\u0432\u0443\u0432\u0430\u0442\u0438'; btnReserve.addEventListener('click', function() { saveReservation(editOp ? editOp.id : null); }); footer.appendChild(btnReserve); } footer.appendChild(btnCancel);
+  if (editOp) { var btnPrint = document.createElement('button'); btnPrint.type = 'button'; btnPrint.className = 'btn btn-secondary'; btnPrint.style.marginRight = 'auto'; btnPrint.textContent = '\uD83D\uDDA8 \u0414\u0440\u0443\u043A'; btnPrint.addEventListener('click', function() { printOperation(editOp.id, type); }); footer.appendChild(btnPrint); } if (!isIncoming) { var btnReserve = document.createElement('button'); btnReserve.type = 'button'; btnReserve.className = 'btn btn-warning'; btnReserve.textContent = '\u0417\u0430\u0440\u0435\u0437\u0435\u0440\u0432\u0443\u0432\u0430\u0442\u0438'; btnReserve.addEventListener('click', function() { saveReservation(editOp ? editOp.id : null); }); footer.appendChild(btnReserve); } footer.appendChild(btnCancel);
   footer.appendChild(btnSave);
 }
 
@@ -1250,6 +1320,42 @@ function editOperation(id, type) {
   openOperationModal(type, op);
 }
 
+function collectOperationItems(type) {
+  var tbody = document.getElementById('op-items-body');
+  var rows = tbody ? tbody.querySelectorAll('tr') : [];
+  var items = [];
+  var error = '';
+  rows.forEach(function(tr) {
+    if (error) return;
+    var sel = tr.querySelector('.item-product');
+    var qtyInp = tr.querySelector('.item-qty');
+    var priceInp = tr.querySelector('.item-price');
+    var unitSelect = tr.querySelector('.item-quantity-unit');
+    if (!sel || !qtyInp) return;
+    var productId = sel.value;
+    if (!productId) { error = 'Оберіть товар у кожному рядку'; return; }
+    var enteredQuantity = parseFloat(qtyInp.value);
+    if (!enteredQuantity || enteredQuantity <= 0) { error = 'Введіть кількість більше 0'; return; }
+    var product = state.products.find(function(p) { return String(p.id) === String(productId); });
+    var usesBoxes = type === 'outgoing' && isPairProduct(product) && unitSelect && unitSelect.value === 'boxes';
+    var quantity = usesBoxes ? enteredQuantity * PAIRS_PER_BOX : enteredQuantity;
+    var price = parseFloat(priceInp ? priceInp.value : '') || 0;
+    var opt = sel.options[sel.selectedIndex];
+    var productName = product && product.name ? product.name : (opt ? (opt.dataset && opt.dataset.name ? opt.dataset.name : opt.text.split('(')[0].trim()) : String(productId));
+    items.push({
+      product_id: productId,
+      product_name: productName,
+      product_unit: product && product.unit ? product.unit : '',
+      quantity: roundOperationQuantity(quantity),
+      quantity_unit: usesBoxes ? 'boxes' : 'pairs',
+      entered_quantity: roundOperationQuantity(enteredQuantity),
+      price: price
+    });
+  });
+  if (!error && items.length === 0) error = 'Додайте хоча б один товар';
+  return {items: items, error: error};
+}
+
 async function saveOperation(type, editId) {
   var counterpartyEl = document.getElementById('op-counterparty');
   var counterparty = counterpartyEl ? counterpartyEl.value.trim() : '';
@@ -1260,27 +1366,9 @@ async function saveOperation(type, editId) {
 
   if (!counterparty) { showNotif('Введіть назву контрагента', 'error'); return; }
 
-  var tbody = document.getElementById('op-items-body');
-  var rows = tbody ? tbody.querySelectorAll('tr') : [];
-  var items = [];
-  var hasError = false;
-  rows.forEach(function(tr) {
-    if (hasError) return;
-    var sel = tr.querySelector('.item-product');
-    var qtyInp = tr.querySelector('.item-qty');
-    var priceInp = tr.querySelector('.item-price');
-    if (!sel || !qtyInp) return;
-    var productId = sel.value;
-    if (!productId) { hasError = true; showNotif('Оберіть товар у кожному рядку', 'error'); return; }
-    var qty = parseFloat(qtyInp.value);
-    if (!qty || qty <= 0) { hasError = true; showNotif('Введіть кількість більше 0', 'error'); return; }
-    var price = parseFloat(priceInp ? priceInp.value : '') || 0;
-    var opt = sel.options[sel.selectedIndex];
-    var productName = opt ? (opt.dataset && opt.dataset.name ? opt.dataset.name : opt.text.split('(')[0].trim()) : String(productId);
-    items.push({product_id: productId, product_name: productName, quantity: qty, price: price});
-  });
-  if (hasError) return;
-  if (items.length === 0) { showNotif('Додайте хоча б один товар', 'error'); return; }
+  var collected = collectOperationItems(type);
+  if (collected.error) { showNotif(collected.error, 'error'); return; }
+  var items = collected.items;
 
   function applyStockChange(list, sign, opType) {
     (list || []).forEach(function(it) {
@@ -1323,7 +1411,7 @@ async function saveOperation(type, editId) {
 function boxesCount(p) {
   var u = String((p && p.unit) || "").toLowerCase();
   if (u.indexOf("пар") !== 0) return null;
-  return Math.round(((Number(p && p.quantity) || 0) / 8) * 100) / 100;
+  return Math.round(((Number(p && p.quantity) || 0) / PAIRS_PER_BOX) * 100) / 100;
 }
 
 function boxesLabel(p) {
@@ -2843,4 +2931,85 @@ setInterval(sched,700);                              var wrap = document.createE
     };
   }
 })();
+
+/* Видаток у парах або ящиках. У складських залишках кількість завжди зберігається в парах. */
+window.saveReservation = async function(editId) {
+  var counterpartyEl = document.getElementById('op-counterparty');
+  var counterparty = counterpartyEl ? counterpartyEl.value.trim() : '';
+  if (!counterparty) { showNotif('Введіть назву контрагента', 'error'); return; }
+  var dateEl = document.getElementById('op-date');
+  var notesEl = document.getElementById('op-notes');
+  var collected = collectOperationItems('outgoing');
+  if (collected.error) { showNotif(collected.error, 'error'); return; }
+  var existing = (editId !== null && editId !== undefined) ? state.operations.find(function(o) { return String(o.id) === String(editId); }) : null;
+  if (existing) {
+    existing.type = 'outgoing';
+    existing.status = 'reserved';
+    existing.archived = false;
+    existing.counterparty = counterparty;
+    existing.date = dateEl ? dateEl.value : '';
+    existing.notes = notesEl ? notesEl.value.trim() : '';
+    existing.items = collected.items;
+  } else {
+    state.operations.push({
+      id: Date.now(),
+      type: 'outgoing',
+      status: 'reserved',
+      counterparty: counterparty,
+      date: dateEl ? dateEl.value : '',
+      notes: notesEl ? notesEl.value.trim() : '',
+      items: collected.items
+    });
+  }
+  await saveSnapshot();
+  closeModal();
+  renderOperation('outgoing');
+  showNotif('Зарезервовано', 'success');
+};
+
+window.printOperation = function(idOrOperation, type) {
+  var op = (idOrOperation && typeof idOrOperation === 'object')
+    ? idOrOperation
+    : state.operations.find(function(o) { return String(o.id) === String(idOrOperation); });
+  if (!op) { showNotif('Документ не знайдено', 'error'); return; }
+  var isIncoming = type === 'incoming' || op.type === 'incoming';
+  var title = (isIncoming ? 'Прихід №' : 'Видаток №') + op.id;
+  var items = op.items || [];
+  if (!items.length && op.product_name) {
+    items = [{product_name: op.product_name, quantity: op.quantity, price: op.price}];
+  }
+  var totalPairs = 0;
+  var totalSum = 0;
+  var rows = items.map(function(it) {
+    var quantity = Number(it.quantity) || 0;
+    var price = Number(it.price) || 0;
+    var sum = quantity * price;
+    var unit = String(it.product_unit || it.unit || '').toLowerCase();
+    if (!isIncoming && (unit.indexOf('пар') === 0 || !unit)) totalPairs += quantity;
+    totalSum += sum;
+    return '<tr><td>' + escapeHtml(it.product_name || it.product || '') + '</td>' +
+      '<td style="text-align:center">' + escapeHtml(operationItemQuantityLabel(it)) + '</td>' +
+      '<td style="text-align:right">' + (price ? price.toFixed(2) : '—') + '</td>' +
+      '<td style="text-align:right">' + (sum ? sum.toFixed(2) : '—') + '</td></tr>';
+  }).join('');
+  var summary = '';
+  if (!isIncoming && totalPairs > 0) {
+    summary = 'Всього пар: ' + formatOperationQuantity(totalPairs) +
+      ' &nbsp;|&nbsp; Ящиків: ' + formatOperationQuantity(totalPairs / PAIRS_PER_BOX) +
+      ' &nbsp;|&nbsp; Сума: ' + totalSum.toFixed(2);
+  } else {
+    summary = 'Сума: ' + totalSum.toFixed(2);
+  }
+  var w = window.open('', '_blank', 'width=700,height=600');
+  if (!w) { showNotif('Дозвольте відкриття нових вікон для друку', 'error'); return; }
+  w.document.write('<!DOCTYPE html><html lang="uk"><head><meta charset="UTF-8"><title>' + escapeHtml(title) + '</title>' +
+    '<style>body{font-family:Arial,sans-serif;padding:24px;color:#111}table{width:100%;border-collapse:collapse}th{background:#f0f4f8;padding:8px 10px;text-align:left}td{padding:6px 10px;border-bottom:1px solid #eee}@media print{button{display:none}}</style>' +
+    '</head><body><h2>' + escapeHtml(title) + '</h2><p>Контрагент: <b>' + escapeHtml(op.counterparty || '') +
+    '</b></p><p>Дата: <b>' + escapeHtml(op.date || '') + '</b></p>' +
+    (op.notes ? '<p>Примітки: ' + escapeHtml(op.notes) + '</p>' : '') +
+    '<table><thead><tr><th>Товар</th><th>Кількість</th><th>Ціна</th><th>Сума</th></tr></thead><tbody>' + rows +
+    '<tr><td colspan="4" style="padding:10px;border-top:2px solid #333;text-align:right;font-weight:bold">' + summary +
+    '</td></tr></tbody></table><br><button onclick="window.print()">🖨 Надрукувати</button></body></html>');
+  w.document.close();
+};
 </script>
