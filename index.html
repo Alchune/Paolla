@@ -1196,9 +1196,9 @@ function openOperationModal(type, editOp) {
     var qtyUnit = document.createElement('select');
     qtyUnit.className = 'form-select item-quantity-unit';
     qtyUnit.style.width = '92px';
-    qtyUnit.innerHTML = '<option value="pairs">пари</option><option value="boxes">ящики</option>';
+    qtyUnit.innerHTML = '<option value="boxes">ящики</option><option value="pairs">пари</option>';
     qtyUnit.style.display = 'none';
-    qtyUnit.dataset.previousUnit = 'pairs';
+    qtyUnit.dataset.previousUnit = 'boxes';
     qtyWrap.appendChild(qtyInput);
     qtyWrap.appendChild(qtyUnit);
     td2.appendChild(qtyWrap);
@@ -1214,16 +1214,20 @@ function openOperationModal(type, editOp) {
     sel.addEventListener('change', function() {
       var prod = state.products.find(function(pp){ return String(pp.id) === String(sel.value); });
       if (prod) { priceInput.value = (prod.price != null ? prod.price : ''); } else { priceInput.value = ''; }
+      var wasHidden = qtyUnit.style.display === 'none';
       var canUseBoxes = !isIncoming && isPairProduct(prod);
       qtyUnit.style.display = canUseBoxes ? '' : 'none';
-      if (!canUseBoxes) {
+      if (canUseBoxes && wasHidden) {
+        qtyUnit.value = 'boxes';
+        qtyUnit.dataset.previousUnit = 'boxes';
+      } else if (!canUseBoxes) {
         qtyUnit.value = 'pairs';
         qtyUnit.dataset.previousUnit = 'pairs';
       }
       qtyInput.setAttribute('aria-label', canUseBoxes && qtyUnit.value === 'boxes' ? 'Кількість ящиків' : 'Кількість');
     });
     qtyUnit.addEventListener('change', function() {
-      var previousUnit = qtyUnit.dataset.previousUnit || 'pairs';
+      var previousUnit = qtyUnit.dataset.previousUnit || 'boxes';
       var currentValue = parseFloat(qtyInput.value);
       if (!isNaN(currentValue) && currentValue > 0 && previousUnit !== qtyUnit.value) {
         qtyInput.value = qtyUnit.value === 'boxes'
