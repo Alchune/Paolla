@@ -813,7 +813,7 @@ return String(a.name || '').localeCompare(String(b.name || ''), 'uk', { numeric:
 }
 
 function renderProductTable(products, isArchive) {
-return `<table><thead><tr><th>Назва</th><th>Категорія</th><th>Залишок</th><th>Ціна</th><th>Статус</th><th>Дії</th></tr></thead>
+return `<table><thead><tr><th>Назва</th><th>Категорія</th><th>Залишок</th><th>У ящику</th><th>Ціна</th><th>Статус</th><th>Дії</th></tr></thead>
 <tbody id="products-table">
 ${renderProductRows(products, isArchive)}
 </tbody></table>`;
@@ -829,6 +829,7 @@ return `<tr>
 <td>${p.image?`<img src="${p.image}" loading="lazy" style="width:32px;height:32px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:8px;cursor:pointer" onclick="openProductGallery('${p.id}')">`:''}<strong>${p.name}</strong></td>
 <td><span class="badge badge-gray">${p.category}</span>${p.subcategory ? ` <span class="badge badge-blue">${p.subcategory}</span>` : ''}</td>
 <td>${p.quantity} ${p.unit}${boxesSuffix(p)} <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${Math.min(100,(p.quantity/Math.max(p.min_qty*3,1))*100)}%;background:${p.quantity<=p.min_qty?'var(--danger)':'var(--accent)'}"></div></div></td>
+<td>${isPairProduct(p) ? formatOperationQuantity(pairsPerBox(p)) + ' пар' : '—'}</td>
 <td>${formatMoney(p.price)}</td>
 <td>${status}</td>
 <td>${actions}</td>
@@ -847,7 +848,7 @@ return '<div class="item-card">'
 + '<div class="ic-thumb"' + (p.image ? ' style="cursor:pointer" onclick="openProductGallery(\'' + p.id + '\')"' : '') + '>' + (p.image ? '<img src="' + p.image + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">' : '📦') + '</div>'
 + '<div class="ic-name">' + p.name + '</div>'
 + '<div class="ic-meta"><span class="badge badge-gray">' + p.category + '</span>' + (String(p.subcategory || '').trim() ? '<span class="badge badge-blue">' + p.subcategory + '</span>' : '') + status + '</div>'
-+ '<div class="ic-meta">' + p.quantity + ' ' + p.unit + boxesSuffix(p) + ' • ' + formatMoney(p.price) + '</div>'
++ '<div class="ic-meta">' + p.quantity + ' ' + p.unit + boxesSuffix(p) + (isPairProduct(p) ? ' • ' + formatOperationQuantity(pairsPerBox(p)) + ' пар/ящ.' : '') + ' • ' + formatMoney(p.price) + '</div>'
 + actions
 + '</div>';
 }).join('');
@@ -902,7 +903,11 @@ function openProductModal(id) {
 <div class="form-group"><label class="form-label">Залишок</label><input type="number" class="form-input" id="p-qty" value="${p.quantity||0}"></div>
 <div class="form-group"><label class="form-label">Мінімальний залишок</label><input type="number" class="form-input" id="p-min" value="${p.min_qty||0}"></div>
 </div>
-<div class="form-group"><label class="form-label">Ціна</label><input type="number" class="form-input" id="p-price" value="${p.price||0}"></div><div class="form-group"><label class="form-label">Фото</label><input type="hidden" id="p-image" value="${p.image||''}"><input type="hidden" id="p-images" value='${JSON.stringify(p.images||[])}'><input type="file" accept="image/*" id="p-photo-file" class="form-input" onchange="uploadProductPhoto(this)"><div id="p-photo-preview" style="margin-top:8px"></div></div>
+<div class="form-row">
+<div class="form-group"><label class="form-label">Ціна</label><input type="number" class="form-input" id="p-price" value="${p.price||0}"></div>
+<div class="form-group"><label class="form-label">Пар у ящику</label><input type="number" min="1" step="1" class="form-input" id="p-pairs-per-box" value="${pairsPerBox(p)}"><div style="font-size:12px;color:var(--text2);margin-top:4px">Стандартно — 8 пар</div></div>
+</div>
+<div class="form-group"><label class="form-label">Фото</label><input type="hidden" id="p-image" value="${p.image||''}"><input type="hidden" id="p-images" value='${JSON.stringify(p.images||[])}'><input type="file" accept="image/*" id="p-photo-file" class="form-input" onchange="uploadProductPhoto(this)"><div id="p-photo-preview" style="margin-top:8px"></div></div>
 `;
   document.getElementById('modal-footer').innerHTML = `<button class="btn btn-secondary" onclick="closeModal()">Скасувати</button><button class="btn btn-primary" onclick="saveProduct('${id||''}')">Зберегти</button>`;
   renderProductPhotoPreview();
@@ -975,6 +980,7 @@ async function saveProduct(id) {
     unit: document.getElementById('p-unit').value,
     quantity: parseFloat(document.getElementById('p-qty').value) || 0,
     min_qty: parseFloat(document.getElementById('p-min').value) || 0,
+    pairs_per_box: Math.max(1, parseInt(document.getElementById('p-pairs-per-box').value, 10) || DEFAULT_PAIRS_PER_BOX),
     price: parseFloat(document.getElementById('p-price').value) || 0,
     image: (function(){ var e=document.getElementById('p-image'); return e? e.value : ''; })(),
     images: (function(){ var e=document.getElementById('p-images'); if(!e) return []; try{ var a=JSON.parse(e.value||'[]'); return Array.isArray(a)?a:[]; }catch(_){ return []; } })()
@@ -1051,14 +1057,31 @@ showNotif('Товар повернуто з архіву', 'success');
 function renderIncoming() { renderOperation('incoming'); }
 function renderOutgoing() { renderOperation('outgoing'); }
 
-var PAIRS_PER_BOX = 8;
+var DEFAULT_PAIRS_PER_BOX = 8;
 
 function isPairProduct(product) {
   return String((product && product.unit) || '').toLowerCase().indexOf('пар') === 0;
 }
 
+function pairsPerBox(product) {
+  var value = Number(product && product.pairs_per_box);
+  return value > 0 ? value : DEFAULT_PAIRS_PER_BOX;
+}
+
 function roundOperationQuantity(value) {
   return Math.round((Number(value) || 0) * 1000) / 1000;
+}
+
+function operationItemPairsPerBox(item) {
+  var stored = Number(item && item.pairs_per_box);
+  if (stored > 0) return stored;
+  var quantity = Number(item && item.quantity) || 0;
+  var entered = Number(item && item.entered_quantity) || 0;
+  if (item && item.quantity_unit === 'boxes' && quantity > 0 && entered > 0) {
+    return roundOperationQuantity(quantity / entered);
+  }
+  var product = state.products.find(function(p) { return String(p.id) === String(item && item.product_id); });
+  return pairsPerBox(product);
 }
 
 function operationItemEnteredQuantity(item) {
@@ -1066,7 +1089,7 @@ function operationItemEnteredQuantity(item) {
     if (item.entered_quantity != null && item.entered_quantity !== '') {
       return Number(item.entered_quantity) || 0;
     }
-    return roundOperationQuantity((Number(item.quantity) || 0) / PAIRS_PER_BOX);
+    return roundOperationQuantity((Number(item.quantity) || 0) / operationItemPairsPerBox(item));
   }
   return Number(item && item.quantity) || 0;
 }
@@ -1149,7 +1172,7 @@ function openOperationModal(type, editOp) {
   function buildProductOptions() {
     var html = '<option value="">— Оберіть товар —</option>';
     sortProductsByName(state.products).forEach(function(p) {
-      html += '<option value="' + p.id + '" data-name="' + (p.name || '') + '" data-unit="' + (p.unit || '') + '">' + p.name + (p.unit ? ' (' + p.unit + ')' : '') + ' — ' + (p.quantity || 0) + '</option>';
+      html += '<option value="' + p.id + '" data-name="' + (p.name || '') + '" data-unit="' + (p.unit || '') + '">' + p.name + (p.unit ? ' (' + p.unit + ')' : '') + (isPairProduct(p) ? ' · ' + formatOperationQuantity(pairsPerBox(p)) + ' пар/ящ.' : '') + ' — ' + (p.quantity || 0) + '</option>';
     });
     return html;
   }
@@ -1214,6 +1237,7 @@ function openOperationModal(type, editOp) {
     sel.addEventListener('change', function() {
       var prod = state.products.find(function(pp){ return String(pp.id) === String(sel.value); });
       if (prod) { priceInput.value = (prod.price != null ? prod.price : ''); } else { priceInput.value = ''; }
+      tr.dataset.pairsPerBox = String(pairsPerBox(prod));
       var wasHidden = qtyUnit.style.display === 'none';
       var canUseBoxes = !isIncoming && isPairProduct(prod);
       qtyUnit.style.display = canUseBoxes ? '' : 'none';
@@ -1229,10 +1253,11 @@ function openOperationModal(type, editOp) {
     qtyUnit.addEventListener('change', function() {
       var previousUnit = qtyUnit.dataset.previousUnit || 'boxes';
       var currentValue = parseFloat(qtyInput.value);
+      var rowPairsPerBox = Number(tr.dataset.pairsPerBox) || DEFAULT_PAIRS_PER_BOX;
       if (!isNaN(currentValue) && currentValue > 0 && previousUnit !== qtyUnit.value) {
         qtyInput.value = qtyUnit.value === 'boxes'
-          ? roundOperationQuantity(currentValue / PAIRS_PER_BOX)
-          : roundOperationQuantity(currentValue * PAIRS_PER_BOX);
+          ? roundOperationQuantity(currentValue / rowPairsPerBox)
+          : roundOperationQuantity(currentValue * rowPairsPerBox);
       }
       qtyUnit.dataset.previousUnit = qtyUnit.value;
       qtyInput.setAttribute('aria-label', qtyUnit.value === 'boxes' ? 'Кількість ящиків' : 'Кількість пар');
@@ -1269,6 +1294,7 @@ function openOperationModal(type, editOp) {
       var u = lastRow.querySelector('.item-quantity-unit');
       if (s) s.value = it.product_id;
       if (s) s.dispatchEvent(new Event('change'));
+      lastRow.dataset.pairsPerBox = String(operationItemPairsPerBox(it));
       if (u) u.value = it.quantity_unit === 'boxes' ? 'boxes' : 'pairs';
       if (u) u.dispatchEvent(new Event('change'));
       if (q) q.value = operationItemEnteredQuantity(it);
@@ -1342,7 +1368,8 @@ function collectOperationItems(type) {
     if (!enteredQuantity || enteredQuantity <= 0) { error = 'Введіть кількість більше 0'; return; }
     var product = state.products.find(function(p) { return String(p.id) === String(productId); });
     var usesBoxes = type === 'outgoing' && isPairProduct(product) && unitSelect && unitSelect.value === 'boxes';
-    var quantity = usesBoxes ? enteredQuantity * PAIRS_PER_BOX : enteredQuantity;
+    var rowPairsPerBox = Number(tr.dataset.pairsPerBox) || pairsPerBox(product);
+    var quantity = usesBoxes ? enteredQuantity * rowPairsPerBox : enteredQuantity;
     var price = parseFloat(priceInp ? priceInp.value : '') || 0;
     var opt = sel.options[sel.selectedIndex];
     var productName = product && product.name ? product.name : (opt ? (opt.dataset && opt.dataset.name ? opt.dataset.name : opt.text.split('(')[0].trim()) : String(productId));
@@ -1350,6 +1377,7 @@ function collectOperationItems(type) {
       product_id: productId,
       product_name: productName,
       product_unit: product && product.unit ? product.unit : '',
+      pairs_per_box: rowPairsPerBox,
       quantity: roundOperationQuantity(quantity),
       quantity_unit: usesBoxes ? 'boxes' : 'pairs',
       entered_quantity: roundOperationQuantity(enteredQuantity),
@@ -1415,7 +1443,7 @@ async function saveOperation(type, editId) {
 function boxesCount(p) {
   var u = String((p && p.unit) || "").toLowerCase();
   if (u.indexOf("пар") !== 0) return null;
-  return Math.round(((Number(p && p.quantity) || 0) / PAIRS_PER_BOX) * 100) / 100;
+  return Math.round(((Number(p && p.quantity) || 0) / pairsPerBox(p)) * 100) / 100;
 }
 
 function boxesLabel(p) {
@@ -1428,7 +1456,7 @@ function boxesSuffix(p) {
   return s ? ' <span style="color:var(--text2)">• ' + s + '</span>' : "";
 }
 
-function syncInventoryInput(id, source) {var pairsInp = document.querySelector('.inv-pairs[data-id="' + id + '"]');var boxesInp = document.querySelector('.inv-boxes[data-id="' + id + '"]');if (!pairsInp || !boxesInp) return;if (source === 'boxes') {var boxes = parseFloat(boxesInp.value) || 0;pairsInp.value = Math.round(boxes * 8 * 100) / 100;} else {var pairs = parseFloat(pairsInp.value) || 0;boxesInp.value = Math.round((pairs / 8) * 100) / 100;}}function saveInventoryCorrection(id) {var prod = state.products.find(function(p) { return String(p.id) === String(id); });if (!prod) return;var unit = String(prod.unit || '').toLowerCase();var newQty;if (unit.indexOf('пар') === 0) {var pairsInp = document.querySelector('.inv-pairs[data-id="' + id + '"]');newQty = pairsInp ? (parseFloat(pairsInp.value) || 0) : prod.quantity;} else {var qtyInp = document.querySelector('.inv-qty[data-id="' + id + '"]');newQty = qtyInp ? (parseFloat(qtyInp.value) || 0) : prod.quantity;}if (newQty < 0) { showNotif('Кількість не може бути від’ємною', 'error'); return; }var diff = Math.round((newQty - (Number(prod.quantity) || 0)) * 100) / 100;prod.quantity = newQty;saveSnapshot().then(function() {renderInventory();showNotif(diff === 0 ? 'Залишок збережено' : ('Залишок оновлено (' + (diff > 0 ? '+' : '') + diff + ' ' + prod.unit + ')'), 'success');});}function exportProductsExcel() {
+function syncInventoryInput(id, source) {var prod = state.products.find(function(p) { return String(p.id) === String(id); });var perBox = pairsPerBox(prod);var pairsInp = document.querySelector('.inv-pairs[data-id="' + id + '"]');var boxesInp = document.querySelector('.inv-boxes[data-id="' + id + '"]');if (!pairsInp || !boxesInp) return;if (source === 'boxes') {var boxes = parseFloat(boxesInp.value) || 0;pairsInp.value = Math.round(boxes * perBox * 100) / 100;} else {var pairs = parseFloat(pairsInp.value) || 0;boxesInp.value = Math.round((pairs / perBox) * 100) / 100;}}function saveInventoryCorrection(id) {var prod = state.products.find(function(p) { return String(p.id) === String(id); });if (!prod) return;var unit = String(prod.unit || '').toLowerCase();var newQty;if (unit.indexOf('пар') === 0) {var pairsInp = document.querySelector('.inv-pairs[data-id="' + id + '"]');newQty = pairsInp ? (parseFloat(pairsInp.value) || 0) : prod.quantity;} else {var qtyInp = document.querySelector('.inv-qty[data-id="' + id + '"]');newQty = qtyInp ? (parseFloat(qtyInp.value) || 0) : prod.quantity;}if (newQty < 0) { showNotif('Кількість не може бути від’ємною', 'error'); return; }var diff = Math.round((newQty - (Number(prod.quantity) || 0)) * 100) / 100;prod.quantity = newQty;saveSnapshot().then(function() {renderInventory();showNotif(diff === 0 ? 'Залишок збережено' : ('Залишок оновлено (' + (diff > 0 ? '+' : '') + diff + ' ' + prod.unit + ')'), 'success');});}function exportProductsExcel() {
   var q = "";
   var inp = document.querySelector("#page-content .search-input");
   if (inp) q = String(inp.value || "").trim().toLowerCase();
@@ -1439,7 +1467,7 @@ function syncInventoryInput(id, source) {var pairsInp = document.querySelector('
   });
   list = sortProductsByName(list);
   if (!list.length) { showNotif("Немає моделей для експорту", "error"); return; }
-  var header = ["№", "Назва", "Категорія", "Кількість", "Одиниця", "Ціна за пару", "Коробки", "Статус"];
+  var header = ["№", "Назва", "Категорія", "Кількість", "Одиниця", "Пар у ящику", "Ціна за пару", "Коробки", "Статус"];
   var rows = [header];
   list.forEach(function(p, i) {
     var qty = Number(p.quantity) || 0;
@@ -1457,6 +1485,7 @@ function syncInventoryInput(id, source) {var pairsInp = document.querySelector('
       cat,
       qty,
       p.unit || "",
+      isPairProduct(p) ? formatOperationQuantity(pairsPerBox(p)) : "",
       formatMoney(p.price || 0), (bc === null ? "" : formatMoney(bc)),
       st
     ]);
@@ -1508,6 +1537,7 @@ function printProducts() {
       "<td><b>" + escapeHtml(p.name || "") + "</b></td>" +
       "<td>" + escapeHtml(cat) + "</td>" +
       "<td class=\"r\">" + qty + " " + escapeHtml(p.unit || "") + "</td>" +
+      "<td class=\"r\">" + (isPairProduct(p) ? formatOperationQuantity(pairsPerBox(p)) : "&mdash;") + "</td>" +
       "<td class=\"r\">" + formatMoney(p.price || 0) + "</td>" + "<td class=\"r\">" + (bc === null ? "&mdash;" : formatMoney(bc)) + "</td>" +
       "<td class=\"c " + cls + "\">" + st + "</td>" +
       "</tr>";
@@ -1531,7 +1561,7 @@ function printProducts() {
     "</style></head><body>" +
     "<h2>Список моделей та наявність</h2>" +
     "<div class=\"sub\">" + (whName ? "Склад: " + escapeHtml(whName) + " &bull; " : "") + "Дата: " + now + (q ? " &bull; Фільтр: " + escapeHtml(q) : "") + " &bull; Позицій: " + list.length + "</div>" +
-    "<table><thead><tr><th class=\"c\">№</th><th>Модель</th><th>Категорія</th><th class=\"r\">Залишок</th><th class=\"r\">Ціна за пару</th><th class=\"r\">Коробок</th><th class=\"c\">Наявність</th></tr></thead><tbody>" + rows + "</tbody></table>" +
+    "<table><thead><tr><th class=\"c\">№</th><th>Модель</th><th>Категорія</th><th class=\"r\">Залишок</th><th class=\"r\">Пар у ящику</th><th class=\"r\">Ціна за пару</th><th class=\"r\">Коробок</th><th class=\"c\">Наявність</th></tr></thead><tbody>" + rows + "</tbody></table>" +
     "<div class=\"sum\">В наявності: <b>" + cntIn + "</b> &bull; Мало: <b>" + cntLow + "</b> &bull; Немає: <b>" + cntNone + "</b> &bull; Загальний залишок: <b>" + formatMoney(totalQty) + "</b> &bull; Коробок: <b>" + formatMoney(Math.round(totalBoxes * 100) / 100) + "</b></div>" +
     "<br><button onclick=\"window.print()\">🖨 Надрукувати</button>" +
     "</body></html>";
@@ -1583,7 +1613,7 @@ function renderInventory() {
 <div class="stat-card red"><div class="label">Немає</div><div class="value">${state.products.filter(p=>p.quantity===0).length}</div><div class="sub">позицій</div></div>
 </div>
 <div class="table-container">
-<div class="table-header"><h3>Інвентаризація залишків</h3><span style="color:var(--text2);font-size:13px">1 ящик = 8 пар · Загальна вартість: <strong style="color:var(--text)">${formatMoney(total)}</strong></span></div>
+<div class="table-header"><h3>Інвентаризація залишків</h3><span style="color:var(--text2);font-size:13px">Стандартно 8 пар/ящик · налаштовується в товарі · Загальна вартість: <strong style="color:var(--text)">${formatMoney(total)}</strong></span></div>
 <table><thead><tr><th>Товар</th><th>Категорія</th><th>Залишок</th><th>Мін. залишок</th><th>Рівень</th><th>Вартість</th><th>Інвентаризація (пари/ящики)</th></tr></thead><tbody>
 ${sortProductsByName(state.products).map(p => {
 const pct = Math.min(100, (p.quantity / Math.max(p.min_qty * 3, 1)) * 100);
@@ -1594,7 +1624,7 @@ return `<tr>
 <td><strong>${p.quantity}</strong> ${p.unit}</td>
 <td>${p.min_qty} ${p.unit}</td>
 <td style="width:150px"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div><span style="font-size:11px;color:var(--text2)">${Math.round(pct)}%</span></td>
-<td>${formatMoney(p.quantity * p.price)}</td><td>${(function(){var u=String(p.unit||"").toLowerCase();if(u.indexOf("пар")===0){var bx=boxesCount(p);return "<div style=\"display:flex;gap:4px;align-items:center;flex-wrap:wrap\"><input type=\"number\" step=\"0.01\" class=\"form-input inv-pairs\" data-id=\"" + p.id + "\" style=\"width:70px;padding:6px\" value=\"" + p.quantity + "\" oninput=\"syncInventoryInput('" + p.id + "','pairs')\"><span style=\"font-size:11px;color:var(--text2)\">пар</span><input type=\"number\" step=\"0.01\" class=\"form-input inv-boxes\" data-id=\"" + p.id + "\" style=\"width:60px;padding:6px\" value=\"" + bx + "\" oninput=\"syncInventoryInput('" + p.id + "','boxes')\"><span style=\"font-size:11px;color:var(--text2)\">ящ.</span><button class=\"btn btn-primary btn-sm\" onclick=\"saveInventoryCorrection('" + p.id + "')\">Зберегти</button></div>";}return "<div style=\"display:flex;gap:4px;align-items:center\"><input type=\"number\" step=\"0.01\" class=\"form-input inv-qty\" data-id=\"" + p.id + "\" style=\"width:90px;padding:6px\" value=\"" + p.quantity + "\"><span style=\"font-size:11px;color:var(--text2)\">" + p.unit + "</span><button class=\"btn btn-primary btn-sm\" onclick=\"saveInventoryCorrection('" + p.id + "')\">Зберегти</button></div>";})()}</td>
+<td>${formatMoney(p.quantity * p.price)}</td><td>${(function(){var u=String(p.unit||"").toLowerCase();if(u.indexOf("пар")===0){var bx=boxesCount(p);return "<div style=\"display:flex;gap:4px;align-items:center;flex-wrap:wrap\"><input type=\"number\" step=\"0.01\" class=\"form-input inv-pairs\" data-id=\"" + p.id + "\" style=\"width:70px;padding:6px\" value=\"" + p.quantity + "\" oninput=\"syncInventoryInput('" + p.id + "','pairs')\"><span style=\"font-size:11px;color:var(--text2)\">пар</span><input type=\"number\" step=\"0.01\" class=\"form-input inv-boxes\" data-id=\"" + p.id + "\" style=\"width:60px;padding:6px\" value=\"" + bx + "\" oninput=\"syncInventoryInput('" + p.id + "','boxes')\"><span style=\"font-size:11px;color:var(--text2)\">ящ.</span><span style=\"font-size:11px;color:var(--text2)\">(" + formatOperationQuantity(pairsPerBox(p)) + " пар/ящ.)</span><button class=\"btn btn-primary btn-sm\" onclick=\"saveInventoryCorrection('" + p.id + "')\">Зберегти</button></div>";}return "<div style=\"display:flex;gap:4px;align-items:center\"><input type=\"number\" step=\"0.01\" class=\"form-input inv-qty\" data-id=\"" + p.id + "\" style=\"width:90px;padding:6px\" value=\"" + p.quantity + "\"><span style=\"font-size:11px;color:var(--text2)\">" + p.unit + "</span><button class=\"btn btn-primary btn-sm\" onclick=\"saveInventoryCorrection('" + p.id + "')\">Зберегти</button></div>";})()}</td>
 </tr>`;
 }).join('')}
 </tbody></table></div>`;
@@ -2983,6 +3013,7 @@ window.printOperation = function(idOrOperation, type) {
     items = [{product_name: op.product_name, quantity: op.quantity, price: op.price}];
   }
   var totalPairs = 0;
+  var totalBoxes = 0;
   var totalSum = 0;
   var rows = items.map(function(it) {
     var quantity = Number(it.quantity) || 0;
@@ -2990,9 +3021,14 @@ window.printOperation = function(idOrOperation, type) {
     var sum = quantity * price;
     var unit = String(it.product_unit || it.unit || '').toLowerCase();
     var isPairs = unit.indexOf('пар') === 0 || !unit;
+    var itemPairsPerBox = operationItemPairsPerBox(it);
     var pairsText = isPairs ? formatOperationQuantity(quantity) : '—';
-    var boxesText = isPairs ? formatOperationQuantity(quantity / PAIRS_PER_BOX) : '—';
-    if (!isIncoming && isPairs) totalPairs += quantity;
+    var itemBoxes = isPairs ? quantity / itemPairsPerBox : 0;
+    var boxesText = isPairs ? formatOperationQuantity(itemBoxes) : '—';
+    if (!isIncoming && isPairs) {
+      totalPairs += quantity;
+      totalBoxes += itemBoxes;
+    }
     totalSum += sum;
     return '<tr><td>' + escapeHtml(it.product_name || it.product || '') + '</td>' +
       '<td style="text-align:center">' + pairsText + '</td>' +
@@ -3003,7 +3039,7 @@ window.printOperation = function(idOrOperation, type) {
   var summary = '';
   if (!isIncoming && totalPairs > 0) {
     summary = 'Всього пар: ' + formatOperationQuantity(totalPairs) +
-      ' &nbsp;|&nbsp; Ящиків: ' + formatOperationQuantity(totalPairs / PAIRS_PER_BOX) +
+      ' &nbsp;|&nbsp; Ящиків: ' + formatOperationQuantity(totalBoxes) +
       ' &nbsp;|&nbsp; Сума: ' + totalSum.toFixed(2);
   } else {
     summary = 'Сума: ' + totalSum.toFixed(2);
