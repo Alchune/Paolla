@@ -1837,6 +1837,7 @@ async function receiveOrderStock(orderId, done) {
     o.received = true;
     o.warehouse_received_at = new Date().toISOString();
     o.warehouse_received_event = true;
+    o.warehouse_received_event_version = 2;
     o.status = 'ready';
   } else if (!done && o.received) {
     var p2 = state.products.find(function(pr){ return pr.name === o.product; });
@@ -1844,6 +1845,7 @@ async function receiveOrderStock(orderId, done) {
     o.received = false;
     delete o.warehouse_received_at;
     delete o.warehouse_received_event;
+    delete o.warehouse_received_event_version;
     o.status = opsDone ? 'in_production' : 'new';
   }
   await saveSnapshot();
@@ -2037,7 +2039,9 @@ function renderProduction() {
   } else {
     html += '<table class="data-table"><thead><tr><th>Наряд</th><th>Товар</th><th>К-сть</th><th>Прийнято</th></tr></thead><tbody>';
     done.forEach(function(o){
-      var acceptedDate = o.warehouse_received_event === true && o.warehouse_received_at ? new Date(o.warehouse_received_at).toLocaleDateString('uk-UA') : '—';
+      var acceptedAt = o.warehouse_received_at ? new Date(o.warehouse_received_at) : null;
+      var isVerifiedReceipt = acceptedAt && !isNaN(acceptedAt.getTime()) && acceptedAt >= new Date('2026-09-01T00:00:00Z');
+      var acceptedDate = isVerifiedReceipt ? acceptedAt.toLocaleDateString('uk-UA') : '—';
       html += '<tr style="cursor:pointer" onclick="openOrderView('+o.id+')"><td>'+o.number+'</td><td>'+(o.product||'')+'</td><td>'+(o.quantity||1)+' шт</td><td>'+acceptedDate+'</td></tr>';
     });
     html += '</tbody></table>';
