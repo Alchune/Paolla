@@ -2750,7 +2750,12 @@ function hideAuth() {
           html += '<div style="color:var(--text2)">\u041d\u0435\u043c\u0430\u0454 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u0438\u0445</div>';
         } else {
           html += '<table class="data-table"><thead><tr><th>\u041d\u0430\u0440\u044f\u0434</th><th>\u0422\u043e\u0432\u0430\u0440</th><th>\u041a-\u0441\u0442\u044c</th><th>\u041f\u0440\u0438\u0439\u043d\u044f\u0442\u043e</th></tr></thead><tbody>';
-          done.forEach(function(o){ html += '<tr style="cursor:pointer" onclick="openOrderView(\''+o.id+'\')"><td>'+o.number+'</td><td>'+(o.product||'')+'</td><td>'+(o.quantity||1)+'</td><td>'+(o.receivedDate||o.date||'')+'</td></tr>'; });
+          done.forEach(function(o){
+            var acceptedAt = o.warehouse_received_at ? new Date(o.warehouse_received_at) : null;
+            var isVerifiedReceipt = acceptedAt && !isNaN(acceptedAt.getTime()) && acceptedAt >= new Date('2026-09-01T00:00:00Z');
+            var acceptedDate = isVerifiedReceipt ? acceptedAt.toLocaleDateString('uk-UA') : '—';
+            html += '<tr style="cursor:pointer" onclick="openOrderView(\''+o.id+'\')"><td>'+o.number+'</td><td>'+(o.product||'')+'</td><td>'+(o.quantity||1)+'</td><td>'+acceptedDate+'</td></tr>';
+          });
           html += '</tbody></table>';
         }
         var c = document.getElementById('page-content'); if(c) c.innerHTML = html;
