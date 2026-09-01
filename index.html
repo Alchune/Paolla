@@ -1835,14 +1835,13 @@ async function receiveOrderStock(orderId, done) {
     var p = state.products.find(function(pr){ return pr.name === o.product; });
     if (p) { p.quantity = (parseInt(p.quantity)||0) + qty; }
     o.received = true;
-    var receivedNow = new Date();
-    o.received_date = new Date(receivedNow.getTime() - receivedNow.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+    o.warehouse_received_at = new Date().toISOString();
     o.status = 'ready';
   } else if (!done && o.received) {
     var p2 = state.products.find(function(pr){ return pr.name === o.product; });
     if (p2) { p2.quantity = Math.max(0, (parseInt(p2.quantity)||0) - qty); }
     o.received = false;
-    delete o.received_date;
+    delete o.warehouse_received_at;
     o.status = opsDone ? 'in_production' : 'new';
   }
   await saveSnapshot();
@@ -2035,7 +2034,10 @@ function renderProduction() {
     html += '<div style="color:var(--text2)">Немає завершених</div>';
   } else {
     html += '<table class="data-table"><thead><tr><th>Наряд</th><th>Товар</th><th>К-сть</th><th>Прийнято</th></tr></thead><tbody>';
-    done.forEach(function(o){ html += '<tr style="cursor:pointer" onclick="openOrderView('+o.id+')"><td>'+o.number+'</td><td>'+(o.product||'')+'</td><td>'+(o.quantity||1)+' шт</td><td>'+(o.received_date||'—')+'</td></tr>'; });
+    done.forEach(function(o){
+      var acceptedDate = o.warehouse_received_at ? new Date(o.warehouse_received_at).toLocaleDateString('uk-UA') : '—';
+      html += '<tr style="cursor:pointer" onclick="openOrderView('+o.id+')"><td>'+o.number+'</td><td>'+(o.product||'')+'</td><td>'+(o.quantity||1)+' шт</td><td>'+acceptedDate+'</td></tr>';
+    });
     html += '</tbody></table>';
   }
   document.getElementById('page-content').innerHTML = html;
