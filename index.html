@@ -1984,15 +1984,36 @@ function setProductionView(mode) {
   renderProduction();
 }
 
+function setProductionDoneSort(mode) {
+  window._prodDoneSort = mode === 'order' ? 'order' : 'date';
+  try { localStorage.setItem('paolla_productionDoneSort', window._prodDoneSort); } catch(e) {}
+  renderProduction();
+}
+
 function renderProduction() {
   var orders = state.orders || [];
   var cats = [...new Set(orders.map(function(o){return o.category;}).filter(Boolean))];
   var models = [...new Set(orders.map(function(o){return o.product;}).filter(Boolean))];
   var filterCat = window._prodFilterCat || '';
   var filterModel = window._prodFilterModel || '';
+  var doneSort = window._prodDoneSort;
+  if (!doneSort) {
+    try { doneSort = localStorage.getItem('paolla_productionDoneSort'); } catch(e) {}
+  }
+  doneSort = doneSort === 'order' ? 'order' : 'date';
+  window._prodDoneSort = doneSort;
   var matchFn = function(o){ return (!filterCat||o.category===filterCat) && (!filterModel||o.product===filterModel); };
   var active = orders.filter(function(o){ return !o.received && matchFn(o); });
   var done = orders.filter(function(o){ return o.received && matchFn(o); });
+  var compareOrderNumbers = function(a, b) {
+    return String(b.number || '').localeCompare(String(a.number || ''), 'uk', { numeric: true, sensitivity: 'base' });
+  };
+  done.sort(function(a, b) {
+    if (doneSort === 'order') return compareOrderNumbers(a, b);
+    var aDate = Date.parse(a.warehouse_received_at || a.date || '') || 0;
+    var bDate = Date.parse(b.warehouse_received_at || b.date || '') || 0;
+    return (bDate - aDate) || compareOrderNumbers(a, b);
+  });
   var catOpts = cats.map(function(c){return '<option value="'+c+'" '+(filterCat===c?'selected':'')+'>'+c+'</option>';}).join('');
   var modelOpts = models.map(function(m){return '<option value="'+m+'" '+(filterModel===m?'selected':'')+'>'+m+'</option>';}).join('');
   var html = '<div class="page-header"><h2>⚙️ Виробництво</h2></div>';
@@ -2033,7 +2054,12 @@ function renderProduction() {
     });
     html += '</div>';
   }
-  html += '<h3 style="margin:0 0 10px;color:var(--text)">✅ Завершено ('+done.length+')</h3>';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px">';
+  html += '<h3 style="margin:0;color:var(--text)">✅ Завершено ('+done.length+')</h3>';
+  html += '<select class="form-select" aria-label="Сортування завершених нарядів" style="width:auto;min-width:210px" onchange="setProductionDoneSort(this.value)">';
+  html += '<option value="date" '+(doneSort==='date'?'selected':'')+'>За датою (новіші спочатку)</option>';
+  html += '<option value="order" '+(doneSort==='order'?'selected':'')+'>За нарядом (більші спочатку)</option>';
+  html += '</select></div>';
   if (done.length === 0) {
     html += '<div style="color:var(--text2)">Немає завершених</div>';
   } else {
@@ -2703,9 +2729,22 @@ function hideAuth() {
         var models = Array.from(new Set(orders.map(function(o){return o.product;}).filter(Boolean)));
         var filterOp = window._prodFilterOp || '';
         var filterModel = window._prodFilterModel || '';
+        var doneSort = window._prodDoneSort;
+        if(!doneSort){ try{ doneSort = localStorage.getItem('paolla_productionDoneSort'); }catch(e){} }
+        doneSort = doneSort === 'order' ? 'order' : 'date';
+        window._prodDoneSort = doneSort;
         var matchFn = function(o){ return (!filterOp || currentStage(o)===filterOp) && (!filterModel||o.product===filterModel); };
         var active = orders.filter(function(o){ return !o.received && matchFn(o); });
         var done = orders.filter(function(o){ return o.received && (!filterModel||o.product===filterModel); });
+        var compareOrderNumbers = function(a,b){
+          return String(b.number||'').localeCompare(String(a.number||''),'uk',{numeric:true,sensitivity:'base'});
+        };
+        done.sort(function(a,b){
+          if(doneSort==='order') return compareOrderNumbers(a,b);
+          var aDate = Date.parse(a.warehouse_received_at||a.date||'')||0;
+          var bDate = Date.parse(b.warehouse_received_at||b.date||'')||0;
+          return (bDate-aDate)||compareOrderNumbers(a,b);
+        });
         var opOpts = opSet.map(function(c){return '<option value="'+c+'" '+(filterOp===c?'selected':'')+'>'+c+'</option>';}).join('');
         var modelOpts = models.map(function(m){return '<option value="'+m+'" '+(filterModel===m?'selected':'')+'>'+m+'</option>';}).join('');
         var html = '<div class="page-header"><h2>\u2699\ufe0f \u0412\u0438\u0440\u043e\u0431\u043d\u0438\u0446\u0442\u0432\u043e</h2></div>';
@@ -2745,7 +2784,12 @@ function hideAuth() {
           });
           html += '</div>';
         }
-        html += '<h3 style="margin:0 0 10px;color:var(--text)">\u2705 \u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u043e ('+done.length+')</h3>';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px">';
+        html += '<h3 style="margin:0;color:var(--text)">\u2705 \u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u043e ('+done.length+')</h3>';
+        html += '<select class="form-select" aria-label="Сортування завершених нарядів" style="width:auto;min-width:210px" onchange="setProductionDoneSort(this.value)">';
+        html += '<option value="date" '+(doneSort==='date'?'selected':'')+'>За датою (новіші спочатку)</option>';
+        html += '<option value="order" '+(doneSort==='order'?'selected':'')+'>За нарядом (більші спочатку)</option>';
+        html += '</select></div>';
         if (done.length === 0) {
           html += '<div style="color:var(--text2)">\u041d\u0435\u043c\u0430\u0454 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u0438\u0445</div>';
         } else {
