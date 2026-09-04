@@ -821,14 +821,14 @@ ${renderProductRows(products, isArchive)}
 
 function renderProductRows(products, isArchive) {
 return products.map(p => {
-const status = p.quantity === 0 ? '<span class="badge badge-red">Немає</span>' : p.quantity <= p.min_qty ? '<span class="badge badge-yellow">Мало</span>' : '<span class="badge badge-green">В наявності</span>';
+const status = p.quantity < 0 ? '<span class="badge badge-red">Мінус</span>' : p.quantity === 0 ? '<span class="badge badge-red">Немає</span>' : p.quantity <= p.min_qty ? '<span class="badge badge-yellow">Мало</span>' : '<span class="badge badge-green">В наявності</span>';
 const actions = isArchive
 ? `<button class="btn btn-secondary btn-sm" onclick="unarchiveProduct('${p.id}')" title="Повернути з архіву">↩️</button> <button class="btn btn-secondary btn-sm" onclick="deleteProduct('${p.id}')">🗑️</button>`
 : `<button class="btn btn-secondary btn-sm" onclick="editProduct('${p.id}')">✏️</button> <button class="btn btn-secondary btn-sm" onclick="duplicateProduct('${p.id}')" title="Дублювати">📄</button> <button class="btn btn-secondary btn-sm" onclick="archiveProduct('${p.id}')" title="Відправити в архів">📥</button> <button class="btn btn-secondary btn-sm" onclick="deleteProduct('${p.id}')">🗑️</button>`;
 return `<tr>
 <td>${p.image?`<img src="${p.image}" loading="lazy" style="width:32px;height:32px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:8px;cursor:pointer" onclick="openProductGallery('${p.id}')">`:''}<strong>${p.name}</strong></td>
 <td><span class="badge badge-gray">${p.category}</span>${p.subcategory ? ` <span class="badge badge-blue">${p.subcategory}</span>` : ''}</td>
-<td>${p.quantity} ${p.unit}${boxesSuffix(p)} <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${Math.min(100,(p.quantity/Math.max(p.min_qty*3,1))*100)}%;background:${p.quantity<=p.min_qty?'var(--danger)':'var(--accent)'}"></div></div></td>
+<td>${p.quantity} ${p.unit}${boxesSuffix(p)} <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${Math.max(0,Math.min(100,(p.quantity/Math.max(p.min_qty*3,1))*100))}%;background:${p.quantity<=p.min_qty?'var(--danger)':'var(--accent)'}"></div></div></td>
 <td>${isPairProduct(p) ? formatOperationQuantity(pairsPerBox(p)) + ' пар' : '—'}</td>
 <td>${formatMoney(p.price)}</td>
 <td>${status}</td>
@@ -840,7 +840,7 @@ return `<tr>
 function renderProductGrid(products, isArchive) {
 if (!products.length) return '<div class="empty-state"><div class="icon">📦</div><h3>Немає товарів</h3><p>Додайте першу позицію</p></div>';
 var cards = products.map(function(p) {
-var status = p.quantity === 0 ? '<span class="badge badge-red">Немає</span>' : p.quantity <= p.min_qty ? '<span class="badge badge-yellow">Мало</span>' : '<span class="badge badge-green">В наявності</span>';
+var status = p.quantity < 0 ? '<span class="badge badge-red">Мінус</span>' : p.quantity === 0 ? '<span class="badge badge-red">Немає</span>' : p.quantity <= p.min_qty ? '<span class="badge badge-yellow">Мало</span>' : '<span class="badge badge-green">В наявності</span>';
 var actions = isArchive
 ? '<div class="ic-actions"><button class="btn btn-secondary btn-sm" onclick="unarchiveProduct(\'' + p.id + '\')" title="Повернути з архіву">↩️</button><button class="btn btn-secondary btn-sm" onclick="deleteProduct(\'' + p.id + '\')">🗑️</button></div>'
 : '<div class="ic-actions"><button class="btn btn-secondary btn-sm" onclick="editProduct(\'' + p.id + '\')">✏️</button><button class="btn btn-secondary btn-sm" onclick="duplicateProduct(\'' + p.id + '\')" title="Дублювати">📄</button><button class="btn btn-secondary btn-sm" onclick="archiveProduct(\'' + p.id + '\')" title="Відправити в архів">📥</button><button class="btn btn-secondary btn-sm" onclick="deleteProduct(\'' + p.id + '\')">🗑️</button></div>';
@@ -1410,7 +1410,8 @@ async function saveOperation(type, editId) {
       var prod = state.products.find(function(p) { return String(p.id) === String(it.product_id); });
       if (!prod) return;
       var dir = (opType === 'incoming') ? 1 : -1;
-      prod.quantity = Math.max(0, (Number(prod.quantity) || 0) + dir * sign * Number(it.quantity || 0));
+      // Видаток може перевести складський залишок нижче нуля.
+      prod.quantity = (Number(prod.quantity) || 0) + dir * sign * Number(it.quantity || 0);
     });
   }
 
@@ -1473,10 +1474,6 @@ function syncInventoryInput(id, source) {var prod = state.products.find(function
   }
   var oldQty = roundOperationQuantity(Number(prod.quantity) || 0);
   var newQty = roundOperationQuantity(parsed);
-  if (newQty < 0) {
-    showNotif('Кількість не може бути від’ємною', 'error');
-    return;
-  }
   var diff = roundOperationQuantity(newQty - oldQty);
   if (diff === 0) {
     renderInventory();
@@ -1656,7 +1653,7 @@ async function saveReservation(editId) { var counterpartyEl = document.getElemen
       var prod = state.products.find(function(p) { return String(p.id) === String(it.product_id); });
       if (prod) {
         if (op.type === 'incoming') {
-          prod.quantity = Math.max(0, (Number(prod.quantity) || 0) - Number(it.quantity));
+          prod.quantity = (Number(prod.quantity) || 0) - Number(it.quantity);
         } else {
           prod.quantity = (Number(prod.quantity) || 0) + Number(it.quantity);
         }
@@ -1696,7 +1693,7 @@ function renderInventory() {
 <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
 <div class="stat-card green"><div class="label">В наявності</div><div class="value">${state.products.filter(p=>p.quantity>p.min_qty).length}</div><div class="sub">позицій</div></div>
 <div class="stat-card yellow"><div class="label">Мало залишків</div><div class="value">${state.products.filter(p=>p.quantity>0&&p.quantity<=p.min_qty).length}</div><div class="sub">потребують поповнення</div></div>
-<div class="stat-card red"><div class="label">Немає</div><div class="value">${state.products.filter(p=>p.quantity===0).length}</div><div class="sub">позицій</div></div>
+<div class="stat-card red"><div class="label">Нуль або мінус</div><div class="value">${state.products.filter(p=>p.quantity<=0).length}</div><div class="sub">позицій</div></div>
 </div>
 <div class="table-container">
 <div class="table-header" style="gap:12px;flex-wrap:wrap">
@@ -1708,8 +1705,8 @@ function renderInventory() {
 </div>
 <table><thead><tr><th>Товар</th><th>Категорія</th><th>Залишок</th><th>Мін. залишок</th><th>Рівень</th><th>Вартість</th><th>Інвентаризація (пари/ящики)</th></tr></thead><tbody id="inventory-table-body">
 ${sortProductsByName(state.products).map(p => {
-const pct = Math.min(100, (p.quantity / Math.max(p.min_qty * 3, 1)) * 100);
-const color = p.quantity === 0 ? 'var(--danger)' : p.quantity <= p.min_qty ? 'var(--warning)' : 'var(--accent)';
+const pct = Math.max(0, Math.min(100, (p.quantity / Math.max(p.min_qty * 3, 1)) * 100));
+const color = p.quantity <= 0 ? 'var(--danger)' : p.quantity <= p.min_qty ? 'var(--warning)' : 'var(--accent)';
 return `<tr data-inventory-row>
 <td class="inventory-product-name"><strong>${p.name}</strong></td>
 <td class="inventory-category-name"><span class="badge badge-gray">${p.category}</span></td>
@@ -1934,7 +1931,7 @@ async function receiveOrderStock(orderId, done) {
     o.status = 'ready';
   } else if (!done && o.received) {
     var p2 = state.products.find(function(pr){ return pr.name === o.product; });
-    if (p2) { p2.quantity = Math.max(0, (parseInt(p2.quantity)||0) - qty); }
+    if (p2) { p2.quantity = (parseInt(p2.quantity)||0) - qty; }
     o.received = false;
     delete o.warehouse_received_at;
     delete o.warehouse_received_event;
@@ -2208,7 +2205,7 @@ async function confirmStartProduction(recipeId) {
   var qty = parseInt(document.getElementById('prod-qty').value)||1;
   (r.ingredients||[]).forEach(function(ing){
     var p = state.products.find(function(x){return x.id===ing.product_id;});
-    if (p) p.quantity = Math.max(0,(Number(p.quantity)||0)-ing.qty*qty);
+    if (p) p.quantity = (Number(p.quantity)||0)-ing.qty*qty;
   });
   var departments = (r.departments||[]).map(function(d){return {id:d.id,name:d.name,status:'pending'};});
   state.production.push({ id:Date.now(), recipe_name:r.name, recipe_id:r.id, quantity:qty*r.output, unit:r.unit, status:'in_progress', started:new Date().toISOString().split('T')[0], departments:departments });
@@ -3157,91 +3154,4 @@ setInterval(sched,700);                              var wrap = document.createE
 /* Видаток у парах або ящиках. У складських залишках кількість завжди зберігається в парах. */
 window.saveReservation = async function(editId) {
   var counterpartyEl = document.getElementById('op-counterparty');
-  var counterparty = counterpartyEl ? counterpartyEl.value.trim() : '';
-  if (!counterparty) { showNotif('Введіть назву контрагента', 'error'); return; }
-  var dateEl = document.getElementById('op-date');
-  var notesEl = document.getElementById('op-notes');
-  var collected = collectOperationItems('outgoing');
-  if (collected.error) { showNotif(collected.error, 'error'); return; }
-  var existing = (editId !== null && editId !== undefined) ? state.operations.find(function(o) { return String(o.id) === String(editId); }) : null;
-  if (existing) {
-    existing.type = 'outgoing';
-    existing.status = 'reserved';
-    existing.archived = false;
-    existing.counterparty = counterparty;
-    existing.date = dateEl ? dateEl.value : '';
-    existing.notes = notesEl ? notesEl.value.trim() : '';
-    existing.items = collected.items;
-  } else {
-    state.operations.push({
-      id: Date.now(),
-      type: 'outgoing',
-      status: 'reserved',
-      counterparty: counterparty,
-      date: dateEl ? dateEl.value : '',
-      notes: notesEl ? notesEl.value.trim() : '',
-      items: collected.items
-    });
-  }
-  await saveSnapshot();
-  closeModal();
-  renderOperation('outgoing');
-  showNotif('Зарезервовано', 'success');
-};
-
-window.printOperation = function(idOrOperation, type) {
-  var op = (idOrOperation && typeof idOrOperation === 'object')
-    ? idOrOperation
-    : state.operations.find(function(o) { return String(o.id) === String(idOrOperation); });
-  if (!op) { showNotif('Документ не знайдено', 'error'); return; }
-  var isIncoming = type === 'incoming' || op.type === 'incoming';
-  var title = (isIncoming ? 'Прихід №' : 'Видаток №') + op.id;
-  var items = op.items || [];
-  if (!items.length && op.product_name) {
-    items = [{product_name: op.product_name, quantity: op.quantity, price: op.price}];
-  }
-  var totalPairs = 0;
-  var totalBoxes = 0;
-  var totalSum = 0;
-  var rows = items.map(function(it) {
-    var quantity = Number(it.quantity) || 0;
-    var price = Number(it.price) || 0;
-    var sum = quantity * price;
-    var unit = String(it.product_unit || it.unit || '').toLowerCase();
-    var isPairs = unit.indexOf('пар') === 0 || !unit;
-    var itemPairsPerBox = operationItemPairsPerBox(it);
-    var pairsText = isPairs ? formatOperationQuantity(quantity) : '—';
-    var itemBoxes = isPairs ? quantity / itemPairsPerBox : 0;
-    var boxesText = isPairs ? formatOperationQuantity(itemBoxes) : '—';
-    if (!isIncoming && isPairs) {
-      totalPairs += quantity;
-      totalBoxes += itemBoxes;
-    }
-    totalSum += sum;
-    return '<tr><td>' + escapeHtml(it.product_name || it.product || '') + '</td>' +
-      '<td style="text-align:center">' + pairsText + '</td>' +
-      '<td style="text-align:center">' + boxesText + '</td>' +
-      '<td style="text-align:right">' + (price ? price.toFixed(2) : '—') + '</td>' +
-      '<td style="text-align:right">' + (sum ? sum.toFixed(2) : '—') + '</td></tr>';
-  }).join('');
-  var summary = '';
-  if (!isIncoming && totalPairs > 0) {
-    summary = 'Всього пар: ' + formatOperationQuantity(totalPairs) +
-      ' &nbsp;|&nbsp; Ящиків: ' + formatOperationQuantity(totalBoxes) +
-      ' &nbsp;|&nbsp; Сума: ' + totalSum.toFixed(2);
-  } else {
-    summary = 'Сума: ' + totalSum.toFixed(2);
-  }
-  var w = window.open('', '_blank', 'width=700,height=600');
-  if (!w) { showNotif('Дозвольте відкриття нових вікон для друку', 'error'); return; }
-  w.document.write('<!DOCTYPE html><html lang="uk"><head><meta charset="UTF-8"><title>' + escapeHtml(title) + '</title>' +
-    '<style>body{font-family:Arial,sans-serif;padding:24px;color:#111}table{width:100%;border-collapse:collapse}th{background:#f0f4f8;padding:8px 10px;text-align:left}td{padding:6px 10px;border-bottom:1px solid #eee}@media print{button{display:none}}</style>' +
-    '</head><body><h2>' + escapeHtml(title) + '</h2><p>Контрагент: <b>' + escapeHtml(op.counterparty || '') +
-    '</b></p><p>Дата: <b>' + escapeHtml(op.date || '') + '</b></p>' +
-    (op.notes ? '<p>Примітки: ' + escapeHtml(op.notes) + '</p>' : '') +
-    '<table><thead><tr><th>Товар</th><th>Кількість пар</th><th>Кількість ящиків</th><th>Ціна</th><th>Сума</th></tr></thead><tbody>' + rows +
-    '<tr><td colspan="5" style="padding:10px;border-top:2px solid #333;text-align:right;font-weight:bold">' + summary +
-    '</td></tr></tbody></table><br><button onclick="window.print()">🖨 Надрукувати</button></body></html>');
-  w.document.close();
-};
-</script>
+  var counterparty [Truncated]
