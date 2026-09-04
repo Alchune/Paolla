@@ -1671,6 +1671,25 @@ async function saveReservation(editId) { var counterpartyEl = document.getElemen
 }
 
 
+function filterInventoryRows(query) {
+  var q = String(query || '').trim().toLocaleLowerCase('uk-UA');
+  var rows = document.querySelectorAll('#inventory-table-body tr[data-inventory-row]');
+  var shown = 0;
+  rows.forEach(function(row) {
+    var nameEl = row.querySelector('.inventory-product-name');
+    var categoryEl = row.querySelector('.inventory-category-name');
+    var haystack = ((nameEl ? nameEl.textContent : '') + ' ' +
+      (categoryEl ? categoryEl.textContent : '')).toLocaleLowerCase('uk-UA');
+    var visible = !q || haystack.indexOf(q) !== -1;
+    row.style.display = visible ? '' : 'none';
+    if (visible) shown += 1;
+  });
+  var emptyRow = document.getElementById('inventory-search-empty');
+  if (emptyRow) emptyRow.style.display = shown ? 'none' : 'table-row';
+  var count = document.getElementById('inventory-search-count');
+  if (count) count.textContent = q ? ('Знайдено: ' + shown) : ('Усього: ' + rows.length);
+}
+
 function renderInventory() {
   const total = state.products.reduce((s,p) => s + p.quantity * p.price, 0);
   document.getElementById('page-content').innerHTML = `
@@ -1680,20 +1699,27 @@ function renderInventory() {
 <div class="stat-card red"><div class="label">Немає</div><div class="value">${state.products.filter(p=>p.quantity===0).length}</div><div class="sub">позицій</div></div>
 </div>
 <div class="table-container">
-<div class="table-header"><h3>Інвентаризація залишків</h3><span style="color:var(--text2);font-size:13px">Стандартно 8 пар/ящик · налаштовується в товарі · Загальна вартість: <strong style="color:var(--text)">${formatMoney(total)}</strong></span></div>
-<table><thead><tr><th>Товар</th><th>Категорія</th><th>Залишок</th><th>Мін. залишок</th><th>Рівень</th><th>Вартість</th><th>Інвентаризація (пари/ящики)</th></tr></thead><tbody>
+<div class="table-header" style="gap:12px;flex-wrap:wrap">
+<div><h3>Інвентаризація залишків</h3><span style="color:var(--text2);font-size:13px">Стандартно 8 пар/ящик · налаштовується в товарі · Загальна вартість: <strong style="color:var(--text)">${formatMoney(total)}</strong></span></div>
+<div class="table-search" style="margin-left:auto">
+<input type="search" class="search-input" id="inventory-search" placeholder="🔍 Пошук товару або категорії..." autocomplete="off" autocorrect="off" spellcheck="false" oninput="filterInventoryRows(this.value)" style="width:min(320px,70vw)">
+<span id="inventory-search-count" style="color:var(--text2);font-size:12px;white-space:nowrap">Усього: ${state.products.length}</span>
+</div>
+</div>
+<table><thead><tr><th>Товар</th><th>Категорія</th><th>Залишок</th><th>Мін. залишок</th><th>Рівень</th><th>Вартість</th><th>Інвентаризація (пари/ящики)</th></tr></thead><tbody id="inventory-table-body">
 ${sortProductsByName(state.products).map(p => {
 const pct = Math.min(100, (p.quantity / Math.max(p.min_qty * 3, 1)) * 100);
 const color = p.quantity === 0 ? 'var(--danger)' : p.quantity <= p.min_qty ? 'var(--warning)' : 'var(--accent)';
-return `<tr>
-<td><strong>${p.name}</strong></td>
-<td><span class="badge badge-gray">${p.category}</span></td>
+return `<tr data-inventory-row>
+<td class="inventory-product-name"><strong>${p.name}</strong></td>
+<td class="inventory-category-name"><span class="badge badge-gray">${p.category}</span></td>
 <td><strong>${p.quantity}</strong> ${p.unit}</td>
 <td>${p.min_qty} ${p.unit}</td>
 <td style="width:150px"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div><span style="font-size:11px;color:var(--text2)">${Math.round(pct)}%</span></td>
 <td>${formatMoney(p.quantity * p.price)}</td><td>${(function(){var u=String(p.unit||"").toLowerCase();if(u.indexOf("пар")===0){var bx=boxesCount(p);return "<div style=\"display:flex;gap:4px;align-items:center;flex-wrap:wrap\"><input type=\"number\" step=\"0.01\" class=\"form-input inv-pairs\" data-id=\"" + p.id + "\" style=\"width:70px;padding:6px\" value=\"" + p.quantity + "\" oninput=\"syncInventoryInput('" + p.id + "','pairs')\"><span style=\"font-size:11px;color:var(--text2)\">пар</span><input type=\"number\" step=\"0.01\" class=\"form-input inv-boxes\" data-id=\"" + p.id + "\" style=\"width:60px;padding:6px\" value=\"" + bx + "\" oninput=\"syncInventoryInput('" + p.id + "','boxes')\"><span style=\"font-size:11px;color:var(--text2)\">ящ.</span><span style=\"font-size:11px;color:var(--text2)\">(" + formatOperationQuantity(pairsPerBox(p)) + " пар/ящ.)</span><button class=\"btn btn-primary btn-sm\" onclick=\"saveInventoryCorrection('" + p.id + "')\">Зберегти</button></div>";}return "<div style=\"display:flex;gap:4px;align-items:center\"><input type=\"number\" step=\"0.01\" class=\"form-input inv-qty\" data-id=\"" + p.id + "\" style=\"width:90px;padding:6px\" value=\"" + p.quantity + "\"><span style=\"font-size:11px;color:var(--text2)\">" + p.unit + "</span><button class=\"btn btn-primary btn-sm\" onclick=\"saveInventoryCorrection('" + p.id + "')\">Зберегти</button></div>";})()}</td>
 </tr>`;
 }).join('')}
+<tr id="inventory-search-empty" style="display:none"><td colspan="7" style="text-align:center;color:var(--text2);padding:24px">Нічого не знайдено</td></tr>
 </tbody></table></div>`;
 }
 
