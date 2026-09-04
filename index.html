@@ -3154,4 +3154,91 @@ setInterval(sched,700);                              var wrap = document.createE
 /* Видаток у парах або ящиках. У складських залишках кількість завжди зберігається в парах. */
 window.saveReservation = async function(editId) {
   var counterpartyEl = document.getElementById('op-counterparty');
-  var counterparty [Truncated]
+  var counterparty = counterpartyEl ? counterpartyEl.value.trim() : '';
+  if (!counterparty) { showNotif('Введіть назву контрагента', 'error'); return; }
+  var dateEl = document.getElementById('op-date');
+  var notesEl = document.getElementById('op-notes');
+  var collected = collectOperationItems('outgoing');
+  if (collected.error) { showNotif(collected.error, 'error'); return; }
+  var existing = (editId !== null && editId !== undefined) ? state.operations.find(function(o) { return String(o.id) === String(editId); }) : null;
+  if (existing) {
+    existing.type = 'outgoing';
+    existing.status = 'reserved';
+    existing.archived = false;
+    existing.counterparty = counterparty;
+    existing.date = dateEl ? dateEl.value : '';
+    existing.notes = notesEl ? notesEl.value.trim() : '';
+    existing.items = collected.items;
+  } else {
+    state.operations.push({
+      id: Date.now(),
+      type: 'outgoing',
+      status: 'reserved',
+      counterparty: counterparty,
+      date: dateEl ? dateEl.value : '',
+      notes: notesEl ? notesEl.value.trim() : '',
+      items: collected.items
+    });
+  }
+  await saveSnapshot();
+  closeModal();
+  renderOperation('outgoing');
+  showNotif('Зарезервовано', 'success');
+};
+
+window.printOperation = function(idOrOperation, type) {
+  var op = (idOrOperation && typeof idOrOperation === 'object')
+    ? idOrOperation
+    : state.operations.find(function(o) { return String(o.id) === String(idOrOperation); });
+  if (!op) { showNotif('Документ не знайдено', 'error'); return; }
+  var isIncoming = type === 'incoming' || op.type === 'incoming';
+  var title = (isIncoming ? 'Прихід №' : 'Видаток №') + op.id;
+  var items = op.items || [];
+  if (!items.length && op.product_name) {
+    items = [{product_name: op.product_name, quantity: op.quantity, price: op.price}];
+  }
+  var totalPairs = 0;
+  var totalBoxes = 0;
+  var totalSum = 0;
+  var rows = items.map(function(it) {
+    var quantity = Number(it.quantity) || 0;
+    var price = Number(it.price) || 0;
+    var sum = quantity * price;
+    var unit = String(it.product_unit || it.unit || '').toLowerCase();
+    var isPairs = unit.indexOf('пар') === 0 || !unit;
+    var itemPairsPerBox = operationItemPairsPerBox(it);
+    var pairsText = isPairs ? formatOperationQuantity(quantity) : '—';
+    var itemBoxes = isPairs ? quantity / itemPairsPerBox : 0;
+    var boxesText = isPairs ? formatOperationQuantity(itemBoxes) : '—';
+    if (!isIncoming && isPairs) {
+      totalPairs += quantity;
+      totalBoxes += itemBoxes;
+    }
+    totalSum += sum;
+    return '<tr><td>' + escapeHtml(it.product_name || it.product || '') + '</td>' +
+      '<td style="text-align:center">' + pairsText + '</td>' +
+      '<td style="text-align:center">' + boxesText + '</td>' +
+      '<td style="text-align:right">' + (price ? price.toFixed(2) : '—') + '</td>' +
+      '<td style="text-align:right">' + (sum ? sum.toFixed(2) : '—') + '</td></tr>';
+  }).join('');
+  var summary = '';
+  if (!isIncoming && totalPairs > 0) {
+    summary = 'Всього пар: ' + formatOperationQuantity(totalPairs) +
+      ' &nbsp;|&nbsp; Ящиків: ' + formatOperationQuantity(totalBoxes) +
+      ' &nbsp;|&nbsp; Сума: ' + totalSum.toFixed(2);
+  } else {
+    summary = 'Сума: ' + totalSum.toFixed(2);
+  }
+  var w = window.open('', '_blank', 'width=700,height=600');
+  if (!w) { showNotif('Дозвольте відкриття нових вікон для друку', 'error'); return; }
+  w.document.write('<!DOCTYPE html><html lang="uk"><head><meta charset="UTF-8"><title>' + escapeHtml(title) + '</title>' +
+    '<style>body{font-family:Arial,sans-serif;padding:24px;color:#111}table{width:100%;border-collapse:collapse}th{background:#f0f4f8;padding:8px 10px;text-align:left}td{padding:6px 10px;border-bottom:1px solid #eee}@media print{button{display:none}}</style>' +
+    '</head><body><h2>' + escapeHtml(title) + '</h2><p>Контрагент: <b>' + escapeHtml(op.counterparty || '') +
+    '</b></p><p>Дата: <b>' + escapeHtml(op.date || '') + '</b></p>' +
+    (op.notes ? '<p>Примітки: ' + escapeHtml(op.notes) + '</p>' : '') +
+    '<table><thead><tr><th>Товар</th><th>Кількість пар</th><th>Кількість ящиків</th><th>Ціна</th><th>Сума</th></tr></thead><tbody>' + rows +
+    '<tr><td colspan="5" style="padding:10px;border-top:2px solid #333;text-align:right;font-weight:bold">' + summary +
+    '</td></tr></tbody></table><br><button onclick="window.print()">🖨 Надрукувати</button></body></html>');
+  w.document.close();
+};
+</script>
