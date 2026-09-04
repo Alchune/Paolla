@@ -649,9 +649,9 @@ ${state.orders.filter(o=>o.status!=='completed').slice(0,5).map(o => `<tr><td>${
 <div class="timeline" style="padding:0 20px">
 ${state.operations.slice(-5).reverse().map(op => `
 <div class="timeline-item">
-<div class="timeline-dot ${op.type==='incoming'?'green':'blue'}"></div>
-<div class="timeline-info"><div class="timeline-title">${op.type==='incoming'?'⬇️ Прихід':'⬆️ Видаток'}: ${op.product_name}</div><div class="timeline-sub">${op.quantity} • ${op.notes||''}</div></div>
-<div class="timeline-time">${op.date}</div>
+<div class="timeline-dot ${op.type==='incoming'?'green':(op.type==='inventory'?'yellow':'blue')}"></div>
+<div class="timeline-info"><div class="timeline-title">${op.type==='incoming'?'⬇️ Прихід':(op.type==='inventory'?'🧮 Інвентаризація':'⬆️ Видаток')}: ${op.product_name}</div><div class="timeline-sub">${op.type==='inventory'?(op.notes||'Коригування залишку'):(op.quantity+' • '+(op.notes||''))}</div></div>
+<div class="timeline-time">${op.type==='inventory'&&op.created_at?new Date(op.created_at).toLocaleString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):op.date}</div>
 </div>`).join('') || '<div style="padding:20px;color:var(--text2);text-align:center">Немає операцій</div>'}
 </div></div>`;
 }
@@ -1456,7 +1456,71 @@ function boxesSuffix(p) {
   return s ? ' <span style="color:var(--text2)">• ' + s + '</span>' : "";
 }
 
-function syncInventoryInput(id, source) {var prod = state.products.find(function(p) { return String(p.id) === String(id); });var perBox = pairsPerBox(prod);var pairsInp = document.querySelector('.inv-pairs[data-id="' + id + '"]');var boxesInp = document.querySelector('.inv-boxes[data-id="' + id + '"]');if (!pairsInp || !boxesInp) return;if (source === 'boxes') {var boxes = parseFloat(boxesInp.value) || 0;pairsInp.value = Math.round(boxes * perBox * 100) / 100;} else {var pairs = parseFloat(pairsInp.value) || 0;boxesInp.value = Math.round((pairs / perBox) * 100) / 100;}}function saveInventoryCorrection(id) {var prod = state.products.find(function(p) { return String(p.id) === String(id); });if (!prod) return;var unit = String(prod.unit || '').toLowerCase();var newQty;if (unit.indexOf('пар') === 0) {var pairsInp = document.querySelector('.inv-pairs[data-id="' + id + '"]');newQty = pairsInp ? (parseFloat(pairsInp.value) || 0) : prod.quantity;} else {var qtyInp = document.querySelector('.inv-qty[data-id="' + id + '"]');newQty = qtyInp ? (parseFloat(qtyInp.value) || 0) : prod.quantity;}if (newQty < 0) { showNotif('Кількість не може бути від’ємною', 'error'); return; }var diff = Math.round((newQty - (Number(prod.quantity) || 0)) * 100) / 100;prod.quantity = newQty;saveSnapshot().then(function() {renderInventory();showNotif(diff === 0 ? 'Залишок збережено' : ('Залишок оновлено (' + (diff > 0 ? '+' : '') + diff + ' ' + prod.unit + ')'), 'success');});}function exportProductsExcel() {
+function syncInventoryInput(id, source) {var prod = state.products.find(function(p) { return String(p.id) === String(id); });var perBox = pairsPerBox(prod);var pairsInp = document.querySelector('.inv-pairs[data-id="' + id + '"]');var boxesInp = document.querySelector('.inv-boxes[data-id="' + id + '"]');if (!pairsInp || !boxesInp) return;if (source === 'boxes') {var boxes = parseFloat(boxesInp.value) || 0;pairsInp.value = Math.round(boxes * perBox * 100) / 100;} else {var pairs = parseFloat(pairsInp.value) || 0;boxesInp.value = Math.round((pairs / perBox) * 100) / 100;}}async function saveInventoryCorrection(id) {
+  var prod = state.products.find(function(p) { return String(p.id) === String(id); });
+  if (!prod) return;
+  var unit = String(prod.unit || '').toLowerCase();
+  var input = unit.indexOf('пар') === 0
+    ? document.querySelector('.inv-pairs[data-id="' + id + '"]')
+    : document.querySelector('.inv-qty[data-id="' + id + '"]');
+  var parsed = input ? parseFloat(input.value) : NaN;
+  if (!Number.isFinite(parsed)) {
+    showNotif('Введіть коректну кількість', 'error');
+    return;
+  }
+  var oldQty = roundOperationQuantity(Number(prod.quantity) || 0);
+  var newQty = roundOperationQuantity(parsed);
+  if (newQty < 0) {
+    showNotif('Кількість не може бути від’ємною', 'error');
+    return;
+  }
+  var diff = roundOperationQuantity(newQty - oldQty);
+  if (diff === 0) {
+    renderInventory();
+    showNotif('Залишок без змін', 'success');
+    return;
+  }
+  var correctedAt = new Date();
+  var localDate = correctedAt.getFullYear() + '-' +
+    String(correctedAt.getMonth() + 1).padStart(2, '0') + '-' +
+    String(correctedAt.getDate()).padStart(2, '0');
+  var perBox = isPairProduct(prod) ? pairsPerBox(prod) : null;
+  var item = {
+    product_id: prod.id,
+    product_name: prod.name,
+    product_unit: prod.unit || '',
+    quantity: Math.abs(diff),
+    previous_quantity: oldQty,
+    new_quantity: newQty,
+    difference: diff,
+    pairs_per_box: perBox
+  };
+  state.operations.push({
+    id: Date.now(),
+    type: 'inventory',
+    status: 'corrected',
+    archived: false,
+    product_id: prod.id,
+    product_name: prod.name,
+    quantity: Math.abs(diff),
+    previous_quantity: oldQty,
+    new_quantity: newQty,
+    difference: diff,
+    date: localDate,
+    created_at: correctedAt.toISOString(),
+    counterparty: 'Інвентаризація',
+    notes: 'Було ' + formatOperationQuantity(oldQty) + ' ' + (prod.unit || '') +
+      ' → стало ' + formatOperationQuantity(newQty) + ' ' + (prod.unit || ''),
+    items: [item]
+  });
+  prod.quantity = newQty;
+  await saveSnapshot();
+  renderInventory();
+  showNotif('Залишок оновлено (' + (diff > 0 ? '+' : '') +
+    formatOperationQuantity(diff) + ' ' + prod.unit + ')', 'success');
+}
+
+function exportProductsExcel() {
   var q = "";
   var inp = document.querySelector("#page-content .search-input");
   if (inp) q = String(inp.value || "").trim().toLowerCase();
@@ -2940,19 +3004,41 @@ setInterval(sched,700);                              var wrap = document.createE
   function ST(){ return (typeof state!=='undefined'&&state)?state:(window.state||{}); }
   function esc(v){ return String(v==null?'':v).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
   function fmtDate(d){ if(!d) return '-'; var p=String(d).split('-'); return p.length===3?(p[2]+'.'+p[1]+'.'+p[0]):String(d); }
+  function fmtWhen(r){
+    if(r.kind==='inventory'&&r.createdAt){
+      var d=new Date(r.createdAt);
+      if(!isNaN(d.getTime())) return d.toLocaleString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    }
+    return fmtDate(r.date);
+  }
   function nfmt(n){ n=Number(n)||0; return (Math.round(n*100)/100).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' '); }
   function collect(productId){
     var st=ST();
-    var prod=(st.products||[]).filter(function(p){return p.id===productId;})[0];
+    var prod=(st.products||[]).filter(function(p){return String(p.id)===String(productId);})[0];
     if(!prod) return {rows:[],prod:null};
     var rows=[];
     (st.operations||[]).forEach(function(o){
       var items=o.items;
       if(!items&&(o.product_id||o.product_name)) items=[{product_id:o.product_id,product_name:o.product_name,quantity:o.quantity,price:o.price}];
       (items||[]).forEach(function(it){
-        var hit=it.product_id?(it.product_id===productId):(it.product_name&&it.product_name===prod.name);
+        var hit=it.product_id?(String(it.product_id)===String(productId)):(it.product_name&&it.product_name===prod.name);
         if(!hit) return;
-        rows.push({date:o.date,kind:(o.type==='incoming'?'in':'out'),qty:Number(it.quantity)||0,party:o.counterparty||'',status:o.status||'',archived:!!o.archived,id:o.id});
+        var kind=o.type==='incoming'?'in':(o.type==='outgoing'?'out':(o.type==='inventory'?'inventory':''));
+        if(!kind) return;
+        rows.push({
+          date:o.date,
+          createdAt:o.created_at||'',
+          kind:kind,
+          qty:Number(it.quantity)||0,
+          before:Number(it.previous_quantity!=null?it.previous_quantity:o.previous_quantity)||0,
+          after:Number(it.new_quantity!=null?it.new_quantity:o.new_quantity)||0,
+          diff:Number(it.difference!=null?it.difference:o.difference)||0,
+          perBox:Number(it.pairs_per_box)||0,
+          party:o.counterparty||'',
+          status:o.status||'',
+          archived:!!o.archived,
+          id:o.id
+        });
       });
     });
     (st.orders||[]).forEach(function(o){
@@ -2966,9 +3052,11 @@ setInterval(sched,700);                              var wrap = document.createE
   function typeCell(r){
     if(r.kind==='in') return '<span class="badge badge-green">Прихід</span>';
     if(r.kind==='out') return '<span class="badge badge-red">Видаток</span>';
+    if(r.kind==='inventory') return '<span class="badge badge-yellow">Інвентаризація</span>';
     return '<span class="badge badge-blue">Наряд'+(r.number?(' '+esc(r.number)):'')+'</span>';
   }
   function statusCell(r){
+    if(r.kind==='inventory') return '<span class="badge badge-green">Виправлено</span>';
     if(r.kind==='order'){
       var b=(typeof orderBadge==='function')?orderBadge(r.status):esc(r.status);
       return b+(r.received?' <span class="badge badge-gray">Оприход.</span>':'');
@@ -2988,19 +3076,30 @@ setInterval(sched,700);                              var wrap = document.createE
   window.renderProductOperationsHTML=function(productId){
     var d=collect(productId), rows=d.rows, prod=d.prod;
     var unit=(prod&&prod.unit)||'';
-    var tin=0,tout=0,tord=0;
-    rows.forEach(function(r){ if(r.kind==='in') tin+=r.qty; else if(r.kind==='out') tout+=r.qty; else tord+=r.qty; });
+    var tin=0,tout=0,tord=0,tinv=0;
+    rows.forEach(function(r){ if(r.kind==='in') tin+=r.qty; else if(r.kind==='out') tout+=r.qty; else if(r.kind==='inventory') tinv+=1; else tord+=r.qty; });
     var h='<div style="margin-top:18px;border-top:1px solid rgba(140,140,160,0.25);padding-top:14px">';
     h+='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px">';
     h+='<label class="form-label" style="margin:0">Операції по товару ('+rows.length+')</label>';
-    h+='<div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge badge-green">Прихід: '+nfmt(tin)+' '+esc(unit)+'</span><span class="badge badge-red">Видаток: '+nfmt(tout)+' '+esc(unit)+'</span><span class="badge badge-blue">Наряди: '+nfmt(tord)+' '+esc(unit)+'</span></div>';
+    h+='<div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge badge-green">Прихід: '+nfmt(tin)+' '+esc(unit)+'</span><span class="badge badge-red">Видаток: '+nfmt(tout)+' '+esc(unit)+'</span><span class="badge badge-yellow">Інвентаризація: '+tinv+'</span><span class="badge badge-blue">Наряди: '+nfmt(tord)+' '+esc(unit)+'</span></div>';
     h+='</div>';
     if(!rows.length){ h+='<div style="padding:14px;text-align:center;opacity:0.6;font-size:13px">Операцій з цим товаром ще немає</div></div>'; return h; }
     h+='<div class="p-ops-scroll"><table class="data-table" style="width:100%"><thead><tr><th>Дата</th><th>Тип</th><th>Кількість</th><th>Контрагент</th><th>Статус</th></tr></thead><tbody>';
     rows.forEach(function(r){
-      var sign=r.kind==='in'?'+':(r.kind==='out'?'-':'');
-      var color=r.kind==='in'?'#2f9e44':(r.kind==='out'?'#e03131':'#1971c2');
-      h+='<tr><td>'+fmtDate(r.date)+'</td><td>'+typeCell(r)+'</td><td style="font-weight:600;color:'+color+'">'+sign+nfmt(r.qty)+' '+esc(unit)+'</td><td>'+esc(r.party||'-')+'</td><td>'+statusCell(r)+'</td></tr>';
+      var qtyHtml;
+      if(r.kind==='inventory'){
+        var ds=r.diff>0?'+':'';
+        var boxes='';
+        if(r.perBox>0&&String(unit).toLowerCase().indexOf('пар')===0){
+          boxes=' · '+nfmt(r.before/r.perBox)+' → '+nfmt(r.after/r.perBox)+' ящ.';
+        }
+        qtyHtml='<span style="font-weight:600;color:#b7791f">'+nfmt(r.before)+' → '+nfmt(r.after)+' '+esc(unit)+'</span><div style="font-size:11px;color:var(--text2)">'+ds+nfmt(r.diff)+' '+esc(unit)+boxes+'</div>';
+      }else{
+        var sign=r.kind==='in'?'+':(r.kind==='out'?'-':'');
+        var color=r.kind==='in'?'#2f9e44':(r.kind==='out'?'#e03131':'#1971c2');
+        qtyHtml='<span style="font-weight:600;color:'+color+'">'+sign+nfmt(r.qty)+' '+esc(unit)+'</span>';
+      }
+      h+='<tr><td>'+fmtWhen(r)+'</td><td>'+typeCell(r)+'</td><td>'+qtyHtml+'</td><td>'+esc(r.party||'-')+'</td><td>'+statusCell(r)+'</td></tr>';
     });
     h+='</tbody></table></div></div>';
     return h;
