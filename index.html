@@ -875,7 +875,7 @@ function openProductGallery(id) {
 
 function openProductModal(id) {
   window.__editingProductId = id || null;
-  const p = id ? state.products.find(x => x.id === id) : {};
+  const p = id ? state.products.find(x => String(x.id) === String(id)) : {};
   document.getElementById('modal-title').textContent = id ? 'Редагувати товар' : 'Новий товар';
   document.getElementById('modal-body').innerHTML = `
 <div class="form-row">
@@ -900,7 +900,7 @@ function openProductModal(id) {
 </select></div>
 </div>
 <div class="form-row">
-<div class="form-group"><label class="form-label">Залишок</label><input type="number" class="form-input" id="p-qty" value="${p.quantity||0}"></div>
+<div class="form-group"><label class="form-label">Залишок (лише перегляд)</label><input type="number" class="form-input" id="p-qty" value="${p.quantity||0}" readonly aria-readonly="true" title="Кількість змінюється через Прихід, Видаток або Інвентаризацію" style="cursor:not-allowed;opacity:.75"><div style="font-size:12px;color:var(--text2);margin-top:4px">Змінюється через «Прихід», «Видаток» або «Інвентаризацію»</div></div>
 <div class="form-group"><label class="form-label">Мінімальний залишок</label><input type="number" class="form-input" id="p-min" value="${p.min_qty||0}"></div>
 </div>
 <div class="form-row">
@@ -973,12 +973,14 @@ function removeProductPhoto(i) {
   renderProductPhotoPreview();
 }
 async function saveProduct(id) {
+  const existing = id ? state.products.find(function(x) { return String(x.id) === String(id); }) : null;
+  if (id && !existing) return showNotif('Товар не знайдено', 'error');
   const p = {
     name: document.getElementById('p-name').value,
     category: document.getElementById('p-category').value || 'Інше',
     subcategory: (function(){ var e = document.getElementById('p-subcategory'); return e ? e.value.trim() : ''; })(),
     unit: document.getElementById('p-unit').value,
-    quantity: parseFloat(document.getElementById('p-qty').value) || 0,
+    quantity: existing ? (Number(existing.quantity) || 0) : 0,
     min_qty: parseFloat(document.getElementById('p-min').value) || 0,
     pairs_per_box: Math.max(1, parseInt(document.getElementById('p-pairs-per-box').value, 10) || DEFAULT_PAIRS_PER_BOX),
     price: parseFloat(document.getElementById('p-price').value) || 0,
@@ -987,7 +989,7 @@ async function saveProduct(id) {
   };
   if (!p.name) return showNotif('Введіть назву товару', 'error');
   if (id) {
-    const idx = state.products.findIndex(x => x.id === id);
+    const idx = state.products.findIndex(function(x) { return String(x.id) === String(id); });
     state.products[idx] = { ...state.products[idx], ...p };
   } else {
     p.id = 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
@@ -1013,6 +1015,7 @@ async function duplicateProduct(id) {
   const copy = JSON.parse(JSON.stringify(p));
   copy.id = 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
   copy.name = p.name + ' (копія)';
+  copy.quantity = 0;
   state.products.push(copy);
   await saveSnapshot();
   renderProducts();
