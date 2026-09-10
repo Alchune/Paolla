@@ -594,27 +594,9 @@ function navigate(page) {
       }
 // ====== PAGES ======
 function renderDashboard() {
-  const low = state.products.filter(p => p.quantity <= p.min_qty).length;
-  const total_val = state.products.reduce((s,p) => s + p.quantity * p.price, 0);
-  const active_orders = state.orders.filter(isActiveOrder).length;
-  const today_ops = state.operations.filter(o => o.date === localISODate()).length;
   document.getElementById('page-content').innerHTML = `
-<div class="stats-grid">
+<div class="stats-grid" style="grid-template-columns:1fr">
 <div class="stat-card green"><div class="label">Товарів на складі</div><div class="value">${state.products.length}</div><div class="sub">позицій</div></div>
-<div class="stat-card yellow"><div class="label">Мало залишків</div><div class="value">${low}</div><div class="sub">потребують поповнення</div></div>
-<div class="stat-card blue"><div class="label">Активні замовлення</div><div class="value">${active_orders}</div><div class="sub">в роботі</div></div>
-</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
-<div class="table-container">
-<div class="table-header"><h3>⚠️ Мало залишків</h3><button class="btn btn-secondary btn-sm" onclick="navigate('inventory')">Всі →</button></div>
-<table><thead><tr><th>Товар</th><th>Залишок</th><th>Мін</th></tr></thead><tbody>
-${state.products.filter(p => p.quantity <= p.min_qty).map(p => `<tr><td>${p.name}</td><td style="color:var(--danger)">${p.quantity} ${p.unit}${boxesSuffix(p)}</td><td>${p.min_qty} ${p.unit}</td></tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text2);padding:20px">✅ Все гаразд!</td></tr>'}
-</tbody></table></div>
-<div class="table-container">
-<div class="table-header"><h3>📋 Активні замовлення</h3><button class="btn btn-secondary btn-sm" onclick="navigate('orders')">Всі →</button></div>
-<table><thead><tr><th>Номер</th><th>Контрагент</th><th>Статус</th></tr></thead><tbody>
-${state.orders.filter(isActiveOrder).slice(0,5).map(o => `<tr><td>${o.number}</td><td>${o.client}</td><td>${orderBadge(o.status)}</td></tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text2);padding:20px">Немає замовлень</td></tr>'}
-</tbody></table></div>
 </div>
 <div class="table-container">
 <div class="table-header"><h3>🕐 Остання активність</h3></div>

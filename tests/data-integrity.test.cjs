@@ -267,9 +267,15 @@ test('reports total items and legacy documents while excluding reservations',asy
   assert(rendered.includes('Загальний прихід</div><div class="value">210'));
   assert(rendered.includes('Загальний видаток</div><div class="value">120'));
 });
-test('dashboard excludes received, shipped and cancelled orders',async()=>{
-  const h=await harness(database(fixture({orders:[{id:1,status:'ready',received:true},{id:2,status:'cancelled'},{id:3,status:'shipped'},{id:4,status:'new'}]})));
-  h.run('renderDashboard()');assert(h.node('page-content').innerHTML.includes('Активні замовлення</div><div class="value">1'));
+test('dashboard shows stock count and activity without low stock or active orders',async()=>{
+  const h=await harness(database(fixture({products:[product(0)],orders:[{id:1,status:'ready',received:true},{id:2,status:'cancelled'},{id:3,status:'shipped'},{id:4,status:'new'}],operations:[outgoing('conducted')]})));
+  h.run('renderDashboard()');const rendered=h.node('page-content').innerHTML;
+  assert(rendered.includes('Товарів на складі</div><div class="value">1'));
+  assert(rendered.includes('Остання активність'));
+  assert(rendered.includes('Видаток: Model'));
+  assert(!rendered.includes('Мало залишків'));
+  assert(!rendered.includes('Активні замовлення'));
+  assert.equal(h.db.writes.length,0);
 });
 test('non-pair product quantity and unit appear in print output',async()=>{
   const h=await harness(database(fixture({operations:[{id:1,type:'incoming',items:[{product_name:'Material',product_unit:'кг',quantity:5,price:2}]}]})));
