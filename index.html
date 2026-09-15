@@ -144,6 +144,11 @@ tbody tr:last-child td{border-bottom:none}
 .item-card .ic-meta{font-size:12px;color:var(--text2);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .item-card .ic-actions{display:flex;gap:6px;margin-top:auto;padding-top:4px}
 .item-card .ic-actions .btn{flex:1;justify-content:center}
+/* Product actions stay centered and fit narrow cards. */
+.product-actions{display:flex;justify-content:center;align-items:center;gap:6px;flex-wrap:wrap}
+.item-card .product-actions{width:100%;min-width:0;flex-wrap:nowrap}
+.item-card .product-actions .btn{flex:0 1 32px;min-width:0!important;width:32px!important;margin:0!important;padding:5px 0!important}
+.product-actions-heading{text-align:center}
 /* Loading */
 .loading{display:flex;align-items:center;justify-content:center;padding:60px;color:var(--text2)}
 .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin-right:12px}
@@ -767,7 +772,7 @@ return String(a.name || '').localeCompare(String(b.name || ''), 'uk', { numeric:
 }
 
 function renderProductTable(products, isArchive) {
-return `<table><thead><tr><th>Назва</th><th>Категорія</th><th>Залишок</th><th>У ящику</th><th>Ціна</th><th>Статус</th><th>Дії</th></tr></thead>
+return `<table><thead><tr><th>Назва</th><th>Категорія</th><th>Залишок</th><th>У ящику</th><th>Ціна</th><th>Статус</th><th class="product-actions-heading">Дії</th></tr></thead>
 <tbody id="products-table">
 ${renderProductRows(products, isArchive)}
 </tbody></table>`;
@@ -786,7 +791,7 @@ return `<tr>
 <td>${isPairProduct(p) ? formatOperationQuantity(pairsPerBox(p)) + ' пар' : '—'}</td>
 <td>${formatMoney(p.price)}</td>
 <td>${status}</td>
-<td>${actions}</td>
+<td><div class="product-actions">${actions}</div></td>
 </tr>`;
 }).join('') || '<tr><td colspan="7"><div class="empty-state"><div class="icon">📦</div><h3>Немає товарів</h3><p>Додайте першу позицію</p></div></td></tr>';
 }
@@ -796,8 +801,8 @@ if (!products.length) return '<div class="empty-state"><div class="icon">📦</d
 var cards = products.map(function(p) {
 var status = p.quantity < 0 ? '<span class="badge badge-red">Мінус</span>' : p.quantity === 0 ? '<span class="badge badge-red">Немає</span>' : p.quantity <= p.min_qty ? '<span class="badge badge-yellow">Мало</span>' : '<span class="badge badge-green">В наявності</span>';
 var actions = isArchive
-? '<div class="ic-actions"><button class="btn btn-secondary btn-sm" onclick="unarchiveProduct(\'' + p.id + '\')" title="Повернути з архіву">↩️</button><button class="btn btn-secondary btn-sm" onclick="deleteProduct(\'' + p.id + '\')">🗑️</button></div>'
-: '<div class="ic-actions"><button class="btn btn-secondary btn-sm" onclick="editProduct(\'' + p.id + '\')">✏️</button><button class="btn btn-secondary btn-sm" onclick="duplicateProduct(\'' + p.id + '\')" title="Дублювати">📄</button><button class="btn btn-secondary btn-sm" onclick="archiveProduct(\'' + p.id + '\')" title="Відправити в архів">📥</button><button class="btn btn-secondary btn-sm" onclick="deleteProduct(\'' + p.id + '\')">🗑️</button></div>';
+? '<div class="ic-actions product-actions"><button class="btn btn-secondary btn-sm" onclick="unarchiveProduct(\'' + p.id + '\')" title="Повернути з архіву">↩️</button><button class="btn btn-secondary btn-sm" onclick="deleteProduct(\'' + p.id + '\')">🗑️</button></div>'
+: '<div class="ic-actions product-actions"><button class="btn btn-secondary btn-sm" onclick="editProduct(\'' + p.id + '\')">✏️</button><button class="btn btn-secondary btn-sm" onclick="duplicateProduct(\'' + p.id + '\')" title="Дублювати">📄</button><button class="btn btn-secondary btn-sm" onclick="archiveProduct(\'' + p.id + '\')" title="Відправити в архів">📥</button><button class="btn btn-secondary btn-sm" onclick="deleteProduct(\'' + p.id + '\')">🗑️</button></div>';
 return '<div class="item-card">'
 + '<div class="ic-thumb"' + (p.image ? ' style="cursor:pointer" onclick="openProductGallery(\'' + p.id + '\')"' : '') + '>' + (p.image ? '<img src="' + p.image + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">' : '📦') + '</div>'
 + '<div class="ic-name">' + p.name + '</div>'
