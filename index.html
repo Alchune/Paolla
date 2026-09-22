@@ -621,6 +621,12 @@ function setClientView(mode) {
   renderClients();
 }
 
+function sortClientsByName(clients) {
+  return (clients || []).slice().sort(function(a, b) {
+    return String(a.name || '').trim().localeCompare(String(b.name || '').trim(), 'uk', { numeric: true, sensitivity: 'base' });
+  });
+}
+
 function renderClients() {
   var isGrid = state.clientView === 'grid';
   var toggle = '<div class="view-toggle">'
@@ -649,7 +655,7 @@ ${renderClientRows(clients)}
 }
 
 function renderClientRows(clients) {
-  return clients.map(c => {
+  return sortClientsByName(clients).map(c => {
     return `<tr>
 <td><strong>${c.name}</strong></td>
 <td>${c.phone || '—'}</td>
@@ -662,7 +668,7 @@ function renderClientRows(clients) {
 
 function renderClientGrid(clients) {
   if (!clients.length) return '<div class="empty-state"><div class="icon">👤</div><h3>Немає контрагентів</h3><p>Додайте першого контрагента</p></div>';
-  var cards = clients.map(function(c) {
+  var cards = sortClientsByName(clients).map(function(c) {
     return '<div class="item-card">'
       + '<div class="ic-thumb">👤</div>'
       + '<div class="ic-name">' + c.name + '</div>'
@@ -1158,7 +1164,7 @@ function openOperationModal(type, editOp) {
 
   body.innerHTML =
     '<div class="form-group"><label class="form-label">' + counterpartyLabel + ' *</label>' +
-    '<select class="form-input" id="op-counterparty"><option value="">— Оберіть ' + counterpartyLabel.toLowerCase() + ' —</option>' + (state.clients||[]).map(function(c){ return '<option value="' + c.name + '">' + c.name + '</option>'; }).join('') + '</select></div>' +
+    '<select class="form-input" id="op-counterparty"><option value="">— Оберіть ' + counterpartyLabel.toLowerCase() + ' —</option>' + sortClientsByName(state.clients).map(function(c){ return '<option value="' + c.name + '">' + c.name + '</option>'; }).join('') + '</select></div>' +
     '<div class="form-row">' +
     '<div class="form-group"><label class="form-label">Дата</label><input type="date" class="form-input" id="op-date" value="' + today + '"></div>' +
     '<div class="form-group"><label class="form-label">Примітки</label><input class="form-input" id="op-notes" placeholder="Необов&#39;язково"></div>' +
@@ -1718,7 +1724,7 @@ function openOrderModal(sourceId, duplicate) {
   window._orderOps = source ? (source.operations || []).map(op => ({ ...op, done: duplicate ? false : !!op.done })) : [];
   document.getElementById('modal-body').innerHTML =
     '<div class="form-row"><div class="form-group"><label class="form-label">Назва наряду</label><input class="form-input" id="o-num" value="'+nextNum+'"></div>' +
-    '<div class="form-group"><label class="form-label">Контрагент *</label><select class="form-input" id="o-client"><option value="">— Оберіть контрагента —</option>' + (state.clients||[]).map(function(c){ return '<option value="'+c.name+'">'+c.name+'</option>'; }).join('') + '</select></div></div>' +
+    '<div class="form-group"><label class="form-label">Контрагент *</label><select class="form-input" id="o-client"><option value="">— Оберіть контрагента —</option>' + sortClientsByName(state.clients).map(function(c){ return '<option value="'+c.name+'">'+c.name+'</option>'; }).join('') + '</select></div></div>' +
     '<div class="form-row"><div class="form-group"><label class="form-label">Товар *</label><select class="form-input" id="o-product"><option value="">— Оберіть товар —</option>' + (state.products||[]).slice().sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||''), 'uk', { numeric: true, sensitivity: 'base' }); }).map(function(p){ return '<option value="'+escapeHtml(String(p.id))+'">'+escapeHtml(p.name)+'</option>'; }).join('') + '</select></div>' +
     '</div>' +
     '<div class="form-row"><div class="form-group"><label class="form-label">Кількість</label><input type="number" class="form-input" id="o-qty" value="1"></div>' +
