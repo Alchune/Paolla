@@ -106,6 +106,37 @@ async function harness(db=database()) {
 const fixture = extra => ({...blank(), products:[product()], ...extra});
 
 test('all browser scripts parse in their real loading order',()=>scripts.forEach(source=>new vm.Script(source)));
+test('outgoing product options subtract unposted reservations in stock units',async()=>{
+  const h=await harness(database(fixture({operations:[
+    {...outgoing('reserved'),items:[{...item(24),quantity_unit:'boxes',entered_quantity:3,pairs_per_box:8},item('4')]},
+    {...outgoing('draft',8),id:2,archived:true},
+    {id:3,type:'outgoing',status:'reserved',product_id:'p1',quantity:2},
+    {...outgoing('conducted',50),id:4},
+    {id:5,type:'outgoing',product_id:'p1',quantity:50},
+    {...outgoing('cancelled',50),id:6},
+    {id:7,type:'incoming',status:'reserved',items:[item(50)]},
+    {...outgoing('reserved'),id:8,items:[{...item(50),product_id:'other'}]}
+  ]})));
+  const before=h.state();
+  assert(h.run("buildOperationProductOptions('outgoing')").includes('Model (пари) · 8 пар/ящ. — На складі: 100 · Вільно: 62</option>'));
+  assert(h.run("buildOperationProductOptions('incoming')").includes('Model (пари) · 8 пар/ящ. — 100</option>'));
+  assert.deepEqual(h.state(),before);
+  assert.equal(h.db.writes.length,0);
+});
+test('free stock labels preserve fractions, negative balances, zero and product ID types',async()=>{
+  const h=await harness(database(fixture({products:[
+    {...product(0.3),id:1,unit:'м'},
+    {...product(0),id:'zero'},
+    {...product(10),id:'negative'}
+  ],operations:[{...outgoing(),items:[
+    {...item('0.1'),product_id:'1'},
+    {...item(12),product_id:'negative'}
+  ]}]})));
+  const options=h.run("buildOperationProductOptions('outgoing')");
+  assert(options.includes('Model (м) — На складі: 0.3 · Вільно: 0.2</option>'));
+  assert(options.includes('На складі: 0 · Вільно: 0</option>'));
+  assert(options.includes('На складі: 10 · Вільно: -2</option>'));
+});
 test('rejected inventory save restores confirmed stock and permits retry',async()=>{
   const h=await harness(database(fixture({products:[product(10)]})));
   h.node('.inv-pairs[data-id="p1"]').value='15';h.db.writeError='denied';

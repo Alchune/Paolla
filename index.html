@@ -1121,6 +1121,30 @@ function renderOperation(type) {
   if (btn) btn.addEventListener('click', function() { openOperationModal(type); });
 }
 
+function buildOperationProductOptions(type) {
+  var reserved = new Map();
+  if (type === 'outgoing') {
+    state.operations.forEach(function(op) {
+      if (op.type !== 'outgoing' || isPostedOperation(op) || op.status === 'cancelled') return;
+      operationItems(op).forEach(function(item) {
+        var id = String(item.product_id);
+        // quantity is already in stock units, including lines entered as boxes.
+        reserved.set(id, (reserved.get(id) || 0) + (Number(item.quantity) || 0));
+      });
+    });
+  }
+  var html = '<option value="">— Оберіть товар —</option>';
+  sortProductsByName(state.products).forEach(function(p) {
+    var stockLabel = String(p.quantity || 0);
+    if (type === 'outgoing') {
+      var free = (Number(p.quantity) || 0) - (reserved.get(String(p.id)) || 0);
+      stockLabel = 'На складі: ' + formatOperationQuantity(p.quantity) + ' · Вільно: ' + formatOperationQuantity(free);
+    }
+    html += '<option value="' + p.id + '" data-name="' + (p.name || '') + '" data-unit="' + (p.unit || '') + '">' + p.name + (p.unit ? ' (' + p.unit + ')' : '') + (isPairProduct(p) ? ' · ' + formatOperationQuantity(pairsPerBox(p)) + ' пар/ящ.' : '') + ' — ' + stockLabel + '</option>';
+  });
+  return html;
+}
+
 function openOperationModal(type, editOp) {
   var isIncoming = (type === 'incoming');
   var title = isIncoming ? 'Новий прихід' : 'Новий видаток';
@@ -1131,14 +1155,6 @@ function openOperationModal(type, editOp) {
   document.getElementById('modal-overlay').style.display = 'flex';
   var body = document.getElementById('modal-body');
   var footer = document.getElementById('modal-footer');
-
-  function buildProductOptions() {
-    var html = '<option value="">— Оберіть товар —</option>';
-    sortProductsByName(state.products).forEach(function(p) {
-      html += '<option value="' + p.id + '" data-name="' + (p.name || '') + '" data-unit="' + (p.unit || '') + '">' + p.name + (p.unit ? ' (' + p.unit + ')' : '') + (isPairProduct(p) ? ' · ' + formatOperationQuantity(pairsPerBox(p)) + ' пар/ящ.' : '') + ' — ' + (p.quantity || 0) + '</option>';
-    });
-    return html;
-  }
 
   body.innerHTML =
     '<div class="form-group"><label class="form-label">' + counterpartyLabel + ' *</label>' +
@@ -1163,7 +1179,7 @@ function openOperationModal(type, editOp) {
     var td1 = document.createElement('td');
     var sel = document.createElement('select');
     sel.className = 'form-select item-product';
-    sel.innerHTML = buildProductOptions();
+    sel.innerHTML = buildOperationProductOptions(type);
     td1.appendChild(sel);
 
     var td2 = document.createElement('td');
