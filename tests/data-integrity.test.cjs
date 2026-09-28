@@ -349,6 +349,47 @@ test('renamed product is received using its ID; undo uses the saved receipt move
   await h.run('receiveOrderStock(1,true)');assert.equal(h.db.writes.length,1);
   h.run('state.orders[0].quantity=100');await h.run('receiveOrderStock(1,false)');assert.equal(h.state().products[0].quantity,10.5);
 });
+test('product history orders received production by warehouse receipt date, not order creation',async()=>{
+  const h=await harness(database(fixture({orders:[
+    {id:1,product_id:'p1',product:'Model',quantity:5,date:'2026-08-01',number:'Old order, latest receipt',received:true,status:'ready',warehouse_received_at:'2026-09-28T21:30:00.000Z'},
+    {id:2,product_id:'p1',product:'Model',quantity:5,date:'2026-09-25',number:'New order, earlier receipt',received:true,status:'ready',warehouse_received_at:'2026-09-27T10:00:00.000Z'},
+    {id:3,product_id:'p1',product:'Model',quantity:5,date:'2026-09-26',number:'Unreceived',received:false,status:'new',warehouse_received_at:'2026-09-30T10:00:00.000Z'},
+    {id:4,product_id:'p1',product:'Model',quantity:5,date:'2026-08-03',number:'Legacy receipt',received:true,status:'ready'},
+    {id:5,product_id:'p2',product:'Other',quantity:5,date:'2026-09-28',received:true,warehouse_received_at:'2026-09-28T10:00:00.000Z'}
+  ]})));
+  const rows=JSON.parse(h.run("JSON.stringify(getProductOperations('p1'))"));
+  assert.deepEqual(rows.map(r=>[r.id,r.date]),[[1,'2026-09-29'],[2,'2026-09-27'],[3,'2026-09-26'],[4,'']]);
+  const rendered=h.run("renderProductOperationsHTML('p1')");
+  assert(rendered.includes('title="Дата приходу на склад">29.09.2026</span>'));
+  assert(!rendered.includes('01.08.2026'));
+  assert(rendered.includes('Не зафіксовано'));assert(rendered.includes('Дата наряду: 03.08.2026'));
+  assert.equal(h.db.writes.length,0);
+});
+test('receipt dates use movement timestamps as fallback and Kyiv day across seasons',async()=>{
+  const h=await harness();
+  for (const [order,expected] of [
+    [{received:true,warehouse_received_at:'2026-01-10T21:30:00.000Z'},'2026-01-10'],
+    [{received:true,received_stock:{received_at:'2026-01-10T22:30:00.000Z'}},'2026-01-11'],
+    [{received:true,warehouse_received_at:'invalid',received_stock:{received_at:'2026-07-10T21:30:00.000Z'}},'2026-07-11'],
+    [{received:true,warehouse_received_at:'invalid',date:'2026-09-01'},''],
+    [{received:false,warehouse_received_at:'2026-09-28T10:00:00.000Z'},'']
+  ]) assert.equal(h.run(`orderReceiptDate(${JSON.stringify(order)})`),expected);
+});
+test('production receipt date survives reload and repeat, clears on undo, updates on re-receipt',async()=>{
+  const h=await harness(database(fixture({orders:[{id:1,product_id:'p1',product:'Model',quantity:5,date:'2026-08-01',operations:[]}]})));
+  h.setTime('2026-09-28T10:00:00.000Z');await h.run('receiveOrderStock(1,true)');
+  let reopened=await harness(h.db);
+  assert.equal(reopened.run("getProductOperations('p1')[0].date"),'2026-09-28');
+  h.setTime('2026-10-01T10:00:00.000Z');await h.run('receiveOrderStock(1,true)');
+  assert.equal(h.run("getProductOperations('p1')[0].date"),'2026-09-28');
+  assert.equal(h.state().products[0].quantity,105);
+  await h.run('receiveOrderStock(1,false)');
+  assert.equal(h.run("getProductOperations('p1')[0].date"),'2026-08-01');
+  assert.equal(h.state().products[0].quantity,100);
+  await h.run('receiveOrderStock(1,true)');
+  assert.equal(h.run("getProductOperations('p1')[0].date"),'2026-10-01');
+  assert.equal(h.state().products[0].quantity,105);
+});
 test('missing and ambiguous legacy product names do not mark order received',async()=>{
   for (const products of [[product()], [product(),{...product(),id:'p2'}]]) {
     const h=await harness(database(fixture({products,orders:[{id:1,product:products.length===1?'Missing':'Model',quantity:5,operations:[]}]})));

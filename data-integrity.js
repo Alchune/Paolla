@@ -227,10 +227,22 @@ function operationDisplayDate(operation) {
   if (operation?.type !== 'outgoing' || !isPostedOperation(operation)) return operation?.date || '';
   const time = operationPostingTime(operation);
   if (time === null) return '';
-  // Stock write-offs use the warehouse's Kyiv calendar day, regardless of the viewer's timezone.
+  return warehouseCalendarDate(time);
+}
+function warehouseCalendarDate(time) {
+  // Stock movements use the warehouse's Kyiv calendar day, regardless of the viewer's timezone.
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Europe/Kyiv', year: 'numeric', month: '2-digit', day: '2-digit'
   }).format(new Date(time));
+}
+function orderReceiptDate(order) {
+  if (!order?.received) return '';
+  for (const value of [order.warehouse_received_at, order.received_stock?.received_at]) {
+    if (!value) continue;
+    const time = Date.parse(value);
+    if (Number.isFinite(time)) return warehouseCalendarDate(time);
+  }
+  return '';
 }
 function operationDateHTML(operation) {
   const date = operationDisplayDate(operation);

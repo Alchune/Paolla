@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Paolla — Склад та Виробництво</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="data-integrity.js?v=posting-date-20260928"></script>
+<script src="data-integrity.js?v=receipt-date-20260928"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--bg:#0f1117;--sidebar:#161b22;--card:#1c2128;--border:#30363d;--accent:#238636;--accent2:#1f6feb;--text:#e6edf3;--text2:#8b949e;--danger:#da3633;--warning:#e3b341}
@@ -2958,6 +2958,10 @@ setInterval(sched,700);                              var wrap = document.createE
   function esc(v){ return String(v==null?'':v).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
   function fmtDate(d){ if(!d) return '-'; var p=String(d).split('-'); return p.length===3?(p[2]+'.'+p[1]+'.'+p[0]):String(d); }
   function fmtWhen(r){
+    if(r.kind==='order'&&r.received){
+      if(r.date) return '<span title="Дата приходу на склад">'+fmtDate(r.date)+'</span>';
+      return 'Не зафіксовано'+(r.orderDate?'<span style="display:block;font-size:11px;color:var(--text2)">Дата наряду: '+esc(fmtDate(r.orderDate))+'</span>':'');
+    }
     if(r.kind==='inventory'&&r.createdAt){
       var d=new Date(r.createdAt);
       if(!isNaN(d.getTime())) return d.toLocaleString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
@@ -2998,7 +3002,7 @@ setInterval(sched,700);                              var wrap = document.createE
     });
     (st.orders||[]).forEach(function(o){
       if (o.product_id != null ? String(o.product_id) !== String(prod.id) : o.product !== prod.name) return;
-      rows.push({date:o.date,kind:'order',qty:Number(o.quantity)||0,party:o.client||'',status:o.status||'',number:o.number||'',received:!!o.received,id:o.id});
+      rows.push({date:o.received?orderReceiptDate(o):o.date,orderDate:o.date,kind:'order',qty:Number(o.quantity)||0,party:o.client||'',status:o.status||'',number:o.number||'',received:!!o.received,id:o.id});
     });
     rows.sort(function(a,b){ var c=String(b.date||'').localeCompare(String(a.date||'')); return c||((b.id||0)-(a.id||0)); });
     return {rows:rows,prod:prod};
