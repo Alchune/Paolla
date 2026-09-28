@@ -7,7 +7,7 @@ const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].flatMap(match => {
   const src = match[1].match(/src="([^"]+)"/);
-  if (src) return /^https?:/.test(src[1]) ? [] : [fs.readFileSync(path.join(root, src[1]), 'utf8')];
+  if (src) return /^https?:/.test(src[1]) ? [] : [fs.readFileSync(path.join(root, src[1].split('?')[0]), 'utf8')];
   return match[2].trim() ? [match[2]] : [];
 });
 const clone = value => JSON.parse(JSON.stringify(value));
@@ -22,6 +22,11 @@ function database(data=blank()) {
 }
 async function harness(db=database()) {
   const nodes = new Map(), notices = [], timers = [];
+  let now = Date.now();
+  class TestDate extends Date {
+    constructor(...args) { super(...(args.length ? args : [now])); }
+    static now() { return now; }
+  }
   function node(id) {
     if (!nodes.has(id)) nodes.set(id, { value:'', innerHTML:'', style:{}, dataset:{}, options:[], disabled:false,
       classList:{add(){}, remove(){}}, addEventListener(){}, setAttribute(){}, appendChild(){},
@@ -30,7 +35,7 @@ async function harness(db=database()) {
   }
   let booting = true, closeCount = 0;
   const ctx = {
-    console, Blob, Intl, Date, Map, Set, Promise, encodeURIComponent, decodeURIComponent, escape, unescape,
+    console, Blob, Intl, Date:TestDate, Map, Set, Promise, encodeURIComponent, decodeURIComponent, escape, unescape,
     atob:s=>Buffer.from(s,'base64').toString('binary'), btoa:s=>Buffer.from(s,'binary').toString('base64'),
     document:{ readyState:'loading', getElementById:node, querySelector:node,
       querySelectorAll:selector=> selector === '[data-mutation-disabled]' ? [...nodes.values()].filter(n=>n.dataset.mutationDisabled) : [],
@@ -83,10 +88,13 @@ async function harness(db=database()) {
   const run=source=>vm.runInContext(source,ctx);
   ctx.showNotif=(text,type='success')=>notices.push({text,type});
   ctx.closeModal=()=>{closeCount++;};
+  const renderOperation = ctx.renderOperation;
   for (const name of ['renderInventory','renderOperation','renderOrders','openOrderView','refreshCurrentPage']) ctx[name]=()=>{};
   run("state.user={id:'u1'};state.warehouse={id:'wh-test'}");
   await run('loadSnapshotForCurrent()');
   return {ctx,run,node,notices,timers,db,state:()=>JSON.parse(run('JSON.stringify(state)')),closeCount:()=>closeCount,
+    setTime(value) { now = Date.parse(value); },
+    renderOperations(type) { renderOperation(type); },
     operationForm(items=[item()]) {
       node('op-counterparty').value='Test';node('op-date').value='2026-09-08';
       // Exercise the real collector with form rows, including pair/box metadata.
@@ -239,6 +247,80 @@ test('direct conducted-to-reserved transition is rejected; explicit unpost/repos
 test('reservation edit does not change physical stock',async()=>{
   const h=await harness(database(fixture({operations:[outgoing()]})));h.operationForm([item(50)]);await h.run('saveReservation(1)');
   assert.equal(h.state().products[0].quantity,100);assert.equal(h.state().operations[0].items[0].quantity,50);
+});
+test('posting records the write-off time, persists it, and preserves it through edits',async()=>{
+  const h=await harness(database(fixture({})));h.operationForm();
+  h.setTime('2026-09-25T10:00:00.000Z');await h.run('saveReservation(null)');
+  const id=h.state().operations[0].id;
+  assert.equal(h.state().operations[0].posted_at,undefined);
+  h.setTime('2026-09-28T21:30:00.000Z');await h.run(`saveOperation('outgoing',${id})`);
+  assert.equal(h.state().operations[0].posted_at,'2026-09-28T21:30:00.000Z');
+  assert.equal(h.state().operations[0].date,'2026-09-08');
+  assert.equal(h.run('operationDisplayDate(state.operations[0])'),'2026-09-29');
+  const reopened=await harness(h.db);
+  assert.equal(reopened.state().operations[0].posted_at,'2026-09-28T21:30:00.000Z');
+  h.setTime('2026-10-01T10:00:00.000Z');await h.run(`saveOperation('outgoing',${id})`);
+  assert.equal(h.state().operations[0].posted_at,'2026-09-28T21:30:00.000Z');
+  assert.equal(h.state().products[0].quantity,80);
+  await h.run(`unpostOperation(${id})`);
+  assert.equal(h.state().operations[0].posted_at,undefined);
+  assert.equal(h.state().products[0].quantity,100);
+  await h.run(`saveOperation('outgoing',${id})`);
+  assert.equal(h.state().operations[0].posted_at,'2026-10-01T10:00:00.000Z');
+  assert.equal(h.state().products[0].quantity,80);
+});
+test('new direct postings get a timestamp; failed postings roll back timestamp and stock',async()=>{
+  const h=await harness(database(fixture({})));h.operationForm();
+  h.setTime('2026-09-28T10:00:00.000Z');await h.run("saveOperation('outgoing',null)");
+  assert.equal(h.state().operations[0].posted_at,'2026-09-28T10:00:00.000Z');
+  const failed=await harness(database(fixture({operations:[outgoing()]})));failed.operationForm();failed.db.writeError='denied';
+  await failed.run("saveOperation('outgoing',1)");
+  assert.equal(failed.state().operations[0].posted_at,undefined);
+  assert.equal(failed.state().operations[0].status,'reserved');
+  assert.equal(failed.state().products[0].quantity,100);
+});
+test('legacy postings do not invent a write-off date when edited',async()=>{
+  for (const status of ['conducted',undefined]) {
+    const h=await harness(database(fixture({products:[product(80)],operations:[outgoing(status)]})));
+    if (status === undefined) h.run('delete state.operations[0].status');
+    h.operationForm();await h.run("saveOperation('outgoing',1)");
+    assert.equal(h.state().operations[0].posted_at,undefined);
+    assert.equal(h.run('operationDisplayDate(state.operations[0])'),'');
+    assert(h.run('operationDateHTML(state.operations[0])').includes('Не зафіксовано'));
+  }
+});
+test('posted lists, product history and print use write-off dates and label unknown history',async()=>{
+  const h=await harness(database(fixture({operations:[
+    {...outgoing('conducted'),id:1,counterparty:'Latest posting',date:'2026-09-01',posted_at:'2026-09-28T21:30:00.000Z'},
+    {...outgoing('conducted'),id:2,counterparty:'Earlier posting',date:'2026-09-25',posted_at:'2026-09-27T10:00:00.000Z'},
+    {...outgoing('conducted'),id:3,counterparty:'Legacy posting',date:'2026-09-26'},
+    {...outgoing('reserved'),id:4,counterparty:'Reservation',date:'2026-09-24'}
+  ]})));
+  h.renderOperations('outgoing');const rendered=h.node('page-content').innerHTML;
+  assert(rendered.includes('<th>Дата проведення</th>'));
+  assert(rendered.includes('<td>2026-09-29</td>'));
+  assert(rendered.includes('<td>2026-09-24</td>'));
+  assert(rendered.indexOf('Latest posting')<rendered.indexOf('Earlier posting'));
+  assert(rendered.indexOf('Earlier posting')<rendered.indexOf('Legacy posting'));
+  assert(rendered.includes('Не зафіксовано'));assert(rendered.includes('Дата документа: 2026-09-26'));
+  assert(!rendered.includes('2026-09-01'));
+  h.run('renderDashboard()');assert(h.node('page-content').innerHTML.includes('2026-09-29'));
+  const history=h.run("renderProductOperationsHTML('p1')");
+  assert(history.includes('2026-09-29'));assert(history.includes('Дата документа: 2026-09-26'));
+  let printed='';h.ctx.open=()=>({document:{write:value=>printed+=value,close(){}}});h.run("printOperation(1,'outgoing')");
+  assert(printed.includes('Дата проведення (списання): <b>2026-09-29</b>'));
+  assert(!printed.includes('2026-09-01'));
+  assert.equal(h.db.writes.length,0);
+});
+test('posting dates use Kyiv day in both winter and summer and reject invalid timestamps',async()=>{
+  const h=await harness();
+  for (const [posted_at,expected] of [
+    ['2026-01-10T21:30:00.000Z','2026-01-10'],
+    ['2026-01-10T22:30:00.000Z','2026-01-11'],
+    ['2026-07-10T21:30:00.000Z','2026-07-11'],
+    ['invalid','']
+  ]) assert.equal(h.run(`operationDisplayDate(${JSON.stringify({...outgoing('conducted'),posted_at})})`),expected);
+  assert.equal(h.run("operationDisplayDate({type:'incoming',date:'2026-09-08'})"),'2026-09-08');
 });
 test('legacy incoming and outgoing edits reverse old quantities',async()=>{
   for (const [type,stock] of [['incoming',120],['outgoing',80]]) {

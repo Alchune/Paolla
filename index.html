@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Paolla — Склад та Виробництво</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="data-integrity.js"></script>
+<script src="data-integrity.js?v=posting-date-20260928"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--bg:#0f1117;--sidebar:#161b22;--card:#1c2128;--border:#30363d;--accent:#238636;--accent2:#1f6feb;--text:#e6edf3;--text2:#8b949e;--danger:#da3633;--warning:#e3b341}
@@ -610,7 +610,7 @@ ${state.operations.slice(-5).reverse().map(op => `
 <div class="timeline-item">
 <div class="timeline-dot ${op.type==='incoming'?'green':(op.type==='inventory'?'yellow':'blue')}"></div>
 <div class="timeline-info"><div class="timeline-title">${op.type==='incoming'?'⬇️ Прихід':(op.type==='inventory'?'🧮 Інвентаризація':'⬆️ Видаток')}: ${escapeHtml(operationItems(op).map(item => item.product_name || '').join(', '))}</div><div class="timeline-sub">${op.type==='inventory'?escapeHtml(op.notes||'Коригування залишку'):(operationItems(op).map(operationItemQuantityLabel).map(escapeHtml).join(', ')+' • '+escapeHtml(op.notes||''))}</div></div>
-<div class="timeline-time">${op.type==='inventory'&&op.created_at?new Date(op.created_at).toLocaleString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):op.date}</div>
+<div class="timeline-time">${op.type==='inventory'&&op.created_at?new Date(op.created_at).toLocaleString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):operationDateHTML(op)}</div>
 </div>`).join('') || '<div style="padding:20px;color:var(--text2);text-align:center">Немає операцій</div>'}
 </div></div>`;
 }
@@ -1090,18 +1090,22 @@ function renderOperation(type) {
   var activeOps = isIncoming ? ops : ops.filter(function(o) { return !isPostedOperation(o); });
   var conductedOps = isIncoming ? [] : ops.filter(isPostedOperation);
 
-  function renderRows(list, emptyText) {
+  function renderRows(list, emptyText, sortByPosting) {
     if (list.length === 0) {
       return '<tr><td colspan="4"><div class="empty-state"><div class="icon">' + icon + '</div><h3>' + emptyText + '</h3></div></td></tr>';
     }
-    return list.slice().reverse().map(function(o) {
+    var sorted = list.slice().reverse();
+    if (sortByPosting) sorted.sort(function(a, b) {
+      return (operationPostingTime(b) ?? -Infinity) - (operationPostingTime(a) ?? -Infinity);
+    });
+    return sorted.map(function(o) {
       var items = operationItems(o);
       var totalAmt = operationTotal(o);
 
       var totalStr = totalAmt > 0 ? totalAmt.toFixed(2) : '—';
       var counterparty = o.counterparty || '—';
       return '<tr>' +
-        '<td>' + (o.date || '—') + '</td>' +
+        '<td>' + operationDateHTML(o) + '</td>' +
         '<td>' + counterparty + '</td>' +
         '<td>' + totalStr + '</td>' +
         '<td><button class="btn btn-sm" title="Редагувати" onclick="editOperation(' + o.id + ',&apos;' + type + '&apos;)">✏️</button> <button class="btn btn-sm" title="Друк" onclick="printOperation(' + o.id + ',&apos;' + type + '&apos;)">🖨️</button> <button title="' + (o.archived ? 'Повернути з архіву' : 'Архівувати') + '" onclick="' + (o.archived ? 'unarchiveOperation' : 'archiveOperation') + '(' + o.id + ',&apos;' + type + '&apos;)">' + (o.archived ? '↩️' : '📥') + '</button><button class="btn btn-sm btn-danger" onclick="deleteOperation(' + o.id + ',&apos;' + type + '&apos;)">✕</button></td>' +
@@ -1117,8 +1121,8 @@ function renderOperation(type) {
 
   if (!isIncoming) {
     html += '<h3 style="margin:24px 0 12px">Проведено</h3>';
-    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Дата</th><th>Контрагент</th><th>Сума</th><th>Дії</th></tr></thead><tbody>';
-    html += renderRows(conductedOps, 'Немає проведених видатків');
+    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Дата проведення</th><th>Контрагент</th><th>Сума</th><th>Дії</th></tr></thead><tbody>';
+    html += renderRows(conductedOps, 'Немає проведених видатків', true);
     html += '</tbody></table></div>';
   }
 
@@ -1166,9 +1170,10 @@ function openOperationModal(type, editOp) {
     '<div class="form-group"><label class="form-label">' + counterpartyLabel + ' *</label>' +
     '<select class="form-input" id="op-counterparty"><option value="">— Оберіть ' + counterpartyLabel.toLowerCase() + ' —</option>' + sortClientsByName(state.clients).map(function(c){ return '<option value="' + c.name + '">' + c.name + '</option>'; }).join('') + '</select></div>' +
     '<div class="form-row">' +
-    '<div class="form-group"><label class="form-label">Дата</label><input type="date" class="form-input" id="op-date" value="' + today + '"></div>' +
+    '<div class="form-group"><label class="form-label">' + (isIncoming ? 'Дата' : 'Дата документа') + '</label><input type="date" class="form-input" id="op-date" value="' + today + '"></div>' +
     '<div class="form-group"><label class="form-label">Примітки</label><input class="form-input" id="op-notes" placeholder="Необов&#39;язково"></div>' +
     '</div>' +
+    (!isIncoming && isPostedOperation(editOp) ? '<div class="form-group"><label class="form-label">Дата проведення (списання)</label><div>' + operationDateHTML(editOp) + '</div></div>' : '') +
     '<div class="form-label" style="margin-bottom:6px;font-weight:600">Товари *</div>' +
     '<table class="data-table" id="op-items-table" style="margin-bottom:8px">' +
     '<thead><tr><th>Товар</th><th>Кількість</th><th>Ціна</th><th></th></tr></thead>' +
@@ -1396,6 +1401,7 @@ async function saveOperation(type, editId) {
     archived: type === 'outgoing' ? true : !!existing?.archived,
     counterparty, date: document.getElementById('op-date').value,
     notes: document.getElementById('op-notes').value.trim(), items: collected.items };
+  if (type === 'outgoing' && !isPostedOperation(existing)) next.posted_at = new Date().toISOString();
   applyOperationTransition(existing, next);
   if (existing) state.operations[state.operations.indexOf(existing)] = next;
   else state.operations.push(next);
@@ -1410,6 +1416,7 @@ async function unpostOperation(id) {
   if (!existing || existing.type !== 'outgoing' || !isPostedOperation(existing)) return;
   if (!confirm('Скасувати проведення та повернути товар на склад? Документ залишиться в резерві.')) return;
   var next = { ...existing, items: operationItems(existing), status: 'reserved', archived: false };
+  delete next.posted_at;
   applyOperationTransition(existing, next);
   state.operations[state.operations.indexOf(existing)] = next;
   await saveSnapshot();
@@ -2972,7 +2979,8 @@ setInterval(sched,700);                              var wrap = document.createE
         var kind=o.type==='incoming'?'in':(o.type==='outgoing'?'out':(o.type==='inventory'?'inventory':''));
         if(!kind) return;
         rows.push({
-          date:o.date,
+          date:operationDisplayDate(o),
+          dateHTML:operationDateHTML(o),
           createdAt:o.created_at||'',
           kind:kind,
           qty:Number(it.quantity)||0,
@@ -3046,7 +3054,7 @@ setInterval(sched,700);                              var wrap = document.createE
         var color=r.kind==='in'?'#2f9e44':(r.kind==='out'?'#e03131':'#1971c2');
         qtyHtml='<span style="font-weight:600;color:'+color+'">'+sign+nfmt(r.qty)+' '+esc(unit)+'</span>';
       }
-      h+='<tr><td>'+fmtWhen(r)+'</td><td>'+typeCell(r)+'</td><td>'+qtyHtml+'</td><td>'+esc(r.party||'-')+'</td><td>'+statusCell(r)+'</td></tr>';
+      h+='<tr><td>'+(r.kind==='out'&&r.posted?r.dateHTML:fmtWhen(r))+'</td><td>'+typeCell(r)+'</td><td>'+qtyHtml+'</td><td>'+esc(r.party||'-')+'</td><td>'+statusCell(r)+'</td></tr>';
     });
     h+='</tbody></table></div></div>';
     return h;
@@ -3154,7 +3162,7 @@ window.printOperation = function(idOrOperation, type) {
   w.document.write('<!DOCTYPE html><html lang="uk"><head><meta charset="UTF-8"><title>' + escapeHtml(title) + '</title>' +
     '<style>body{font-family:Arial,sans-serif;padding:24px;color:#111}table{width:100%;border-collapse:collapse}th{background:#f0f4f8;padding:8px 10px;text-align:left}td{padding:6px 10px;border-bottom:1px solid #eee}@media print{button{display:none}}</style>' +
     '</head><body><h2>' + escapeHtml(title) + '</h2><p>Контрагент: <b>' + escapeHtml(op.counterparty || '') +
-    '</b></p><p>Дата: <b>' + escapeHtml(op.date || '') + '</b></p>' +
+    '</b></p><p>' + (!isIncoming && isPostedOperation(op) ? 'Дата проведення (списання)' : 'Дата') + ': <b>' + operationDateHTML(op) + '</b></p>' +
     (op.notes ? '<p>Примітки: ' + escapeHtml(op.notes) + '</p>' : '') +
     '<table><thead><tr><th>Товар</th><th>Кількість</th><th>Кількість ящиків</th><th>Ціна</th><th>Сума</th></tr></thead><tbody>' + rows +
     '<tr><td colspan="5" style="padding:10px;border-top:2px solid #333;text-align:right;font-weight:bold">' + summary +

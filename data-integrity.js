@@ -218,6 +218,29 @@ function isPostedOperation(operation) {
   // The original single-item format created outgoing movements without a status.
   return operation.type === 'outgoing' && (operation.status === 'conducted' || !operation.status);
 }
+function operationPostingTime(operation) {
+  if (!operation?.posted_at) return null;
+  const time = Date.parse(operation.posted_at);
+  return Number.isFinite(time) ? time : null;
+}
+function operationDisplayDate(operation) {
+  if (operation?.type !== 'outgoing' || !isPostedOperation(operation)) return operation?.date || '';
+  const time = operationPostingTime(operation);
+  if (time === null) return '';
+  // Stock write-offs use the warehouse's Kyiv calendar day, regardless of the viewer's timezone.
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Kyiv', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(new Date(time));
+}
+function operationDateHTML(operation) {
+  const date = operationDisplayDate(operation);
+  if (date) return escapeHtml(date);
+  if (operation?.type === 'outgoing' && isPostedOperation(operation)) {
+    return 'Не зафіксовано' + (operation.date
+      ? '<span style="display:block;font-size:12px;color:var(--text2)">Дата документа: ' + escapeHtml(operation.date) + '</span>' : '');
+  }
+  return '—';
+}
 function operationTotal(operation) {
   return Math.round(operationItems(operation).reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.price) || 0), 0) * 100) / 100;
 }
