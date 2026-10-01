@@ -415,12 +415,6 @@ test('new order validates quantities and keeps the selected product ID',async()=
   const h=await harness(database(fixture({})));h.orderForm({quantity:0});await h.run('saveOrder()');assert.equal(h.db.writes.length,0);
   h.orderForm({quantity:5});await h.run('saveOrder()');assert.equal(h.state().orders[0].product_id,'p1');assert.equal(h.state().orders[0].quantity,5);
 });
-test('reports total items and legacy documents while excluding reservations',async()=>{
-  const h=await harness(database(fixture({operations:[{id:1,type:'incoming',items:[{quantity:10,price:20}]},{id:2,type:'outgoing',status:'conducted',items:[{quantity:4,price:30}]},{id:3,type:'incoming',quantity:2,price:5,product_id:'p1'},outgoing('reserved',100)]})));
-  h.run('renderReports()');const rendered=h.node('page-content').innerHTML;
-  assert(rendered.includes('Загальний прихід</div><div class="value">210'));
-  assert(rendered.includes('Загальний видаток</div><div class="value">120'));
-});
 test('dashboard shows stock count and activity without low stock or active orders',async()=>{
   const h=await harness(database(fixture({products:[product(0)],orders:[{id:1,status:'ready',received:true},{id:2,status:'cancelled'},{id:3,status:'shipped'},{id:4,status:'new'}],operations:[outgoing('conducted')]})));
   h.run('renderDashboard()');const rendered=h.node('page-content').innerHTML;
@@ -444,4 +438,69 @@ test('failed reservation and order writes keep forms open and roll back records'
     const h=await harness(database(fixture({})));h.operationForm();h.orderForm();h.db.writeError='denied';await h.run(action);
     assert.equal(h.closeCount(),0);assert.equal(h.state().orders.length,0);assert.equal(h.state().operations.length,0);assert(!h.notices.some(n=>n.type==='success'));
   }
+});
+
+const reportFilters = (extra={}) => ({from:'2026-01-01',to:'2026-12-31',model:'',party:'',basis:'posting',...extra});
+const sale = (extra={}) => ({...outgoing('conducted'),posted_at:'2026-06-01T12:00:00Z',...extra});
+test('sales report filters exact model, Kyiv inclusive dates and posted status without writes',async()=>{
+  const h=await harness(database(fixture({products:[{...product(),name:'226 Чорна'},{...product(),id:'p2',name:'226 nova'}],operations:[
+    sale({id:1,posted_at:'2025-12-31T22:00:00Z',items:[item(8),{...item(80),product_id:'p2'}]}),
+    sale({id:2,posted_at:'2026-12-31T21:59:59Z',items:[item(16)]}),
+    sale({id:3,posted_at:'2026-12-31T22:00:00Z',items:[item(100)]}),
+    sale({id:4,posted_at:'2025-12-31T21:59:59Z',items:[item(100)]}),
+    sale({id:5,status:'reserved',items:[item(100)]}),
+    sale({id:6,status:'cancelled',items:[item(100)]}),
+    sale({id:7,type:'incoming',items:[item(100)]})
+  ]})));
+  const before=h.state();h.ctx.filters=reportFilters({model:'id:p1'});
+  const r=h.run('buildSalesReport(state.operations,state.products,filters)');
+  assert.equal(r.units.get('пар'),24);assert.equal(r.total,240);assert.equal(r.documents,2);assert.equal(r.modelCount,1);
+  assert.equal(r.rows[0].date,'2026-12-31');assert.equal(r.rows[1].date,'2026-01-01');
+  assert.deepEqual(h.state(),before);assert.equal(h.db.writes.length,0);
+});
+test('counterparty report totals matching lines, historical prices and mixed units separately',async()=>{
+  const h=await harness(database(fixture({operations:[
+    sale({id:1,archived:true,counterparty:'Іра',items:[{...item(24),quantity_unit:'boxes',entered_quantity:3},item(8),{...item(2),product_id:'p2',product_name:'Матеріал',product_unit:'м',price:5}]}),
+    sale({id:2,counterparty:'Іра',items:[{...item(4),price:12}]}),
+    sale({id:3,counterparty:'Іра інша',items:[item(100)]}),
+    sale({id:4,type:'inventory',items:[item(100)]})
+  ]})));
+  h.ctx.filters=reportFilters({party:'Іра'});const r=h.run('buildSalesReport(state.operations,state.products,filters)');
+  assert.equal(r.units.get('пар'),36);assert.equal(r.units.get('м'),2);assert.equal(r.total,378);
+  assert.equal(r.documents,2);assert.equal(r.modelCount,2);assert.equal(r.parties.length,1);
+  assert.equal(r.models.find(r=>r.unit==='пар').docs.size,2);
+});
+test('historical sales require explicit document date mode and accept legacy single lines',async()=>{
+  const h=await harness(database(fixture({operations:[
+    {id:1,type:'outgoing',date:'2026-02-01',product_id:'p1',quantity:8,price:9,counterparty:'Test'},
+    sale({id:2,posted_at:'invalid',date:'2026-12-31'}),
+    sale({id:3,date:'2025-12-31'})
+  ]})));
+  h.ctx.filters=reportFilters();let r=h.run('buildSalesReport(state.operations,state.products,filters)');
+  assert.equal(r.missingDates,2);assert.equal(r.documents,1);
+  h.ctx.filters=reportFilters({basis:'document'});r=h.run('buildSalesReport(state.operations,state.products,filters)');
+  assert.equal(r.missingDates,0);assert.equal(r.documents,2);assert.equal(r.total,272);
+});
+test('sales report rejects inverted and invalid periods and separates missing quantities',async()=>{
+  const h=await harness(database(fixture({operations:[sale({items:[item(0),item(null),item('bad')]})]})));
+  for(const range of [{from:'2026-12-31',to:'2026-01-01'},{from:'2026-02-30'},{to:'2026-99-99'},{from:''}]) {
+    h.ctx.filters=reportFilters(range);assert.throws(()=>h.run('buildSalesReport(state.operations,state.products,filters)'),/коректний період/);
+  }
+  h.ctx.filters=reportFilters();const r=h.run('buildSalesReport(state.operations,state.products,filters)');
+  assert.equal(r.missingQuantities,2);assert.equal(r.total,0);assert.equal(r.documents,1);
+});
+test('sales report retains historical models and escapes labels in HTML and CSV',async()=>{
+  const h=await harness(database(fixture({operations:[sale({counterparty:'=cmd;<img>',items:[{...item(8),product_id:'deleted',product_name:'<img src=x onerror=alert(1)>'}]})]})));
+  const models=h.run('salesReportModelOptions(state.products,state.operations)');
+  assert(models.some(([key])=>key==='id:deleted'));
+  h.setTime('2026-06-01T12:00:00Z');h.run('renderReports()');const html=h.node('page-content').innerHTML;
+  assert(html.includes('&lt;img src=x onerror=alert(1)&gt;'));assert(!html.includes('<img src=x'));
+  h.ctx.filters=reportFilters();const csv=h.run('salesReportCSV(buildSalesReport(state.operations,state.products,filters))');
+  assert(csv.startsWith('\uFEFF'));assert(csv.includes('"\'=cmd;<img>"'));assert(csv.includes('"8";"пар";"80"'));
+});
+test('sales filters combine model and client and keep distinct warehouse sessions',async()=>{
+  const h=await harness(database(fixture({operations:[sale({items:[item(8),{...item(24),product_id:'p2'}]}),sale({id:2,counterparty:'Other',items:[item(100)]})]})));
+  h.ctx.filters=reportFilters({party:'Test',model:'id:p1'});const r=h.run('buildSalesReport(state.operations,state.products,filters)');assert.equal(r.total,80);
+  h.run("currentSalesReportFilters().party='Test';state.warehouse.id='other'");assert.equal(h.run('currentSalesReportFilters().party'),'');
+  assert.equal(h.run("canAccessPage('reports')"),true);h.run("state.accessMode='worker'");assert.equal(h.run("canAccessPage('reports')"),false);
 });

@@ -7,6 +7,7 @@
 <title>Paolla — Склад та Виробництво</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="data-integrity.js?v=receipt-date-20260928"></script>
+<script src="sales-reports.js?v=20261001"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--bg:#0f1117;--sidebar:#161b22;--card:#1c2128;--border:#30363d;--accent:#238636;--accent2:#1f6feb;--text:#e6edf3;--text2:#8b949e;--danger:#da3633;--warning:#e3b341}
@@ -306,6 +307,7 @@ tbody tr:last-child td{border-bottom:none}
 <button class="nav-item active" onclick="navigate('dashboard')" id="nav-dashboard">
 📊 Дашборд
 </button>
+<button class="nav-item" onclick="navigate('reports')" id="nav-reports">📈 Звіти</button>
 <div class="nav-section">Склад</div>
 <button class="nav-item" onclick="navigate('products')" id="nav-products">
 📦 Товари
@@ -2237,36 +2239,7 @@ async function completeProduction(id) {
   showNotif('Наряд завершено! Товар додано на склад.', 'success');
 }
 
-function renderReports() {
-  const incoming = state.operations.filter(o => o.type === 'incoming' && isPostedOperation(o));
-  const outgoing = state.operations.filter(o => o.type === 'outgoing' && isPostedOperation(o));
-  const totalIn = incoming.reduce((s,o) => s + operationTotal(o), 0);
-  const totalOut = outgoing.reduce((s,o) => s + operationTotal(o), 0);
-  const byCategory = {};
-  state.products.forEach(p => { byCategory[p.category] = (byCategory[p.category]||0) + p.quantity * p.price; });
-  document.getElementById('page-content').innerHTML = `
-<div class="stats-grid">
-<div class="stat-card green"><div class="label">Загальний прихід</div><div class="value">${formatMoney(totalIn)}</div><div class="sub"></div></div>
-<div class="stat-card blue"><div class="label">Загальний видаток</div><div class="value">${formatMoney(totalOut)}</div><div class="sub"></div></div>
-<div class="stat-card"><div class="label">Операцій</div><div class="value">${state.operations.length}</div><div class="sub">всього</div></div>
-<div class="stat-card yellow"><div class="label">Замовлень</div><div class="value">${state.orders.length}</div><div class="sub">всього</div></div>
-</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-<div class="table-container">
-<div class="table-header"><h3>📊 По категоріях</h3></div>
-<table><thead><tr><th>Категорія</th><th>Вартість</th></tr></thead><tbody>
-${Object.entries(byCategory).map(([cat,val]) => `<tr><td><span class="badge badge-gray">${cat}</span></td><td>${formatMoney(val)}</td></tr>`).join('')}
-</tbody></table></div>
-<div class="table-container">
-<div class="table-header"><h3>📈 Замовлення по статусах</h3></div>
-<table><thead><tr><th>Статус</th><th>Кількість</th></tr></thead><tbody>
-<tr><td>${orderBadge('new')}</td><td>${state.orders.filter(o=>o.status==='new').length}</td></tr>
-<tr><td>${orderBadge('in_production')}</td><td>${state.orders.filter(o=>o.status==='in_production').length}</td></tr>
-<tr><td>${orderBadge('ready')}</td><td>${state.orders.filter(o=>o.status==='ready').length}</td></tr>
-<tr><td>${orderBadge('shipped')}</td><td>${state.orders.filter(o=>o.status==='shipped').length}</td></tr>
-</tbody></table></div>
-</div>`;
-}
+function renderReports() { renderSalesReports(); }
 
 function renderWarehouse() {
     const sharedId = localStorage.getItem('paolla_warehouse_id');
