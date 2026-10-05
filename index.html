@@ -1094,7 +1094,7 @@ function renderOperation(type) {
 
   function renderRows(list, emptyText, sortByPosting) {
     if (list.length === 0) {
-      return '<tr><td colspan="4"><div class="empty-state"><div class="icon">' + icon + '</div><h3>' + emptyText + '</h3></div></td></tr>';
+      return '<tr><td colspan="' + (isIncoming ? 4 : 5) + '"><div class="empty-state"><div class="icon">' + icon + '</div><h3>' + emptyText + '</h3></div></td></tr>';
     }
     var sorted = list.slice().reverse();
     if (sortByPosting) sorted.sort(function(a, b) {
@@ -1109,6 +1109,7 @@ function renderOperation(type) {
       return '<tr>' +
         '<td>' + operationDateHTML(o) + '</td>' +
         '<td>' + counterparty + '</td>' +
+        (isIncoming ? '' : '<td style="max-width:320px;white-space:pre-wrap;overflow-wrap:anywhere">' + escapeHtml(o.notes || '—') + '</td>') +
         '<td>' + totalStr + '</td>' +
         '<td><button class="btn btn-sm" title="Редагувати" onclick="editOperation(' + o.id + ',&apos;' + type + '&apos;)">✏️</button> <button class="btn btn-sm" title="Друк" onclick="printOperation(' + o.id + ',&apos;' + type + '&apos;)">🖨️</button> <button title="' + (o.archived ? 'Повернути з архіву' : 'Архівувати') + '" onclick="' + (o.archived ? 'unarchiveOperation' : 'archiveOperation') + '(' + o.id + ',&apos;' + type + '&apos;)">' + (o.archived ? '↩️' : '📥') + '</button><button class="btn btn-sm btn-danger" onclick="deleteOperation(' + o.id + ',&apos;' + type + '&apos;)">✕</button></td>' +
         '</tr>';
@@ -1117,13 +1118,13 @@ function renderOperation(type) {
 
   var html = '<div class="table-container">';
   html += '<div class="table-header"><h3>' + icon + ' ' + title + '</h3><div class="table-search"><button class="btn btn-primary" id="add-op-btn">' + btnLabel + '</button></div></div>';
-  html += '<table class="data-table"><thead><tr><th>Дата</th><th>Контрагент</th><th>Сума</th><th>Дії</th></tr></thead><tbody>';
+  html += '<table class="data-table"><thead><tr><th>Дата</th><th>Контрагент</th>' + (isIncoming ? '' : '<th>Примітки</th>') + '<th>Сума</th><th>Дії</th></tr></thead><tbody>';
   html += renderRows(activeOps, isIncoming ? 'Немає операцій' : 'Немає непроведених видатків');
   html += '</tbody></table></div>';
 
   if (!isIncoming) {
     html += '<h3 style="margin:24px 0 12px">Проведено</h3>';
-    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Дата проведення</th><th>Контрагент</th><th>Сума</th><th>Дії</th></tr></thead><tbody>';
+    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Дата проведення</th><th>Контрагент</th><th>Примітки</th><th>Сума</th><th>Дії</th></tr></thead><tbody>';
     html += renderRows(conductedOps, 'Немає проведених видатків', true);
     html += '</tbody></table></div>';
   }
