@@ -358,11 +358,12 @@ test('product history orders received production by warehouse receipt date, not 
     {id:5,product_id:'p2',product:'Other',quantity:5,date:'2026-09-28',received:true,warehouse_received_at:'2026-09-28T10:00:00.000Z'}
   ]})));
   const rows=JSON.parse(h.run("JSON.stringify(getProductOperations('p1'))"));
-  assert.deepEqual(rows.map(r=>[r.id,r.date]),[[1,'2026-09-29'],[2,'2026-09-27'],[3,'2026-09-26'],[4,'']]);
+  assert.deepEqual(rows.map(r=>[r.id,r.date]),[[1,'2026-09-29'],[2,'2026-09-27'],[4,'']]);
   const rendered=h.run("renderProductOperationsHTML('p1')");
-  assert(rendered.includes('title="Дата приходу на склад">29.09.2026</span>'));
+  assert(rendered.includes('title="Дата прийняття на склад">29.09.2026</span>'));
   assert(!rendered.includes('01.08.2026'));
-  assert(rendered.includes('Не зафіксовано'));assert(rendered.includes('Дата наряду: 03.08.2026'));
+  assert(!rendered.includes('Unreceived'));assert(!rendered.includes('03.08.2026'));
+  assert(rendered.includes('Дата прийняття не зафіксована'));assert(rendered.includes('Наряди: 15 пари'));
   assert.equal(h.db.writes.length,0);
 });
 test('receipt dates use movement timestamps as fallback and Kyiv day across seasons',async()=>{
@@ -384,7 +385,9 @@ test('production receipt date survives reload and repeat, clears on undo, update
   assert.equal(h.run("getProductOperations('p1')[0].date"),'2026-09-28');
   assert.equal(h.state().products[0].quantity,105);
   await h.run('receiveOrderStock(1,false)');
-  assert.equal(h.run("getProductOperations('p1')[0].date"),'2026-08-01');
+  assert.equal(h.run("getProductOperations('p1').length"),0);
+  reopened=await harness(h.db);
+  assert.equal(reopened.run("getProductOperations('p1').length"),0);
   assert.equal(h.state().products[0].quantity,100);
   await h.run('receiveOrderStock(1,true)');
   assert.equal(h.run("getProductOperations('p1')[0].date"),'2026-10-01');
