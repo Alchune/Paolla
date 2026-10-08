@@ -1148,12 +1148,16 @@ function buildOperationProductOptions(type) {
   }
   var html = '<option value="">— Оберіть товар —</option>';
   sortProductsByName(state.products).forEach(function(p) {
+    var showBoxes = type === 'outgoing' && isPairProduct(p);
+    var displayUnit = showBoxes ? 'ящики' : p.unit;
     var stockLabel = String(p.quantity || 0);
     if (type === 'outgoing') {
       var free = (Number(p.quantity) || 0) - (reserved.get(String(p.id)) || 0);
-      stockLabel = 'На складі: ' + formatOperationQuantity(p.quantity) + ' · Вільно: ' + formatOperationQuantity(free);
+      var divisor = showBoxes ? pairsPerBox(p) : 1;
+      var suffix = showBoxes ? ' ящ.' : '';
+      stockLabel = 'На складі: ' + formatOperationQuantity((Number(p.quantity) || 0) / divisor) + suffix + ' · Вільно: ' + formatOperationQuantity(free / divisor) + suffix;
     }
-    html += '<option value="' + p.id + '" data-name="' + (p.name || '') + '" data-unit="' + (p.unit || '') + '">' + p.name + (p.unit ? ' (' + p.unit + ')' : '') + (isPairProduct(p) ? ' · ' + formatOperationQuantity(pairsPerBox(p)) + ' пар/ящ.' : '') + ' — ' + stockLabel + '</option>';
+    html += '<option value="' + p.id + '" data-name="' + (p.name || '') + '" data-unit="' + (p.unit || '') + '">' + p.name + (displayUnit ? ' (' + displayUnit + ')' : '') + (isPairProduct(p) && !showBoxes ? ' · ' + formatOperationQuantity(pairsPerBox(p)) + ' пар/ящ.' : '') + ' — ' + stockLabel + '</option>';
   });
   return html;
 }

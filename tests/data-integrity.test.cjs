@@ -126,7 +126,7 @@ test('outgoing product options subtract unposted reservations in stock units',as
     {...outgoing('reserved'),id:8,items:[{...item(50),product_id:'other'}]}
   ]})));
   const before=h.state();
-  assert(h.run("buildOperationProductOptions('outgoing')").includes('Model (пари) · 8 пар/ящ. — На складі: 100 · Вільно: 62</option>'));
+  assert(h.run("buildOperationProductOptions('outgoing')").includes('Model (ящики) — На складі: 12.5 ящ. · Вільно: 7.75 ящ.</option>'));
   assert(h.run("buildOperationProductOptions('incoming')").includes('Model (пари) · 8 пар/ящ. — 100</option>'));
   assert.deepEqual(h.state(),before);
   assert.equal(h.db.writes.length,0);
@@ -135,15 +135,17 @@ test('free stock labels preserve fractions, negative balances, zero and product 
   const h=await harness(database(fixture({products:[
     {...product(0.3),id:1,unit:'м'},
     {...product(0),id:'zero'},
-    {...product(10),id:'negative'}
+    {...product(10),id:'negative'},
+    {...product(25),id:'custom-pack',pairs_per_box:10}
   ],operations:[{...outgoing(),items:[
     {...item('0.1'),product_id:'1'},
     {...item(12),product_id:'negative'}
   ]}]})));
   const options=h.run("buildOperationProductOptions('outgoing')");
   assert(options.includes('Model (м) — На складі: 0.3 · Вільно: 0.2</option>'));
-  assert(options.includes('На складі: 0 · Вільно: 0</option>'));
-  assert(options.includes('На складі: 10 · Вільно: -2</option>'));
+  assert(options.includes('На складі: 0 ящ. · Вільно: 0 ящ.</option>'));
+  assert(options.includes('На складі: 1.25 ящ. · Вільно: -0.25 ящ.</option>'));
+  assert(options.includes('На складі: 2.5 ящ. · Вільно: 2.5 ящ.</option>'));
 });
 test('rejected inventory save restores confirmed stock and permits retry',async()=>{
   const h=await harness(database(fixture({products:[product(10)]})));
