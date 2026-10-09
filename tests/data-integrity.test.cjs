@@ -78,7 +78,10 @@ async function harness(db=database()) {
         };
         return query;
       },
-      storage:{from:()=>({upload:async()=>({error:null})})}
+      storage:{from:bucket=>({upload:async(path,body)=>{
+        (db.catalogUploads ||= []).push({bucket,path,catalog:JSON.parse(await body.text())});
+        return {error:null};
+      }})}
     })}
   };
   ctx.window=ctx;
@@ -114,6 +117,54 @@ async function harness(db=database()) {
 const fixture = extra => ({...blank(), products:[product()], ...extra});
 
 test('all browser scripts parse in their real loading order',()=>scripts.forEach(source=>new vm.Script(source)));
+test('guest catalog publishes all active footwear with availability and only public fields',async()=>{
+  const h=await harness(database(fixture({products:[
+    {...product(8),id:'available',name:'Available',notes:'private note',cost:4},
+    {...product(0),id:'zero',name:'Zero'},
+    {...product(-8),id:'negative',name:'Negative'},
+    {...product(8),id:'archived',name:'Archived',archived:true},
+    {...product(8),id:'material',name:'Material',category:'Сировина'}
+  ]})));
+  await h.run('publishCatalog()');
+  assert.equal(h.db.catalogUploads,undefined,'another warehouse must not publish');
+  h.run('state.warehouse.id=PUBLIC_WAREHOUSE_ID');
+  const before=h.state();
+  await h.run('publishCatalog()');
+  const upload=h.db.catalogUploads[0];
+  assert.equal(upload.bucket,'product-photos');
+  assert.equal(upload.path,h.run('PUBLIC_CATALOG_PATH'));
+  assert.deepEqual(upload.catalog.items.map(p=>[p.name,p.in_stock]),[
+    ['Available',true],['Negative',false],['Zero',false]
+  ]);
+  for(const p of upload.catalog.items) {
+    assert.deepEqual(Object.keys(p).sort(),['category','image','in_stock','name','price','subcategory','unit']);
+    assert.equal(p.price,10);
+  }
+  assert.deepEqual(h.state(),before);
+  assert.equal(h.db.writes.length,0,'publishing must not write warehouse data');
+});
+test('guest catalog keeps unavailable prices and supports search, category and legacy availability',async()=>{
+  const h=await harness();
+  h.ctx.fetch=async()=>({ok:true,json:async()=>({items:[
+    {name:'Zero',category:'Взуття',subcategory:'Демі',price:16,in_stock:false},
+    {name:'Available',category:'Взуття',subcategory:'Зима',price:12,in_stock:true},
+    {name:'Legacy',category:'Взуття',price:10},
+    {name:'Material',category:'Сировина',price:3}
+  ]})});
+  await h.run('loadPublicCatalog()');
+  assert.equal(h.node('lp-count').textContent,'Моделей у каталозі: 3');
+  assert.equal((h.node('lp-grid').innerHTML.match(/Немає в наявності/g)||[]).length,1);
+  assert.equal((h.node('lp-grid').innerHTML.match(/>В наявності</g)||[]).length,2);
+  assert(!h.node('lp-grid').innerHTML.includes('Material'));
+  h.node('lp-subcat').value='Демі';
+  h.node('lp-search').value='zero';
+  h.run('renderPublicCatalog()');
+  assert.equal(h.node('lp-count').textContent,'Моделей у каталозі: 1 з 3');
+  assert(h.node('lp-grid').innerHTML.includes('$16'));
+  assert(h.node('lp-grid').innerHTML.includes('Немає в наявності'));
+  h.run("renderPublicCatalog('missing')");
+  assert(h.node('lp-grid').innerHTML.includes('Нічого не знайдено'));
+});
 test('outgoing product options subtract unposted reservations in stock units',async()=>{
   const h=await harness(database(fixture({operations:[
     {...outgoing('reserved'),items:[{...item(24),quantity_unit:'boxes',entered_quantity:3,pairs_per_box:8},item('4')]},
