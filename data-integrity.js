@@ -235,8 +235,21 @@ function warehouseCalendarDate(time) {
     timeZone: 'Europe/Kyiv', year: 'numeric', month: '2-digit', day: '2-digit'
   }).format(new Date(time));
 }
+function orderReceivedQuantity(order) {
+  if (!order) return 0;
+  return Number(order.received_stock?.quantity ?? (order.received ? order.quantity : 0)) || 0;
+}
+function hasOrderReceipt(order) {
+  return !!order?.received || orderReceivedQuantity(order) > 0;
+}
+function orderReceiptEntries(order) {
+  if (Array.isArray(order.received_stock?.entries)) return order.received_stock.entries.map(entry => ({...entry}));
+  if (!hasOrderReceipt(order)) return [];
+  const receivedAt = [order.warehouse_received_at, order.received_stock?.received_at].find(value => value && Number.isFinite(Date.parse(value)));
+  return [{ quantity: orderReceivedQuantity(order), received_at: receivedAt || null }];
+}
 function orderReceiptDate(order) {
-  if (!order?.received) return '';
+  if (!hasOrderReceipt(order)) return '';
   for (const value of [order.warehouse_received_at, order.received_stock?.received_at]) {
     if (!value) continue;
     const time = Date.parse(value);

@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Paolla — Склад та Виробництво</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="data-integrity.js?v=receipt-date-20260928"></script>
+<script src="data-integrity.js?v=partial-receipts-20261019"></script>
 <script src="sales-reports.js?v=20261001"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -1712,14 +1712,15 @@ function renderOrders() {
   html += '<div class="form-row" style="margin-bottom:12px;gap:8px">';
   html += '<select class="form-select" style="flex:1" onchange="window._orderFilterModel=this.value;renderOrders()"><option value="">— Всі моделі —</option>'+modelOpts+'</select>';
   html += '</div>';
-  html += '<table class="data-table"><thead><tr><th>Номер</th><th>Контрагент</th><th>Товар</th><th>Цехи</th><th>К-сть</th><th>Дедлайн</th><th>Статус</th><th></th></tr></thead><tbody>';
+  html += '<table class="data-table"><thead><tr><th>Номер</th><th>Контрагент</th><th>Товар</th><th>Цехи</th><th>К-сть</th><th>Фактично на склад</th><th>Залишилось</th><th>Дедлайн</th><th>Статус</th><th></th></tr></thead><tbody>';
   if (filtered.length === 0) {
-    html += '<tr><td colspan="7"><div class="empty-state"><div class="icon">📋</div><h3>Немає нарядів</h3></div></td></tr>';
+    html += '<tr><td colspan="10"><div class="empty-state"><div class="icon">📋</div><h3>Немає нарядів</h3></div></td></tr>';
   } else {
     filtered.forEach(function(o){
       var b = o.status==='ready' ? '<span class="badge badge-green">✅ Готово</span>' : o.status==='in_production' ? '<span class="badge badge-blue">⚙️ Виробництво</span>' : o.status==='shipped' ? '<span class="badge badge-gray">📦 Відправлено</span>' : o.status==='cancelled' ? '<span class="badge badge-red">❌ Скасовано</span>' : '<span class="badge badge-yellow">🆕 Нове</span>';
+      if (hasOrderReceipt(o) && !o.received) b = '<span class="badge badge-yellow">Частково здано</span>';
       var cexBadges = (o.operations && o.operations.length) ? o.operations.map(function(op){ return '<span class="badge '+(op.done?'badge-green':'badge-gray')+'" style="margin:1px">'+(op.done?'✅ ':'')+op.workshop+'</span>'; }).join(' ') : '—';
-      html += '<tr><td><strong>'+o.number+'</strong></td><td>'+o.client+'</td><td>'+o.product+'</td><td>'+cexBadges+'</td><td>'+o.quantity+' шт</td><td>'+(o.deadline||'—')+'</td><td>'+b+'</td><td><button class="btn btn-secondary btn-sm" onclick="openOrderView('+o.id+')">Відкрити</button></td></tr>';
+      html += '<tr><td><strong>'+o.number+'</strong></td><td>'+o.client+'</td><td>'+o.product+'</td><td>'+cexBadges+'</td><td>'+o.quantity+' шт</td><td>'+orderReceivedQuantity(o)+'</td><td>'+roundOperationQuantity(Number(o.quantity)-orderReceivedQuantity(o))+'</td><td>'+(o.deadline||'—')+'</td><td>'+b+'</td><td><button class="btn btn-secondary btn-sm" onclick="openOrderView('+o.id+')">Відкрити</button></td></tr>';
 
     });
   }
@@ -1731,7 +1732,7 @@ function renderOrders() {
 function openOrderModal(sourceId, duplicate) {
   var source = sourceId == null ? null : state.orders.find(o => String(o.id) === String(sourceId));
   if (sourceId != null && !source) return showNotif('Наряд не знайдено.', 'error');
-  if (source?.received && !duplicate) return showNotif('Спершу скасуйте прийняття наряду на склад.', 'error');
+  if (hasOrderReceipt(source) && !duplicate) return showNotif('Спершу скасуйте прийняття наряду на склад.', 'error');
   window._editingOrderId = source && !duplicate ? source.id : null;
   document.getElementById('modal-title').textContent = 'Новий наряд';
   document.getElementById('modal-overlay').style.display = 'flex';
@@ -1821,7 +1822,7 @@ async function saveOrder() {
   var editId = window._editingOrderId;
   var existing = editId == null ? null : state.orders.find(o => String(o.id) === String(editId));
   if (editId != null && !existing) throw new Error('Наряд не знайдено.');
-  if (existing?.received) throw new Error('Спершу скасуйте прийняття наряду на склад.');
+  if (hasOrderReceipt(existing)) throw new Error('Спершу скасуйте прийняття наряду на склад.');
   var client = document.getElementById('o-client').value.trim();
   if (!client) throw new Error('Оберіть контрагента.');
   var product = requireProduct(document.getElementById('o-product').value);
@@ -1850,7 +1851,7 @@ async function saveOrder() {
 async function updateOrderStatus(id, status) {
   var o = state.orders.find(function(x){return x.id===id;});
   if (!o) return;
-  if (o.received && status !== 'ready') throw new Error('Спершу скасуйте прийняття наряду на склад.');
+  if (hasOrderReceipt(o)) throw new Error('Спершу скасуйте прийняття наряду на склад.');
   o.status = status;
   await saveSnapshot();
   renderOrders();
@@ -1889,18 +1890,26 @@ function openOrderView(id) {
   // Віртуальний фінальний крок: Прийняття на склад (не входить у operations, додається завжди останнім)
   var allOpsDone = ops.length === 0 || ops.every(function(op){ return op.done; });
   var recvIcon = o.received ? '<span style="color:var(--accent)">✅</span>' : (allOpsDone ? '<span style="color:var(--accent2)">▶</span>' : '<span style="color:var(--text2)">○</span>');
-  var recvState = o.received ? 'Готово' : (allOpsDone ? 'В роботі' : 'Очікує');
+  var accepted = orderReceivedQuantity(o);
+  var remaining = roundOperationQuantity(Number(o.quantity) - accepted);
+  var recvState = o.received ? 'Закрито' : (accepted > 0 ? 'Частково здано' : (allOpsDone ? 'В роботі' : 'Очікує'));
   html += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0">';
   html += '<div style="font-size:16px;line-height:1.4">'+recvIcon+'</div>';
   html += '<div style="flex:1">';
   html += '<div style="font-weight:600">Прийняття на склад</div>';
   html += '<div style="color:var(--text2);font-size:12px;margin-top:2px">'+(o.product||'')+' · '+(o.quantity||1)+' шт.</div>';
   html += '<div style="color:var(--text2);font-size:12px;margin-top:2px">'+recvState+'</div>';
-  if (o.received) {
-    html += '<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="receiveOrderStock('+id+',false)">Скасувати</button>';
-  } else if (allOpsDone) {
-    html += '<button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="receiveOrderStock('+id+',true)">Позначити готовим</button>';
+  html += '<div style="margin-top:8px">Фактично на склад: <strong>'+accepted+'</strong> · Залишилось здати: <strong>'+remaining+'</strong></div>';
+  if (isActiveOrder(o) && allOpsDone) {
+    html += '<div class="form-group" style="margin-top:8px"><label class="form-label" for="order-receive-qty">Фактично на склад — ця здача</label><input class="form-input" id="order-receive-qty" type="number" min="0.001" step="any" max="'+remaining+'" value="'+remaining+'"></div>';
+    html += '<button class="btn btn-primary btn-sm" onclick="receiveOrderStock('+id+',true,document.getElementById(\'order-receive-qty\').value)">'+(accepted > 0 ? 'Доздати на склад' : 'Прийняти на склад')+'</button>';
   }
+  if (hasOrderReceipt(o)) {
+    html += '<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="receiveOrderStock('+id+',false)">Скасувати все приймання</button>';
+  }
+  orderReceiptEntries(o).forEach(function(entry){
+    html += '<div style="color:var(--text2);font-size:12px;margin-top:6px">'+escapeHtml(entry.received_at ? new Date(entry.received_at).toLocaleString('uk-UA', {timeZone:'Europe/Kyiv'}) : 'Дата не зафіксована')+' · '+entry.quantity+'</div>';
+  });
   html += '</div></div>';
   html += '</div></div>';
   document.getElementById('modal-body').innerHTML = html;
@@ -1911,7 +1920,7 @@ function openOrderView(id) {
 async function toggleOrderOp(orderId, idx, done) {
   var o = state.orders.find(function(x){ return String(x.id) === String(orderId); });
   if (!o || !o.operations || !o.operations[idx]) return;
-  if (o.received) throw new Error('Спершу скасуйте прийняття наряду на склад.');
+  if (hasOrderReceipt(o)) throw new Error('Спершу скасуйте прийняття наряду на склад.');
   if (done && o.operations.slice(0, idx).some(op => !op.done)) throw new Error('Спершу завершіть попередні цехи.');
   if (done) {
     o.operations[idx].done = true;
@@ -1926,26 +1935,32 @@ async function toggleOrderOp(orderId, idx, done) {
   refreshCurrentPage();
 }
 
-async function receiveOrderStock(orderId, done) {
+async function receiveOrderStock(orderId, done, enteredQuantity) {
   var order = state.orders.find(o => String(o.id) === String(orderId));
   if (!order) throw new Error('Наряд не знайдено.');
-  if (!!order.received === !!done) return;
+  var accepted = orderReceivedQuantity(order);
+  if ((done && order.received) || (!done && !hasOrderReceipt(order))) return;
   var opsDone = (order.operations || []).every(op => op.done);
   if (done && !opsDone) throw new Error('Спершу завершіть усі цехи.');
+  if (done && !isActiveOrder(order)) throw new Error('Наряд неактивний.');
   var movement = order.received_stock;
-  var product = !done && movement ? requireProduct(movement.product_id) : resolveOrderProduct(order);
-  var quantity = positiveQuantity(!done && movement ? movement.quantity : order.quantity);
+  var product = movement ? requireProduct(movement.product_id) : resolveOrderProduct(order);
+  var remaining = roundOperationQuantity(positiveQuantity(order.quantity) - accepted);
+  var quantity = done ? positiveQuantity(enteredQuantity === undefined ? remaining : enteredQuantity) : positiveQuantity(accepted);
+  if (done && quantity > remaining) throw new Error('Кількість перевищує залишок наряду: ' + remaining);
+  var entries = orderReceiptEntries(order);
   var stock = Number(product.quantity);
   if (!Number.isFinite(stock)) throw new Error('Некоректний залишок товару.');
   product.quantity = roundOperationQuantity(stock + (done ? quantity : -quantity));
   order.product_id = product.id;
-  order.received = !!done;
+  order.received = done && roundOperationQuantity(accepted + quantity) === Number(order.quantity);
   if (done) {
     order.warehouse_received_at = new Date().toISOString();
     order.warehouse_received_event = true;
     order.warehouse_received_event_version = 2;
-    order.received_stock = { product_id: product.id, quantity, received_at: order.warehouse_received_at };
-    order.status = 'ready';
+    entries.push({ quantity, received_at: order.warehouse_received_at });
+    order.received_stock = { product_id: product.id, quantity: roundOperationQuantity(accepted + quantity), received_at: order.warehouse_received_at, entries };
+    order.status = order.received ? 'ready' : 'in_production';
   } else {
     delete order.warehouse_received_at;
     delete order.warehouse_received_event;
@@ -2153,6 +2168,7 @@ function renderProduction() {
       html += '<div style="color:var(--text2);font-size:13px">'+(o.quantity||1)+' шт · '+doneCnt+'/'+total+' цехів</div>';
       html += '</div>';
       html += '<div style="height:6px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:8px"><div style="height:100%;width:'+pct+'%;background:var(--accent2)"></div></div>';
+      html += '<div>Фактично на склад: '+orderReceivedQuantity(o)+' · Залишилось: '+roundOperationQuantity(Number(o.quantity)-orderReceivedQuantity(o))+'</div>';
       html += '<div style="display:flex;flex-wrap:wrap;gap:2px">'+opsHtml+'</div>';
       html += '</div>';
     });
@@ -2774,6 +2790,7 @@ function hideAuth() {
             html += '<div style="color:var(--text2);font-size:13px">'+(o.quantity||1)+' \u0448\u0442 \u00b7 '+doneCnt+'/'+total+' \u0446\u0435\u0445\u0456\u0432</div>';
             html += '</div>';
             html += '<div style="height:6px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:8px"><div style="height:100%;width:'+pct+'%;background:var(--primary)"></div></div>';
+            html += '<div>Фактично на склад: '+orderReceivedQuantity(o)+' · Залишилось: '+roundOperationQuantity(Number(o.quantity)-orderReceivedQuantity(o))+'</div>';
             html += '<div style="display:flex;flex-wrap:wrap;gap:2px">'+opsHtml+'</div>';
             html += '</div>';
           });
@@ -2807,7 +2824,7 @@ function hideAuth() {
             window.deleteOrder = async function(id){
               var order = state.orders.find(o => String(o.id) === String(id));
               if (!order) throw new Error('Наряд не знайдено.');
-              if (order.received) throw new Error('Спершу скасуйте прийняття наряду на склад.');
+              if (hasOrderReceipt(order)) throw new Error('Спершу скасуйте прийняття наряду на склад.');
               if (!confirm('Видалити цей наряд?')) return;
               state.orders = state.orders.filter(o => String(o.id) !== String(id));
               await saveSnapshot();
@@ -2981,9 +2998,11 @@ setInterval(sched,700);                              var wrap = document.createE
       });
     });
     (st.orders||[]).forEach(function(o){
-      if (!o.received) return;
+      if (!hasOrderReceipt(o)) return;
       if (o.product_id != null ? String(o.product_id) !== String(prod.id) : o.product !== prod.name) return;
-      rows.push({date:orderReceiptDate(o),kind:'order',qty:Number(o.quantity)||0,party:o.client||'',status:o.status||'',number:o.number||'',received:true,id:o.id});
+      orderReceiptEntries(o).forEach(function(entry){
+        rows.push({date:entry.received_at && Number.isFinite(Date.parse(entry.received_at)) ? warehouseCalendarDate(entry.received_at) : '',kind:'order',qty:entry.quantity,party:o.client||'',status:o.status||'',number:o.number||'',received:true,id:o.id});
+      });
     });
     rows.sort(function(a,b){ var c=String(b.date||'').localeCompare(String(a.date||'')); return c||((b.id||0)-(a.id||0)); });
     return {rows:rows,prod:prod};

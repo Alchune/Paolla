@@ -91,12 +91,16 @@ async function harness(db=database()) {
   const run=source=>vm.runInContext(source,ctx);
   ctx.showNotif=(text,type='success')=>notices.push({text,type});
   ctx.closeModal=()=>{closeCount++;};
+  const renderOrderView = ctx.openOrderView;
+  const renderOrderList = ctx.renderOrders;
   const renderOperation = ctx.renderOperation;
   for (const name of ['renderInventory','renderOperation','renderOrders','openOrderView','refreshCurrentPage']) ctx[name]=()=>{};
   run("state.user={id:'u1'};state.warehouse={id:'wh-test'}");
   await run('loadSnapshotForCurrent()');
   return {ctx,run,node,notices,timers,db,state:()=>JSON.parse(run('JSON.stringify(state)')),closeCount:()=>closeCount,
     setTime(value) { now = Date.parse(value); },
+    renderOrderView(id) { renderOrderView(id); },
+    renderOrderList() { renderOrderList(); },
     renderOperations(type) { renderOperation(type); },
     operationForm(items=[item()]) {
       node('op-counterparty').value='Test';node('op-date').value='2026-09-08';
@@ -559,4 +563,51 @@ test('sales filters combine model and client and keep distinct warehouse session
   h.ctx.filters=reportFilters({party:'Test',model:'id:p1'});const r=h.run('buildSalesReport(state.operations,state.products,filters)');assert.equal(r.total,80);
   h.run("currentSalesReportFilters().party='Test';state.warehouse.id='other'");assert.equal(h.run('currentSalesReportFilters().party'),'');
   assert.equal(h.run("canAccessPage('reports')"),true);h.run("state.accessMode='worker'");assert.equal(h.run("canAccessPage('reports')"),false);
+});
+
+test('partial receipts persist across sessions and close only after the remaining quantity', async()=>{
+  const db=database(fixture({products:[product(10)],orders:[{id:1,number:'100',product_id:'p1',product:'Model',quantity:100,operations:[],status:'in_production'}]}));
+  const h=await harness(db);
+  h.setTime('2026-10-19T09:00:00Z');
+  await h.run('receiveOrderStock(1,true,70)');
+  assert.equal(h.state().products[0].quantity,80);
+  assert.equal(h.state().orders[0].received,false);
+  assert.equal(h.run('isActiveOrder(state.orders[0])'),true);
+  h.renderOrderView(1);
+  assert.match(h.node('modal-body').innerHTML,/Доздати на склад/);
+  assert.match(h.node('modal-body').innerHTML,/max="30"/);
+  h.renderOrderList();assert.match(h.node('page-content').innerHTML,/Частково здано/);
+  const rows=JSON.parse(h.run("JSON.stringify(getProductOperations('p1'))"));
+  assert.deepEqual(rows.map(row=>row.qty),[70]);
+  const next=await harness(db);
+  next.setTime('2026-10-20T09:00:00Z');
+  await next.run('receiveOrderStock(1,true,30)');
+  assert.equal(next.state().products[0].quantity,110);
+  assert.equal(next.state().orders[0].received,true);
+  assert.equal(next.state().orders[0].received_stock.entries.length,2);
+  assert.equal(next.state().orders[0].received_stock.quantity,100);
+  await next.run('receiveOrderStock(1,true,30)');assert.equal(db.writes.length,2);
+  await next.run('receiveOrderStock(1,false)');
+  assert.equal(next.state().products[0].quantity,10);
+  assert.equal(next.run('orderReceivedQuantity(state.orders[0])'),0);
+  await next.run('receiveOrderStock(1,false)');assert.equal(db.writes.length,3);
+});
+test('partial receipt validation, rollback, edit protection and undo preserve stock',async()=>{
+  const h=await harness(database(fixture({products:[product(10)],orders:[{id:1,product_id:'p1',product:'Model',quantity:100,operations:[{workshop:'Cut',done:true}],status:'in_production'}]})));
+  for (const quantity of ['0','-1','101','NaN','Infinity',"''"]) {
+    await h.run(`receiveOrderStock(1,true,${quantity})`);
+    assert.equal(h.db.writes.length,0);
+  }
+  await h.run('receiveOrderStock(1,true,70)');
+  const saved=clone(h.state().orders[0]);
+  for (const action of ['deleteOrder(1)',"updateOrderStatus(1,'cancelled')",'toggleOrderOp(1,0,false)']) {
+    await h.run(action);assert.deepEqual(h.state().orders[0],saved);
+  }
+  h.orderForm({editId:1,quantity:1});await h.run('saveOrder()');
+  assert.deepEqual(h.state().orders[0],saved);assert.equal(h.db.writes.length,1);
+  h.db.writeError={message:'failed'};
+  await h.run('receiveOrderStock(1,true,30)');
+  assert.deepEqual(h.state().orders[0],saved);assert.equal(h.state().products[0].quantity,80);
+  h.db.writeError=null;
+  await h.run('receiveOrderStock(1,false)');assert.equal(h.state().products[0].quantity,10);
 });
