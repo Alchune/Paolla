@@ -796,7 +796,7 @@ const actions = isArchive
 return `<tr>
 <td>${p.image?`<img src="${p.image}" loading="lazy" style="width:32px;height:32px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:8px;cursor:pointer" onclick="openProductGallery('${p.id}')">`:''}<strong>${p.name}</strong></td>
 <td><span class="badge badge-gray">${p.category}</span>${p.subcategory ? ` <span class="badge badge-blue">${p.subcategory}</span>` : ''}</td>
-<td>${p.quantity} ${p.unit}${boxesSuffix(p)} <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${Math.max(0,Math.min(100,(p.quantity/Math.max(p.min_qty*3,1))*100))}%;background:${p.quantity<=p.min_qty?'var(--danger)':'var(--accent)'}"></div></div></td>
+<td>${p.quantity} ${p.unit}${boxesSuffix(p)}${freeBoxesSuffix(p)} <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${Math.max(0,Math.min(100,(p.quantity/Math.max(p.min_qty*3,1))*100))}%;background:${p.quantity<=p.min_qty?'var(--danger)':'var(--accent)'}"></div></div></td>
 <td>${isPairProduct(p) ? formatOperationQuantity(pairsPerBox(p)) + ' пар' : '—'}</td>
 <td>${formatMoney(p.price)}</td>
 <td>${status}</td>
@@ -816,7 +816,7 @@ return '<div class="item-card">'
 + '<div class="ic-thumb"' + (p.image ? ' style="cursor:pointer" onclick="openProductGallery(\'' + p.id + '\')"' : '') + '>' + (p.image ? '<img src="' + p.image + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">' : '📦') + '</div>'
 + '<div class="ic-name">' + p.name + '</div>'
 + '<div class="ic-meta"><span class="badge badge-gray">' + p.category + '</span>' + (String(p.subcategory || '').trim() ? '<span class="badge badge-blue">' + p.subcategory + '</span>' : '') + status + '</div>'
-+ '<div class="ic-meta">' + p.quantity + ' ' + p.unit + boxesSuffix(p) + (isPairProduct(p) ? ' • ' + formatOperationQuantity(pairsPerBox(p)) + ' пар/ящ.' : '') + ' • ' + formatMoney(p.price) + '</div>'
++ '<div class="ic-meta">' + p.quantity + ' ' + p.unit + boxesSuffix(p) + freeBoxesSuffix(p) + (isPairProduct(p) ? ' • ' + formatOperationQuantity(pairsPerBox(p)) + ' пар/ящ.' : '') + ' • ' + formatMoney(p.price) + '</div>'
 + actions
 + '</div>';
 }).join('');
@@ -1447,6 +1447,19 @@ function boxesLabel(p) {
 function boxesSuffix(p) {
   var s = boxesLabel(p);
   return s ? ' <span style="color:var(--text2)">• ' + s + '</span>' : "";
+}
+
+function freeBoxesSuffix(p) {
+  if (!isPairProduct(p)) return '';
+  var reserved = 0;
+  state.operations.forEach(function(op) {
+    if (op.type !== 'outgoing' || isPostedOperation(op) || op.status === 'cancelled') return;
+    operationItems(op).forEach(function(item) {
+      if (String(item.product_id) === String(p.id)) reserved += Number(item.quantity) || 0;
+    });
+  });
+  var free = ((Number(p.quantity) || 0) - reserved) / pairsPerBox(p);
+  return ' <span style="color:var(--text2)">• Вільно: ' + formatOperationQuantity(free) + ' ящ.</span>';
 }
 
 function syncInventoryInput(id, source) {var prod = state.products.find(function(p) { return String(p.id) === String(id); });var perBox = pairsPerBox(prod);var pairsInp = document.querySelector('.inv-pairs[data-id="' + id + '"]');var boxesInp = document.querySelector('.inv-boxes[data-id="' + id + '"]');if (!pairsInp || !boxesInp) return;if (source === 'boxes') {var boxes = parseFloat(boxesInp.value) || 0;pairsInp.value = Math.round(boxes * perBox * 100) / 100;} else {var pairs = parseFloat(pairsInp.value) || 0;boxesInp.value = Math.round((pairs / perBox) * 100) / 100;}}async function saveInventoryCorrection(id) {
