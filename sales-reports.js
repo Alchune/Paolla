@@ -153,3 +153,56 @@ function exportSalesReportCSV() {
   const link = document.createElement('a'); link.href = url; link.download = `Paolla-продажі-${filters.from}-${filters.to}.csv`;
   link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+// Install reporting navigation after the legacy inline production renderer overrides.
+// This is UI-only: it never changes orders, receipts, stock, or access permissions.
+function installProductionReportUI() {
+  if (window._productionReportUIInstalled || typeof window.renderProduction !== 'function' ||
+      typeof window.renderProductionReportPage !== 'function') return;
+  const productionNav = document.getElementById('nav-production');
+  let reportNav = document.getElementById('nav-production-report');
+  if (!reportNav && productionNav) {
+    reportNav = document.createElement('button');
+    reportNav.id = 'nav-production-report';
+    reportNav.type = 'button';
+    reportNav.className = 'nav-item';
+    reportNav.textContent = '📊 Звіти виробництва';
+    reportNav.onclick = () => navigate('production-report');
+    productionNav.insertAdjacentElement('afterend', reportNav);
+  }
+  if (reportNav) {
+    reportNav.dataset.reportVersion = '20261110-2';
+    reportNav.style.display = canAccessPage('production-report') ? '' : 'none';
+  }
+  const productionRenderer = window.renderProduction;
+  window.renderProduction = function() {
+    // Existing date/model handlers call renderProduction; keep their report route.
+    if (state.currentPage === 'production-report') {
+      if (!canAccessPage('production-report')) return navigate(defaultPageForRole());
+      return renderProductionReportPage();
+    }
+    const result = productionRenderer.apply(this, arguments);
+    const content = document.getElementById('page-content');
+    const header = content && content.querySelector('.page-header');
+    if (header && canAccessPage('production-report') && !header.querySelector('[data-production-report-link]')) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'btn btn-secondary';
+      button.dataset.productionReportLink = 'true';
+      button.textContent = '📊 Звіт за моделями';
+      button.onclick = () => navigate('production-report');
+      header.appendChild(button);
+    }
+    return result;
+  };
+  window._productionReportUIInstalled = true;
+  // Authentication may have already restored the active page before DOMContentLoaded.
+  if (state.user && (state.currentPage === 'production' || state.currentPage === 'production-report')) {
+    window.renderProduction();
+  }
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', installProductionReportUI, {once:true});
+} else {
+  installProductionReportUI();
+}
