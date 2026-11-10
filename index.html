@@ -2122,6 +2122,113 @@ function setProductionDoneSort(mode) {
   renderProduction();
 }
 
+
+function productionReportRows(from, to, model) {
+  var totals = new Map();
+  var missingDate = 0;
+  (state.orders || []).forEach(function(order) {
+    var name = String(order.product || (state.products || []).find(function(p){return String(p.id)===String(order.product_id);})?.name || 'Без назви');
+    if (model && name !== model) return;
+    var entries = orderReceiptEntries(order);
+    entries.forEach(function(entry) {
+      var qty = Number(entry.quantity);
+      if (!Number.isFinite(qty) || qty <= 0) return;
+      var stamp = entry.received_at;
+      if (!stamp || !Number.isFinite(Date.parse(stamp))) {
+        missingDate += qty;
+        return;
+      }
+      var day = warehouseCalendarDate(Date.parse(stamp));
+      if ((from && day < from) || (to && day > to)) return;
+      var key = order.product_id ? 'id:' + order.product_id : 'name:' + name;
+      if (!totals.has(key)) totals.set(key, {name:name, quantity:0, orders:new Set()});
+      var row = totals.get(key);
+      row.quantity += qty;
+      row.orders.add(String(order.id));
+    });
+  });
+  return {
+    rows: Array.from(totals.values()).map(function(row){
+      return {name:row.name, quantity:roundOperationQuantity(row.quantity), count:row.orders.size};
+    }).sort(function(a,b){return b.quantity-a.quantity || a.name.localeCompare(b.name,'uk');}),
+    missingDate:roundOperationQuantity(missingDate)
+  };
+}
+function productionReportDateRange() {
+  var today = warehouseCalendarDate(Date.now());
+  return {from:window._prodReportFrom || today.slice(0,7)+'-01', to:window._prodReportTo || today};
+}
+function setProductionReportField(field, value) {
+  if (field === 'from') window._prodReportFrom = value;
+  if (field === 'to') window._prodReportTo = value;
+  if (field === 'model') window._prodReportModel = value;
+  renderProduction();
+}
+function setProductionReportPreset(preset) {
+  var now = warehouseCalendarDate(Date.now());
+  var y = Number(now.slice(0,4)), m = Number(now.slice(5,7));
+  if (preset === 'all') { window._prodReportFrom = ''; window._prodReportTo = ''; }
+  if (preset === 'month') { window._prodReportFrom = now.slice(0,7)+'-01'; window._prodReportTo = now; }
+  if (preset === 'previous') {
+    var last = new Date(Date.UTC(y,m-1,0));
+    window._prodReportFrom = last.toISOString().slice(0,7)+'-01';
+    window._prodReportTo = last.toISOString().slice(0,10);
+  }
+  renderProduction();
+}
+function productionReportData() {
+  var range = productionReportDateRange();
+  return productionReportRows(range.from,range.to,window._prodReportModel || '');
+}
+function exportProductionReportCsv() {
+  var range = productionReportDateRange();
+  var data = productionReportData();
+  var lines = [['Модель','Виготовлено, пар','Нарядів']].concat(data.rows.map(function(row){
+    return [row.name,String(row.quantity),String(row.count)];
+  }));
+  lines.push(['РАЗОМ',String(roundOperationQuantity(data.rows.reduce(function(sum,row){return sum+row.quantity;},0))),'']);
+  var csv = '\uFEFF' + lines.map(function(line){
+    return line.map(function(value){return '"' + String(value).replace(/"/g,'""') + '"';}).join(';');
+  }).join('\r\n');
+  var url = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  var link = document.createElement('a');
+  link.href=url; link.download='vyrobnytstvo_'+(range.from||'all')+'_'+(range.to||'all')+'.csv';
+  document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(function(){URL.revokeObjectURL(url);},1000);
+}
+function renderProductionReport() {
+  var range=productionReportDateRange();
+  var selectedModel=window._prodReportModel || '';
+  var modelNames=Array.from(new Set((state.orders||[]).map(function(o){return o.product;}).filter(Boolean))).sort(function(a,b){return a.localeCompare(b,'uk');});
+  var result=productionReportData(), rows=result.rows;
+  var total=roundOperationQuantity(rows.reduce(function(sum,row){return sum+row.quantity;},0));
+  var invalid=!!(range.from && range.to && range.from>range.to);
+  var html='<section class="table-container" style="padding:18px;margin-bottom:20px">';
+  html+='<h3 style="margin-bottom:12px">📊 Звіт: виготовлено за період</h3>';
+  html+='<div class="form-row" style="gap:10px;flex-wrap:wrap;margin-bottom:10px">';
+  html+='<label style="flex:1;min-width:145px">Від <input class="form-input" type="date" value="'+escapeHtml(range.from)+'" onchange="setProductionReportField(\'from\',this.value)"></label>';
+  html+='<label style="flex:1;min-width:145px">До <input class="form-input" type="date" value="'+escapeHtml(range.to)+'" onchange="setProductionReportField(\'to\',this.value)"></label>';
+  html+='<label style="flex:2;min-width:190px">Модель <select class="form-select" onchange="setProductionReportField(\'model\',this.value)"><option value="">Усі моделі</option>';
+  modelNames.forEach(function(name){html+='<option value="'+escapeHtml(name)+'"'+(selectedModel===name?' selected':'')+'>'+escapeHtml(name)+'</option>';});
+  html+='</select></label></div>';
+  html+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">';
+  html+='<button class="btn btn-secondary btn-sm" onclick="setProductionReportPreset(\'month\')">Цей місяць</button>';
+  html+='<button class="btn btn-secondary btn-sm" onclick="setProductionReportPreset(\'previous\')">Минулий місяць</button>';
+  html+='<button class="btn btn-secondary btn-sm" onclick="setProductionReportPreset(\'all\')">Весь час</button>';
+  html+='<button class="btn btn-secondary btn-sm" onclick="exportProductionReportCsv()"'+(invalid?' disabled':'')+'>⬇️ CSV</button></div>';
+  if(invalid) html+='<p style="color:var(--danger)">Дата «Від» має бути не пізніше дати «До».</p>';
+  else {
+    html+='<div class="stats-grid" style="margin-bottom:12px"><div class="stat-card green"><div class="label">Виготовлено та прийнято</div><div class="value">'+total+'</div><div class="sub">пар</div></div><div class="stat-card blue"><div class="label">Моделей</div><div class="value">'+rows.length+'</div></div></div>';
+    html+='<div style="overflow:auto"><table class="data-table"><thead><tr><th>Модель</th><th>Пар</th><th>Нарядів</th></tr></thead><tbody>';
+    rows.forEach(function(row){html+='<tr><td>'+escapeHtml(row.name)+'</td><td>'+row.quantity+'</td><td>'+row.count+'</td></tr>';});
+    if(!rows.length) html+='<tr><td colspan="3" style="color:var(--text2)">Немає підтверджених прийнять за вибраний період</td></tr>';
+    html+='</tbody></table></div>';
+  }
+  if(result.missingDate) html+='<p style="font-size:12px;color:var(--warning);margin-top:12px">⚠️ '+result.missingDate+' пар прийнято за історичними нарядами без достовірної дати. Їх не включено до звіту за період.</p>';
+  html+='<p style="font-size:12px;color:var(--text2);margin-top:10px">Підрахунок за датою фактичного прийняття на склад (часовий пояс Києва). Часткові прийняття враховуються окремо.</p>';
+  return html+'</section>';
+}
+
 function renderProduction() {
   var orders = state.orders || [];
   var cats = [...new Set(orders.map(function(o){return o.category;}).filter(Boolean))];
@@ -2148,7 +2255,8 @@ function renderProduction() {
   });
   var catOpts = cats.map(function(c){return '<option value="'+c+'" '+(filterCat===c?'selected':'')+'>'+c+'</option>';}).join('');
   var modelOpts = models.map(function(m){return '<option value="'+m+'" '+(filterModel===m?'selected':'')+'>'+m+'</option>';}).join('');
-  var html = '<div class="page-header"><h2>⚙️ Виробництво</h2></div>';
+  var html = '<div class="page-header"><h2>⚙️ Виробництво</h2><button class="btn btn-secondary" onclick="window._prodShowReport=!window._prodShowReport;renderProduction()">📊 '+(window._prodShowReport?'Сховати звіт':'Звіт за моделями')+'</button></div>';
+  if (window._prodShowReport) html += renderProductionReport();
   html += '<div class="form-row" style="margin-bottom:12px;gap:8px">';
   html += '<select class="form-select" style="flex:1" onchange="window._prodFilterCat=this.value;renderProduction()"><option value="">— Всі категорії —</option>'+catOpts+'</select>';
   html += '<select class="form-select" style="flex:1" onchange="window._prodFilterModel=this.value;renderProduction()"><option value="">— Всі моделі —</option>'+modelOpts+'</select>';
