@@ -154,11 +154,123 @@ function exportSalesReportCSV() {
   link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// Historical receipts are included only when BOTH date boundaries are empty.
+// Reporting is read-only: no inferred dates, order changes, or stock movements.
+function buildProductionReportWithHistory(from, to, model) {
+  from = from || '';
+  to = to || '';
+  if ((from && !salesReportDateValid(from)) || (to && !salesReportDateValid(to)) || (from && to && from > to)) {
+    throw new Error('Вкажіть коректний період: дата «Від» має бути не пізніше дати «До».');
+  }
+  const allTime = !from && !to, totals = new Map();
+  let missingDate = 0;
+  (state.orders || []).forEach((order, index) => {
+    const product = (state.products || []).find(p => String(p.id) === String(order.product_id));
+    const name = String(order.product || product?.name || 'Без назви');
+    if (model && name !== model) return;
+    orderReceiptEntries(order).forEach(entry => {
+      const quantity = Number(entry.quantity);
+      if (!Number.isFinite(quantity) || quantity <= 0) return;
+      const dated = !!entry.received_at && Number.isFinite(Date.parse(entry.received_at));
+      if (!dated) {
+        missingDate += quantity;
+        if (!allTime) return;
+      } else {
+        const day = warehouseCalendarDate(Date.parse(entry.received_at));
+        if ((from && day < from) || (to && day > to)) return;
+      }
+      const key = order.product_id ? 'id:' + order.product_id : 'name:' + name;
+      if (!totals.has(key)) totals.set(key, {name, quantity:0, undatedQuantity:0, orders:new Set()});
+      const row = totals.get(key);
+      row.quantity += quantity;
+      if (!dated) row.undatedQuantity += quantity;
+      row.orders.add(order.id == null ? 'row:' + index : 'id:' + order.id);
+    });
+  });
+  const rows = [...totals.values()].map(row => {
+    const result = {name:row.name, quantity:roundOperationQuantity(row.quantity), count:row.orders.size};
+    if (allTime) result.undatedQuantity = roundOperationQuantity(row.undatedQuantity);
+    return result;
+  }).sort((a,b) => b.quantity - a.quantity || a.name.localeCompare(b.name, 'uk'));
+  return {rows, allTime, missingDate:roundOperationQuantity(missingDate),
+    undatedQuantity:allTime ? roundOperationQuantity(missingDate) : 0};
+}
+function productionReportCSVWithHistory(report) {
+  const heading = ['Модель','Виготовлено, пар'];
+  if (report.allTime) heading.push('З них без дати, пар');
+  heading.push('Нарядів');
+  const lines = [heading, ...report.rows.map(row => {
+    const cells = [row.name, row.quantity];
+    if (report.allTime) cells.push(row.undatedQuantity);
+    cells.push(row.count);
+    return cells;
+  })];
+  const total = ['РАЗОМ', roundOperationQuantity(report.rows.reduce((sum,row) => sum + row.quantity, 0))];
+  if (report.allTime) total.push(report.undatedQuantity);
+  total.push('');
+  lines.push(total);
+  const cell = value => '"' + String(value ?? '').replace(/^[=+\-@\t\r]/, "'$&").replace(/"/g, '""') + '"';
+  return '\uFEFF' + lines.map(row => row.map(cell).join(';')).join('\r\n');
+}
+function exportProductionReportWithHistory() {
+  const range = productionReportDateRange();
+  let report;
+  try { report = productionReportData(); } catch (error) { showNotif(error.message, 'error'); return; }
+  const url = URL.createObjectURL(new Blob([productionReportCSVWithHistory(report)], {type:'text/csv;charset=utf-8;'}));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'vyrobnytstvo_' + (range.from || 'all') + '_' + (range.to || 'all') + '.csv';
+  document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function renderProductionReportWithHistory() {
+  const range = productionReportDateRange(), esc = escapeHtml;
+  const selectedModel = window._prodReportModel || '';
+  const models = [...new Set((state.orders || []).map(order => String(order.product ||
+    (state.products || []).find(p => String(p.id) === String(order.product_id))?.name || 'Без назви')))];
+  models.sort((a,b) => a.localeCompare(b, 'uk'));
+  let report, error;
+  try { report = productionReportData(); } catch (e) { error = e.message; }
+  const allTime = !range.from && !range.to;
+  let html = `<section class="table-container" data-production-report-version="20261110-3" style="padding:18px;margin-bottom:20px">
+<h3 style="margin-bottom:12px">📊 Звіт: виготовлено за період</h3>
+<div class="form-row" style="gap:10px;flex-wrap:wrap;margin-bottom:10px">
+<label style="flex:1;min-width:145px">Від <input id="prod-report-from" class="form-input" type="date" value="${esc(range.from)}" onchange="setProductionReportField('from',this.value)"></label>
+<label style="flex:1;min-width:145px">До <input id="prod-report-to" class="form-input" type="date" value="${esc(range.to)}" onchange="setProductionReportField('to',this.value)"></label>
+<label style="flex:2;min-width:190px">Модель <select id="prod-report-model" class="form-select" onchange="setProductionReportField('model',this.value)"><option value="">Усі моделі</option>
+${models.map(name => `<option value="${esc(name)}"${selectedModel === name ? ' selected' : ''}>${esc(name)}</option>`).join('')}</select></label></div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+<button class="btn btn-secondary btn-sm" onclick="setProductionReportPreset('month')">Цей місяць</button>
+<button class="btn btn-secondary btn-sm" onclick="setProductionReportPreset('previous')">Минулий місяць</button>
+<button class="btn ${allTime ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="setProductionReportPreset('all')">Весь час</button>
+<button class="btn btn-secondary btn-sm" onclick="exportProductionReportCsv()"${error ? ' disabled' : ''}>⬇️ CSV</button></div>`;
+  if (error) return html + `<p role="alert" style="color:var(--danger)">${esc(error)}</p></section>`;
+  const total = roundOperationQuantity(report.rows.reduce((sum,row) => sum + row.quantity, 0));
+  html += `<div class="stats-grid" style="margin-bottom:12px">
+<div class="stat-card green"><div class="label">Виготовлено та прийнято</div><div class="value">${total}</div><div class="sub">пар${allTime ? ' за весь час' : ''}</div>
+${allTime ? `<div class="sub" data-undated-summary style="margin-top:6px">Зокрема без відомої дати: <strong>${report.undatedQuantity} пар</strong></div>` : ''}</div>
+<div class="stat-card blue"><div class="label">Моделей</div><div class="value">${report.rows.length}</div></div></div>
+<div style="overflow:auto"><table class="data-table"><thead><tr><th>Модель</th><th>Пар</th>${allTime ? '<th>З них без дати</th>' : ''}<th>Нарядів</th></tr></thead><tbody>
+${report.rows.map(row => `<tr><td>${esc(row.name)}</td><td>${row.quantity}</td>${allTime ? `<td>${row.undatedQuantity}</td>` : ''}<td>${row.count}</td></tr>`).join('') || `<tr><td colspan="${allTime ? 4 : 3}" style="color:var(--text2)">Немає прийнять за вибраними умовами</td></tr>`}
+</tbody></table></div>`;
+  if (allTime) {
+    html += '<p role="status" style="font-size:12px;color:var(--text2);margin-top:12px">У режимі «Весь час» прийняття без дати включені до загальної кількості. Колонка «З них без дати» показує частину підсумку, а не додаткові пари. До конкретного місяця ці записи не віднесені.</p>';
+  } else if (report.missingDate) {
+    html += `<p role="status" style="font-size:12px;color:var(--warning);margin-top:12px">⚠️ ${report.missingDate} пар без достовірної дати прийняття не включено до вибраного періоду. Щоб врахувати їх у загальному підсумку, оберіть «Весь час».</p>`;
+  }
+  html += '<p style="font-size:12px;color:var(--text2);margin-top:10px">Датовані прийняття відбираються за фактичною датою прийняття на склад (часовий пояс Києва). Часткові прийняття враховуються окремо. Дати нарядів і складські залишки не змінюються.</p>';
+  return html + '</section>';
+}
+
 // Install reporting navigation after the legacy inline production renderer overrides.
 // This is UI-only: it never changes orders, receipts, stock, or access permissions.
 function installProductionReportUI() {
   if (window._productionReportUIInstalled || typeof window.renderProduction !== 'function' ||
       typeof window.renderProductionReportPage !== 'function') return;
+  // Bind after the inline report declarations, in the same lifecycle as navigation.
+  window.productionReportRows = buildProductionReportWithHistory;
+  window.renderProductionReport = renderProductionReportWithHistory;
+  window.exportProductionReportCsv = exportProductionReportWithHistory;
   const productionNav = document.getElementById('nav-production');
   let reportNav = document.getElementById('nav-production-report');
   if (!reportNav && productionNav) {
@@ -171,7 +283,7 @@ function installProductionReportUI() {
     productionNav.insertAdjacentElement('afterend', reportNav);
   }
   if (reportNav) {
-    reportNav.dataset.reportVersion = '20261110-2';
+    reportNav.dataset.reportVersion = '20261110-3';
     reportNav.style.display = canAccessPage('production-report') ? '' : 'none';
   }
   const productionRenderer = window.renderProduction;
