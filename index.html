@@ -328,6 +328,9 @@ tbody tr:last-child td{border-bottom:none}
 <button class="nav-item" onclick="navigate('production')" id="nav-production">
 ⚙️ Виробництво
 </button>
+<button class="nav-item" onclick="navigate('production-report')" id="nav-production-report">
+📊 Звіти виробництва
+</button>
 <div class="nav-section">Налаштування</div>
 <button class="nav-item" onclick="navigate('warehouse')" id="nav-warehouse">
 🏠 Склади
@@ -537,7 +540,7 @@ async function loadData() {}
 
 // ====== NAVIGATION ======
 function allowedPagesForRole(role) {
-  return role === 'worker' ? ['orders', 'production'] : null;
+  return role === 'worker' ? ['orders', 'production', 'production-report'] : null;
 }
 
 function defaultPageForRole() {
@@ -590,14 +593,14 @@ function navigate(page) {
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
   const navEl = document.getElementById('nav-' + page);
   if (navEl) navEl.classList.add('active');
-  const titles = { dashboard: 'Дашборд', products: 'Товари', incoming: 'Прихід товарів', outgoing: 'Видаток товарів', inventory: 'Залишки', orders: 'Наряди', clients: 'Контрагенти', recipes: 'Рецепти', production: 'Виробництво', reports: 'Звіти та статистика', warehouse: 'Склади', team: 'Команда', profile: 'Профіль' };
+  const titles = { dashboard: 'Дашборд', products: 'Товари', incoming: 'Прихід товарів', outgoing: 'Видаток товарів', inventory: 'Залишки', orders: 'Наряди', clients: 'Контрагенти', recipes: 'Рецепти', production: 'Виробництво', 'production-report': 'Звіти виробництва', reports: 'Звіти та статистика', warehouse: 'Склади', team: 'Команда', profile: 'Профіль' };
   document.getElementById('page-title').textContent = titles[page] || page;
-  const renderers = { dashboard: renderDashboard, products: renderProducts, incoming: renderIncoming, outgoing: renderOutgoing, inventory: renderInventory, orders: renderOrders, clients: renderClients, recipes: renderRecipes, production: renderProduction, reports: renderReports, warehouse: renderWarehouse, team: renderTeam };
+  const renderers = { dashboard: renderDashboard, products: renderProducts, incoming: renderIncoming, outgoing: renderOutgoing, inventory: renderInventory, orders: renderOrders, clients: renderClients, recipes: renderRecipes, production: renderProduction, 'production-report': renderProductionReportPage, reports: renderReports, warehouse: renderWarehouse, team: renderTeam };
   if (renderers[page]) renderers[page]();
 }
       function refreshCurrentPage() {
             if (!canAccessPage(state.currentPage)) return navigate(defaultPageForRole());
-            var renderers = { dashboard: renderDashboard, products: renderProducts, incoming: renderIncoming, outgoing: renderOutgoing, inventory: renderInventory, orders: renderOrders, clients: renderClients, recipes: renderRecipes, production: renderProduction, reports: renderReports, warehouse: renderWarehouse, team: renderTeam };
+            var renderers = { dashboard: renderDashboard, products: renderProducts, incoming: renderIncoming, outgoing: renderOutgoing, inventory: renderInventory, orders: renderOrders, clients: renderClients, recipes: renderRecipes, production: renderProduction, 'production-report': renderProductionReportPage, reports: renderReports, warehouse: renderWarehouse, team: renderTeam };
             if (renderers[state.currentPage]) renderers[state.currentPage]();
       }
 // ====== PAGES ======
@@ -2195,6 +2198,9 @@ function exportProductionReportCsv() {
   link.href=url; link.download='vyrobnytstvo_'+(range.from||'all')+'_'+(range.to||'all')+'.csv';
   document.body.appendChild(link); link.click(); link.remove();
   setTimeout(function(){URL.revokeObjectURL(url);},1000);
+}
+function renderProductionReportPage() {
+  document.getElementById('page-content').innerHTML = renderProductionReport();
 }
 function renderProductionReport() {
   var range=productionReportDateRange();
