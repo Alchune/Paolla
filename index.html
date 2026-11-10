@@ -2156,7 +2156,7 @@ function productionReportRows(from, to, model) {
 }
 function productionReportDateRange() {
   var today = warehouseCalendarDate(Date.now());
-  return {from:window._prodReportFrom || today.slice(0,7)+'-01', to:window._prodReportTo || today};
+  return {from:window._prodReportFrom === undefined ? today.slice(0,7)+'-01' : window._prodReportFrom, to:window._prodReportTo === undefined ? today : window._prodReportTo};
 }
 function setProductionReportField(field, value) {
   if (field === 'from') window._prodReportFrom = value;
