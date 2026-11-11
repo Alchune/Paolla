@@ -30,9 +30,15 @@ nav{flex:1;padding:12px 0;overflow-y:auto}
 .avatar{width:32px;height:32px;background:linear-gradient(135deg,#6e40c9,#1f6feb);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:white}
 /* Main */
 .main{flex:1;min-width:0;margin-left:240px;display:flex;flex-direction:column;min-height:100vh}
-.menu-toggle{display:none;background:none;border:none;color:var(--text);font-size:22px;line-height:1;cursor:pointer;padding:0 4px 0 0}.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:90}.sidebar-overlay.open{display:block}.topbar{background:var(--sidebar);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.menu-toggle{display:none;background:none;border:none;color:var(--text);font-size:22px;line-height:1;cursor:pointer;padding:0 4px 0 0}.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:90}.sidebar-overlay.open{display:block}.topbar{background:var(--sidebar);border-bottom:1px solid var(--border);padding:0 24px;height:56px;min-height:56px;flex-shrink:0;gap:12px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
 .page-title{font-size:16px;font-weight:600}
-.topbar-actions{display:flex;align-items:center;gap:12px}
+.topbar-heading{display:flex;align-items:center;gap:12px;min-width:0}
+.topbar-heading .page-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topbar-actions{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.topbar-actions .btn{white-space:nowrap}
+#topbar-new-order[hidden]{display:none}
+@media(max-width:900px){.topbar-actions #warehouse-name{display:none}}
+@media(max-width:600px){.topbar{gap:8px}.topbar-heading,.topbar-actions{gap:8px}.topbar-actions .btn{padding-left:10px;padding-right:10px}}
 .content{padding:24px;flex:1}
 /* Cards */
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
@@ -353,11 +359,12 @@ tbody tr:last-child td{border-bottom:none}
 
 <main class="main">
 <div class="topbar">
-<div style="display:flex;align-items:center;gap:12px">
+<div class="topbar-heading">
 <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Меню">☰</button>
 <div class="page-title" id="page-title">Дашборд</div>
 </div>
 <div class="topbar-actions">
+<button type="button" class="btn btn-primary" id="topbar-new-order" onclick="openOrderModal()" hidden>+ Наряд</button>
 <span style="font-size:12px;color:var(--text2)" id="warehouse-name">Склад</span>
 <button class="btn btn-secondary btn-sm" onclick="logoutUser()">Вийти</button>
 </div>
@@ -595,6 +602,7 @@ function navigate(page) {
   if (navEl) navEl.classList.add('active');
   const titles = { dashboard: 'Дашборд', products: 'Товари', incoming: 'Прихід товарів', outgoing: 'Видаток товарів', inventory: 'Залишки', orders: 'Наряди', clients: 'Контрагенти', recipes: 'Рецепти', production: 'Виробництво', 'production-report': 'Звіти виробництва', reports: 'Звіти та статистика', warehouse: 'Склади', team: 'Команда', profile: 'Профіль' };
   document.getElementById('page-title').textContent = titles[page] || page;
+  document.getElementById('topbar-new-order').hidden = page !== 'orders';
   const renderers = { dashboard: renderDashboard, products: renderProducts, incoming: renderIncoming, outgoing: renderOutgoing, inventory: renderInventory, orders: renderOrders, clients: renderClients, recipes: renderRecipes, production: renderProduction, 'production-report': renderProductionReportPage, reports: renderReports, warehouse: renderWarehouse, team: renderTeam };
   if (renderers[page]) renderers[page]();
 }
@@ -1723,7 +1731,7 @@ function renderOrders() {
   filtered = filtered.slice().sort(function(a,b){return String(a.number||'').localeCompare(String(b.number||''),undefined,{numeric:true,sensitivity:'base'});});
       var catOpts = cats.map(function(c){return '<option value="'+c+'" '+(filterCat===c?'selected':'')+'>'+c+'</option>';}).join('');
   var modelOpts = models.map(function(m){return '<option value="'+m+'" '+(filterModel===m?'selected':'')+'>'+m+'</option>';}).join('');
-  var html = '<div class="page-header"><h2>📋 Наряди</h2><button class="btn" onclick="openOrderModal()">+ Наряд</button></div>';
+  var html = '<div class="page-header"><h2>📋 Наряди</h2></div>';
   html += '<div class="table-search" style="margin-bottom:12px"><input class="search-input" placeholder="\uD83D\uDD0D \u041F\u043E\u0448\u0443\u043A \u043D\u0430\u0440\u044F\u0434\u0443 (\u043D\u043E\u043C\u0435\u0440, \u043A\u043E\u043D\u0442\u0440\u0430\u0433\u0435\u043D\u0442, \u0442\u043E\u0432\u0430\u0440)..." value="'+(window._orderSearch||'')+'" oninput="window._orderSearch=this.value;renderOrders()"></div>';
   html += '<div class="form-row" style="margin-bottom:12px;gap:8px">';
   html += '<select class="form-select" style="flex:1" onchange="window._orderFilterModel=this.value;renderOrders()"><option value="">— Всі моделі —</option>'+modelOpts+'</select>';
